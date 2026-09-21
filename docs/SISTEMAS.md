@@ -1,0 +1,841 @@
+# Sistemas — las reglas del juego
+
+Qué juego estamos construyendo. Éste es **el documento de diseño
+definitivo**: cuando una regla se discuta, gana lo que ponga aquí.
+
+No confundir con [ORIGINAL.md](ORIGINAL.md), que dice cómo es *The
+Reincarnation*. Este documento dice cómo es **el nuestro**, y cada regla
+lleva su procedencia:
+
+| Marca | Significa |
+|---|---|
+| **[orig]** | Confirmado en el original. La fuente está en [ORIGINAL.md](ORIGINAL.md); si cambias la regla, **di que te separas del original y por qué**. |
+| **[nuestro]** | Decisión de diseño nuestra, con su porqué escrito. El original no lo documenta, o lo documenta y hemos decidido otra cosa. |
+| **[abierto]** | Sabemos la forma, falta el número. Se cierra con `/spec`, no improvisando al implementar. |
+
+Y su fase, de [ROADMAP.md](../ROADMAP.md): **[F1]** reino, **[F2]**
+magia, **[F3]** guerra, **[F4]** mundo, **[F5]** temporada.
+
+---
+
+## 1. El bucle
+
+**[orig]** El juego se juega en **sesiones cortas y repetidas**: entras,
+gastas los turnos que se te han acumulado, decides en qué, y te vas. El
+eslogan del original —*15 minutos al día*— es la especificación, no el
+marketing.
+
+De ahí sale todo lo demás. **Los turnos se acumulan hasta un tope**: si
+no entras, los desperdicias. Eso es lo que te hace volver, y es también
+lo que impide que jugar 14 horas seguidas sirva de algo.
+
+Una sesión típica:
+
+1. Miras cuántos turnos tienes y qué ha pasado mientras no estabas
+   (la crónica: quién te atacó, qué se terminó de investigar).
+2. Decides el reparto: construir, reclutar, explorar, investigar, cargar
+   maná, o atacar.
+3. Gastas. Te vas.
+
+**La decisión central del juego es en qué gastas el turno**, y todas las
+demás reglas existen para que esa decisión sea difícil.
+
+---
+
+## 2. Turnos **[F1]**
+
+**[orig]** El turno es la moneda de acción. Se acumula con el reloj, hasta
+un tope. Todo lo demás se produce **al gastarlo**, nunca con el reloj.
+
+**[nuestro]** Nuestro servidor de referencia se llama **Terra** y va a
+**1 turno cada 10 minutos, con 180 acumulables** — los valores del
+servidor *Guild* del original, que es el punto medio entre entrar dos
+veces al día y tener que vivir pendiente. Un mago dormido 30 horas llega
+al tope; a partir de ahí desperdicia.
+
+**[nuestro]** La cadencia y el tope son **configuración del servidor**,
+no constantes del código: la fase 5 abre varios servidores a velocidades
+distintas, como el original, y el entorno de desarrollo corre a una
+velocidad acelerada para no esperar.
+
+**[orig]** Qué gasta turnos: construir, demoler, explorar, investigar,
+cargar maná (*M.P. charge*), cargar geld (*gelding*), lanzar hechizos con
+*cast turn*, y atacar.
+
+**[orig]** Qué **no** gasta turnos: fijar un reclutamiento (la tropa llega
+sola durante los turnos siguientes), mirar cualquier pantalla, y usar un
+item fuera de batalla.
+
+**[orig]** **Los turnos son un objetivo militar.** Hay items que destruyen
+turnos del enemigo (*Voodoo Doll*: 2-8). Cualquier diseño que dé turnos
+por dinero real rompe el juego entero; queda declarado fuera de alcance
+en §16.
+
+---
+
+## 3. Tierra **[F1]**
+
+**[orig]** La tierra se mide en **acres** y es el recurso maestro: casi
+todos los efectos del juego se calculan como **porcentaje de tu tierra**,
+no como número absoluto. Un mago con 200 forts y 1.000 acres está
+defendido; con 200 forts y 100.000 acres, no.
+
+**[orig]** Se consigue de dos maneras:
+
+- **Explorando**, que gasta turnos, es seguro, y **rinde cada vez menos
+  cuanto más grande eres**.
+- **Atacando** a otro mago **[F3]**. A partir de cierto tamaño es la
+  única vía que sigue creciendo, y ése es el motor del PvP.
+
+**[nuestro]** La curva de exploración. El original no publica la
+función, pero sí sus extremos medidos
+([ORIGINAL.md §4.1](ORIGINAL.md)): **18-26 acres por turno** empezando
+con 200 acres, **0-1 al final**, y tope de **3.500 acres** en algunos
+servidores. La curva más simple que pasa por los tres puntos:
+
+```
+acres por turno = redondeo( 22 × (1 − tierra / 3500) )     mínimo 0
+```
+
+Con 200 acres da **21 por turno**, dentro del rango medido de 18-26; con
+1.250 da 14; con 3.000 da 3; con 3.400 da 1; en 3.500 se acabó. **El
+tope de 3.500 lo adoptamos**: es lo que obliga a que crecer más allá
+tenga que ser atacando, que es el motor del PvP (§9).
+
+**[nuestro]** Un acre está **libre** o tiene **un edificio**. No hay
+edificios a medias en el mapa: lo que está en construcción es un contador
+aparte que se resuelve al gastar turnos (§4).
+
+---
+
+## 4. Edificios **[F1]**
+
+**[orig]** Los ocho, y **no hay más**. La lista es cerrada; cualquier
+edificio nuevo es un cambio de diseño, no una adición.
+
+| Edificio | Qué hace |
+|---|---|
+| **Farms** | Producen comida. Sin comida no se sostiene ni la población ni el ejército. |
+| **Towns** | Alojan población y generan geld. |
+| **Nodes** | Producen maná y lo **almacenan**: 1.000 cada uno. |
+| **Workshops** | Aceleran toda la construcción, **incluida la de más workshops**. |
+| **Barracks** | Permiten reclutar y fijan la velocidad de reclutamiento. |
+| **Guilds** | Investigan hechizos, generan puntos de habilidad y generan items. Mantenimiento caro. |
+| **Fortresses** | Bonus defensivo. **Con 0 forts, el mago muere.** |
+| **Barriers** | Resistencia a magia e items enemigos. Upkeep de maná alto. |
+
+### 4.1. Velocidad de construcción
+
+**[orig]** Depende solo de los workshops. Con `W` workshops y
+`base = (W / 10) + 0,1`, por turno se construyen:
+
+| Edificio | Por turno |
+|---|---|
+| Farms, Barracks | `base × 2` |
+| Workshops | `base` |
+| Guilds | `base / 2` |
+| Towns, Nodes | `base / 3` |
+| Fortresses | `base / 30` |
+| Barriers | **1, siempre** |
+
+**[orig]** De ahí sale que **299 workshops construyen un fort por turno**.
+
+**[nuestro]** Las fracciones **se acumulan entre turnos**, no se pierden.
+Si un turno te deja 10,5 nodes, el medio node se guarda. El original
+premia al jugador que sabe combinar edificios en un turno para no
+desperdiciar la fracción; guardarla es más justo y no quita la decisión
+interesante, que es el reparto.
+
+**[nuestro]** **Demoler** cuesta turnos y no devuelve geld. Libera el
+acre inmediatamente.
+
+### 4.2. Coste y mantenimiento
+
+**[nuestro]** La wiki no publica ni el coste en geld ni el
+mantenimiento. Pero **sí publica el tiempo de construcción**, y resulta
+que la «proporción de referencia» del original
+(`1 fort = 10 nodes/towns = 15 guilds = 30 workshops = 60 farms/barracks`)
+**es exactamente esa tabla de tiempos normalizada**
+([ORIGINAL.md §4](ORIGINAL.md)). Así que el coste en geld sigue la misma
+proporción: si un edificio costara caro en tiempo y barato en geld,
+habría dos escaseces distintas tirando en direcciones distintas, y el
+reparto dejaría de ser una sola decisión.
+
+| Edificio | Coste (geld) | Mantenimiento (por turno) |
+|---|---|---|
+| Farm, Barracks | 1.000 | 5 geld |
+| Workshop | 2.000 | 5 geld |
+| Guild | 4.000 | **15 geld** |
+| Town, Node | 6.000 | 5 geld (town) / 6 geld (node) |
+| Fortress | 60.000 | 100 geld |
+| Barrier | 10.000 | 20 geld **+ 50 maná** |
+
+**Qué escala producen, comprobado el 2026-09-21.** Un mago de 5.000
+acres con el reparto que recomiendan las guías del original —2.250 nodes
+(45%), 1.000 guilds, 300 workshops, 20 forts, 125 barriers (2,5%), y el
+resto en 979 farms y 326 towns (3:1)— sale así:
+
+| | |
+|---|---|
+| Construirlo entero | **23,5 millones de geld** |
+| Mantenimiento | **41.025 geld/turno** + 6.250 maná/turno |
+| Población máxima | **97.800** |
+| Ingreso de geld | **86.100/turno**, **45.100 netos** |
+| Ingreso de maná | **14.625/turno**, con almacén de 2.250.000 |
+
+Dos comprobaciones contra el original, y **ninguna de las dos es
+redonda**, que es lo honesto:
+
+- Una guía veterana recomienda tener *«around 30 mils»* de geld guardado
+  a ese tamaño ([ORIGINAL.md §4.1](ORIGINAL.md)). Nuestro coste de
+  construcción entero son 23,5 millones: **el mismo orden de magnitud,
+  un 20% por debajo**. No cuadra al céntimo y no debería pretenderlo —
+  una es una reserva y otra un coste—, pero descarta que estemos a un
+  factor 10 de distancia, que es el error que de verdad importa.
+- El maná: 14.625 por turno con 2,25 millones almacenados. Un *Summon
+  Unicorn* cuesta 30.000 (§7), o sea **dos turnos de
+  ingreso**. En el original una invocación grande es un gasto que se
+  nota pero no arruina, y eso es lo que sale.
+
+Los 45.100 geld netos por turno son lo que tiene que sostener el
+ejército. Si al poner los números de las unidades (fase 3) resulta que
+eso da para mucho menos de las 10.000-20.000 unidades que documenta el
+original, **el que está mal es este cuadro**, no el ejército.
+
+Guilds y barriers son **deliberadamente caros de mantener**, como en el
+original: son los dos edificios que la wiki describe con mantenimiento
+alto, y es lo que impide tener 1.600 guilds y un ejército a la vez.
+
+**[abierto]** Estos siete números son **una primera tirada**. Se
+calibran con la simulación de temporada, no discutiéndolos: ver los
+criterios de aceptación en §17.
+
+### 4.3. Topes de efectividad
+
+**[orig]** Construir más de la cuenta **no suma**, y en algunos casos
+resta:
+
+- **Barriers**: máximo **75% de resistencia**, alcanzado al **2,5%** de
+  la tierra. Por encima, solo pagas upkeep.
+- **Fortresses**: el bonus aparece por encima del **0,67%** de la tierra
+  y es **máximo al 2,33%**.
+
+---
+
+## 5. Economía **[F1]**
+
+Todo se produce **por turno gastado**, no con el reloj.
+
+### 5.1. Cómo rinde un edificio
+
+> **Corrección del 2026-09-21.** Este apartado decía antes que el
+> decrecimiento era una curva suave con el máximo en el 30%, y que la
+> forma era `(umbral/ratio)²`. **Era una invención mía**, deducida de una
+> sola frase del *Beginner's Guide*. Al ampliar la investigación apareció
+> la fórmula publicada, y no se parece: es una **sierra**, y el máximo
+> está en el **55,99%**. Queda sustituida.
+
+**[orig]** El maná tiene fórmula publicada, y la copiamos exacta
+([ORIGINAL.md §3.1](ORIGINAL.md), confianza alta). Con `N` nodes y `L`
+acres:
+
+```
+X = floor(100 · N / L)
+maná por turno = X·L/100 + N·(100−X)/10
+```
+
+Lo que esto hace, y es el corazón de la decisión económica del juego:
+
+- **Dentro de cada punto porcentual, cada node nuevo suma.**
+- **Pero el node que hace subir el porcentaje entero puede restar.** El
+  salto al cruzar al `k`% vale `L·(10−k)/1000 + (101−k)/10`. Por eso el
+  óptimo local está siempre en `k−1,99%`: el último node antes de cruzar.
+- **La sierra muerde según lo grande que seas.** Con 200 acres el primer
+  cruce que resta es el 41%; con 1.000 es el 19%; con 10.000 o más, el
+  11%. Nadie lo dice en ninguna regla: sale de la fórmula. **La
+  dificultad crece con el jugador**, y ése es el motivo más fuerte para
+  copiarla exacta en vez de suavizarla.
+- **El máximo global está en ~56%** a cualquier tamaño (55,50% con 200
+  acres, 55,99% con 10.000).
+
+**[nuestro]** **Lo copiamos con sus saltos, y la interfaz no resuelve el
+puzle por ti** (decisión del 2026-09-21). Encontrar el filo del
+porcentaje es una habilidad del juego, no un defecto que haya que pulir.
+Lo que la interfaz sí hace es no mentir: te enseña cuántos nodes tienes,
+qué porcentaje es y cuánto maná neto te entra — pero no te dice dónde
+está el óptimo ni te ofrece ajustarlo. Ver
+[INTERFAZ.md §1](INTERFAZ.md).
+
+**[nuestro]** **Los demás edificios no llevan sierra.** Solo el maná
+tiene fórmula publicada, y replicar la sierra en geld y comida «por
+simetría» sería inventarse tres mecánicas difíciles a partir de una. El
+freno de los demás es otro y ya existe: **la tierra es finita**, así que
+subir el porcentaje de towns baja el de farms, y eso ya limita la
+población sin necesidad de una penalización artificial (§5.3, §5.4).
+
+### 5.2. Maná **[orig]**
+
+Lo producen **solo los nodes**, con la fórmula de §5.1. **El almacén es
+el propio edificio**: **1.000 de maná por node**, y lo que sobra se
+pierde. Querer guardar más maná significa construir más nodes, lo que a
+su vez te empuja contra la sierra. Paga lanzamientos, encantamientos,
+barriers y el upkeep de las unidades mágicas.
+
+### 5.3. Geld **[orig]** la forma, **[nuestro]** los números
+
+**[orig]** Lo producen towns y farms en función de **la población** y del
+**porcentaje de tierra dedicado a towns**: más gente produce más, y más
+porcentaje de towns produce más *por persona*. **Sin límite de
+almacenamiento.** Paga el mantenimiento de los edificios, el upkeep de
+buena parte del ejército, y el reclutamiento.
+
+**[nuestro]** Los coeficientes no están publicados. Primera tirada:
+
+```
+geld por turno = población × (0,75 + 2 × %towns)
+```
+
+con `%towns` en tanto por uno. **Sin sierra ni penalización**: el freno
+es que cada town es un acre que no es farm, y las farms son las que
+sostienen la población que produce el geld (§5.1).
+
+### 5.4. Población y comida **[orig]** la forma, **[nuestro]** los números
+
+**[orig]** La población crece **≈ 1,5% + 50 por turno**, se frena al
+acercarse al máximo, y llega a cero o a negativo si se pasa. Vive en las
+**towns**; la alimentan las **farms**. **Las unidades consumen
+población**: ocupan espacio, y algunas tienen upkeep en población. Y
+**las unidades comen antes que los civiles**: cuando falta comida, quien
+se muere es la población.
+
+**[nuestro]** Dos topes, y manda el menor de los dos:
+
+```
+espacio = towns × 300
+comida  = farms × 100
+población máxima = min(espacio, comida) − espacio ocupado por el ejército
+```
+
+**De dónde salen esos dos números.** De que la wiki recomienda mantener
+farms y towns en proporción **≈3:1**
+([ORIGINAL.md §4.1](ORIGINAL.md)): con 300 y 100, los dos topes se
+igualan exactamente en 3 farms por town. Es decir, los coeficientes están
+elegidos para que **la proporción que el original recomienda sea la que
+sale sola**, en vez de ser un consejo que el jugador tiene que leer en
+una guía.
+
+### 5.5. Carga **[orig]**
+
+Un turno se puede gastar en **M.P. charging** (duplica el maná que los
+nodes producirían ese turno) o en **gelding** (duplica el geld del
+turno). Es la válvula que permite salvar un upkeep que se te va de las
+manos.
+
+### 5.6. Colapso **[orig]**
+
+Quedarse a cero **no es lo mismo en cada recurso**, y esto es diseño, no
+detalle:
+
+| A cero | Qué pasa |
+|---|---|
+| **Maná** | Stacks de unidades se disuelven **al azar**, los encantamientos se caen, las barriers se deshacen. |
+| **Población** | Stacks se disuelven y el ingreso de geld se hunde durante mucho tiempo. |
+| **Geld** | Las unidades desertan, se pierden edificios, y **los forts se reducen a la mitad cada turno**, sin recuperarse. |
+
+**[nuestro]** El colapso **se resuelve al gastar el turno**, nunca por
+sorpresa entre sesiones: el jugador siempre ve venir el ingreso negativo
+en la pantalla del reino (ver [INTERFAZ.md](INTERFAZ.md)) antes de que le
+pase. Que el juego sea duro no significa que sea opaco.
+
+**[nuestro]** Qué stack se disuelve al azar sale del `RandomSource` con
+semilla, como todo ([ARQUITECTURA.md §5](ARQUITECTURA.md)): el jugador
+puede ver en la crónica por qué perdió justo ése.
+
+### 5.7. Net Power — cuánto vale cada cosa **[orig]** **[F4 como ranking, desde F1 como ancla]**
+
+**[orig]** El original publica la fórmula completa de su ranking
+([ORIGINAL.md §3.2](ORIGINAL.md), confianza alta), y **la adoptamos tal
+cual**: 1.000 por acre, 19.360 extra por fortress, 6.500 extra por
+barrier, 0,05 por maná almacenado, 0,02 por habitante, 0,0005 por geld,
+1.000 por nivel de hechizo, 1.000 por lesser item, 100.000 por unique,
+10.000 por aliado y 10.000 por nivel de héroe, más el ejército.
+
+**Por qué importa ya en la fase 1, aunque el ranking sea de la fase 4.**
+Esta tabla es **el propio original diciendo cuánto vale cada recurso
+frente a los demás**: 1 maná = 100 geld, 1 habitante = 40 geld, 1 acre =
+20.000 maná. Cualquier número que inventemos nosotros —un coste de
+edificio, un ingreso, un upkeep— se comprueba contra ella. Es lo que
+convierte «me he inventado un precio» en «he deducido un precio».
+
+**[abierto]** El coeficiente de poder de cada unidad. Se cierra con la
+spec del combate, en la fase 3.
+
+---
+
+## 6. Escuelas de magia **[F2]**
+
+**[orig]** Seis especialidades. Cinco colores con identidad, más
+**Plain**, que es la magia neutra que todos pueden usar. El mago elige la
+suya al crearse y **no la cambia durante la temporada** **[nuestro]** —
+si pudiera, no habría identidad que defender.
+
+| Escuela | Color | Identidad | Adyacentes | Opuestas |
+|---|---|---|---|---|
+| **Ascendant** | Blanco | Defensiva. Ángeles, unicornios, espíritus astrales. | Phantasm, Verdant | Nether, Eradication |
+| **Verdant** | Verde | Naturaleza. Treefolk, elfos, animales. Flexible, muy dependiente del maná. | Ascendant, Eradication | Nether, Phantasm |
+| **Eradication** | Rojo | Agresiva. Dragones, elementales, reptiles. Sus unidades comen población. | Nether, Verdant | Ascendant, Phantasm |
+| **Nether** | Negro | Poder a un precio. Demonios y no-muertos. Exige población y maná. | Eradication, Phantasm | Ascendant, Verdant |
+| **Phantasm** | Azul | Tramposa. Unidades mágicas y psíquicas, y la mayor variedad de hechizos. | Nether, Ascendant | Verdant, Eradication |
+| **Plain** | — | Neutra y de utilidad. | — | — |
+
+**[orig]** **La rueda no es decoración: decide qué puedes aprender** (§7).
+
+---
+
+## 7. Hechizos **[F2]**
+
+**[orig]** Cinco rangos: **Simple, Average, Complex, Ultimate, Ancient**.
+
+**[orig]** Quién puede aprender qué:
+
+- **Simple** y **Average**: todos.
+- **Complex**: tu escuela y las **adyacentes**.
+- **Ultimate**: **solo la tuya**.
+- **Ancient**: no se investigan. Solo en el **mercado negro** **[F4]**.
+
+Consecuencia: **Phantasm llega a todo**, y por eso alcanza el nivel de
+hechizo más alto. Es su identidad, y está equilibrado por ser la escuela
+sin unidades dominantes.
+
+**[orig]** Cada hechizo tiene **cuatro costes**, y son cuatro decisiones
+distintas: **Research Cost** (investigarlo), **Cast Turn** (turnos que
+tarda en completarse), **Cast M.P.** (maná al lanzarlo) y **Upkeep Cost**
+(mantenimiento continuo, si lo tiene).
+
+**[orig]** **Investigar** depende del número de **guilds**. Avanza sola
+mientras haces otras cosas y se acelera dedicándole turnos. **No se puede
+tener más de una copia de un hechizo.**
+
+**[orig]** **Nivel de hechizo**: investigar lo sube, y sube más con lo
+difícil — **+20** Ultimate, **+7** Complex, **+3** Average, **+1**
+Simple. El nivel mejora la probabilidad de éxito, sobre todo fuera de tu
+color.
+
+**[orig]** **Lanzar cuesta maná aunque falles.** Lanzar algo complejo
+fuera de tu escuela puede fallar por concentración.
+
+**[orig]** **Encantamientos**: upkeep continuo, propios u ofensivos.
+Varios distintos a la vez, **nunca el mismo dos veces**.
+
+**[abierto]** La **lista concreta de hechizos** por escuela y rango con
+sus cuatro costes. Es el trabajo de contenido más grande del proyecto y
+va en `packages/content`. Empezamos por **Plain + una escuela completa**
+para poder jugar la fase 2 antes de tener las seis.
+
+**[nuestro]** Referencia de escala, del único hechizo con ficha pública
+del original: *Summon Unicorn*, Ascendant, Complex — 4 cast turns, 30.000
+de maná, 2.500 de investigación, sin upkeep, invoca **887-1010**
+unicornios. Los números de este juego son **grandes**: decenas de miles
+de maná y cientos de unidades por invocación. No lo diseñes a escala de
+decenas.
+
+---
+
+## 8. Unidades **[F2 invocar / F3 combatir]**
+
+**[orig]** Dos vías, y son dos economías distintas:
+
+- **Reclutar** en los **barracks**, pagando **geld**: tropa básica
+  (militia, phalanx, pikemen, archers, cavalry). **No cuesta turnos**,
+  pero la tropa **llega poco a poco** durante los turnos siguientes, y
+  **solo se recluta un tipo a la vez**. Exige ingreso positivo de maná y
+  población, espacio de población y comida.
+- **Invocar** con hechizos de tu escuela, pagando **maná**. Llega de
+  golpe, en cientos.
+
+**[orig]** Toda unidad **ocupa espacio de población** y tiene **upkeep**,
+en geld o en población según el tipo.
+
+**[orig]** La ficha: ataque primario con su **tipo de daño**, ataque
+extra, y **habilidades** — *Marksmanship, Additional Strike, Bursting,
+Siege, Endurance, Scales, Large Shield, Pike, Healing, Charm, Beauty,
+Steal Life, Fear, Flying, Swift, Regeneration, Piercing, Paralyze,
+Clumsiness*—, modificadores de velocidad de reclutamiento, y
+**debilidades** a tipos de daño concretos.
+
+**[abierto]** Los números **de combate**: ataque, defensa, HP e
+iniciativa. La wiki no los publica, y son de la fase 3.
+
+### 8.1. La mitad económica de una unidad **[nuestro]** **[F1]**
+
+Cerrado el **2026-09-21** al implementar la fase 1: reclutar es de la
+fase 1, así que **coste, upkeep, espacio y ritmo** hacían falta ya. Lo de
+combate sigue abierto arriba.
+
+**De dónde salen.** Del ancla del original: un mago del turno 120, con
+~1.250 acres, sostiene **10.000-20.000 unidades**
+([ORIGINAL.md §4.1](ORIGINAL.md), confianza alta). Con los números de
+§4.2, ese mago tiene **25.800 de geld neto por turno**; un upkeep medio
+de **2 geld por unidad** deja el ejército sostenible en **12.900**,
+dentro de la banda documentada. Ése es el número que fija la escala; los
+demás se reparten alrededor.
+
+| Unidad | Coste | Upkeep | Espacio | Por turno y barracks |
+|---|---|---|---|---|
+| Milicia | 60 | 1 | 1 | 5 |
+| Falange | 100 | 2 | 1 | 3 |
+| Piqueros | 120 | 2 | 1 | 3 |
+| Arqueros | 150 | 2 | 1 | 2 |
+| Caballería | 250 | 4 | 2 | 1 |
+
+**[orig]** Las cinco son tropa de barracks y **no tienen escuela**
+(`plain`): docs/ORIGINAL.md §7, confianza alta.
+
+**[abierto]** Como los de §4.2, son **primera tirada** y se calibran con
+el simulador (§17.2), no discutiéndolos. Lo barato y lo caro tienen que
+seguir siendo decisiones distintas cuando existan los números de combate:
+si la caballería acaba siendo estrictamente mejor por punto de upkeep, la
+tabla está mal.
+
+**[nuestro]** **Las habilidades son datos, no casos especiales en el
+código.** Una habilidad nueva es una entrada en el catálogo y una regla
+en el resolutor, no un `if` con el nombre de la unidad.
+
+---
+
+## 9. Combate **[F3]**
+
+**[orig]** Tres tipos de ataque, y son tres decisiones distintas:
+
+| | Qué es | Victoria | Tierra |
+|---|---|---|---|
+| **Regular** | Campo abierto, sin penalización de asedio. | Derrotar ≥**10%** del ejército enemigo perdiendo menos que él. | Hasta el **5%**. **2,5 supervivientes por acre** para el máximo. Solo destruye forts si son mucha parte de su tierra. |
+| **Siege** | Asedio. Las unidades **no voladoras sin habilidad *Siege* penalizan**, y el defensor cobra más bonus de fort. | Igual, **10%**. | Hasta el **10%**; el atacante se queda **un tercio** de lo destruido. **5 supervivientes por acre**. Destruye y captura forts. |
+| **Pillage** | Saqueo de todo o nada. Roba geld, población e items; quema farms, towns, workshops y guilds. | Depende del **net power**, no del número. | Ninguna. Quema **hasta 100 acres**. Sin coste de batalla. |
+
+**[orig]** **Atacar cuesta el upkeep de TODO tu ejército** antes de
+resolver. Atacar sin poder pagarlo te hunde aunque ganes.
+
+**[orig]** **Solo se puede pillar** a magos dentro del **50%** de tu net
+power. Fuera de Armageddon.
+
+**[orig]** **Cómo se resuelve:**
+
+1. Los stacks se **ordenan** por `ataque × número de unidades`, con
+   **voladores ×3/2** (promoción) y **a distancia ×2/3** (resguardo).
+2. Golpea primero quien tiene más **iniciativa**, escala **0-7**. La 0 no
+   ataca, solo contraataca. A igualdad, orden aleatorio.
+3. **El daño se arrastra**: se acumula hasta matar unidades enteras.
+4. Modifican: hechizos, items, **bonus de fort**, encantamientos,
+   habilidades y resistencias, y **fatiga** (una unidad rinde menos
+   después de atacar).
+
+**[abierto]** La **fórmula de daño y de acierto**, el cálculo de fatiga y
+la curva del bonus de fort. No están publicadas. Es la spec más
+importante de la fase 3 y **no se improvisa al implementar**.
+
+**[nuestro]** **Toda batalla guarda su semilla** y es reproducible exacta
+([ARQUITECTURA.md §5](ARQUITECTURA.md)). El jugador puede ver la
+repetición ronda a ronda, no solo el resultado. En un juego donde perder
+un ejército cuesta días, «te han ganado» sin poder ver por qué es
+inaceptable.
+
+**[orig]** **Assignment**: el mago fija de antemano qué hechizos e items
+se disparan solos al ser atacado, según el porcentaje de ejército
+enemigo. **En defensa no se puede bloquear.**
+
+---
+
+## 10. Héroes **[F4]**
+
+**[orig]** **El héroe de mayor nivel lidera tu stack más potente**, y así
+hacia abajo. Prefieren unidades de su raza y color, y cuando las lideran
+dan un **bonus de eficiencia igual a su nivel en puntos porcentuales**.
+Mueren si su stack es aniquilado y queda daño para superar sus HP.
+
+**[orig]** Ganan experiencia por turno y por liderar. Subir de nivel
+cuesta **1.000 × nivel actual**. Los comprables empiezan en **nivel 8**;
+las habilidades llegan a partir del 9, normalmente **dos**: una entre 8 y
+10, otra entre 13 y 17.
+
+**[orig]** Se consiguen en la **taberna** del mercado negro, por favor
+divino, o con items concretos.
+
+---
+
+## 11. Items **[F4]**
+
+**[orig]** Se generan solos al gastar turnos, a un ritmo que depende del
+**% de guilds sobre tu tierra**; se compran en el mercado negro; salen de
+otros items; se roban **pillando**; o los traen hechizos.
+
+**[orig]** **Lesser items**, acumulables sin límite salvo un par con tope
+de 3, y **unique items**, raros y con efecto propio.
+
+**[orig]** Tres usos: **fuera de batalla** con efecto inmediato, **por
+assignment** al defenderse, y **en combate**.
+
+**[orig]** Escala de referencia, de items reales: *Bubble Wine* +10% de
+ataque y **+30% de HP**; *Potion of Valor* +20% de ataque; *Ash of
+Invisibility* pone la iniciativa a 6; *Strange Metallic Can* resucita el
+**25%** de tus bajas. **Un item bueno cambia una batalla**, y ése es su
+sitio en el diseño.
+
+---
+
+## 12. Habilidades **[F4]**
+
+**[orig]** **10 habilidades de 20 niveles.** Llegar al 20 cuesta **210
+puntos** acumulados (1 el primer rango, 20 el vigésimo).
+
+- **De especialidad** (cuestan **el doble** fuera de tu color):
+  *Legendary Artificer, Animal Mastery, Spell Penetration, Undead
+  Mastery, Spell Mastery*.
+- **Neutras**: *Barrier Proficiency, Grand Enchanter, Legendary
+  Commander, Augment Summoning, Grand Conqueror*.
+
+**[orig]** Los puntos se generan según la **raíz cuadrada del número de
+guilds** y la velocidad del servidor. Referencia: 5.000 de tierra con 5%
+de guilds en un servidor rápido da **un punto cada ~34 turnos**.
+
+**[abierto]** El **efecto numérico** de cada habilidad.
+
+---
+
+## 13. Gremios y diplomacia **[F5]**
+
+**[orig]** Un gremio necesita **cinco fundadores**. Se entra por
+solicitud o invitación.
+
+**[orig]** Da: protección frente a los compañeros, listas de miembros y
+enemigos, registros de batalla, y permiso para hablar de táctica por la
+mensajería interna.
+
+**[orig]** **Aliados** (1 o 2 según servidor): mandan **refuerzos
+automáticos** cuando te atacan —salvo sus dos stacks más potentes— y te
+lanzan hechizos **sin que la barrier los frene**. Un compañero de gremio
+que no es aliado **no manda refuerzos**.
+
+**[orig]** **NAP**: compromiso público de no atacarse. **No autoriza a
+compartir táctica.**
+
+**[nuestro]** Las reglas de convivencia del original (un mago por
+servidor y cuenta, agremiados solo con agremiados) son **reglas del
+código**, no normas de foro: si el juego las permite, alguien las usa.
+
+---
+
+## 14. La temporada **[F5]**
+
+**[orig]** El servidor **se reinicia cada ~3 meses** y termina en
+**Armageddon**. La cuenta persiste; el mago se borra. Se gana acabando
+entre los 10 primeros (*Hall of Fame*) o destruyendo el mundo
+(*Destroyer of Terra*).
+
+**[nuestro]** La temporada no es una funcionalidad más: **es lo que hace
+que este juego se pueda jugar más de una vez**, y es la respuesta a que
+un veterano no sea inalcanzable. Está en la fase 5 por coste, no por
+importancia.
+
+**[abierto]** Qué hace exactamente el hechizo **Armageddon** y cómo se
+resuelve el final. El original no lo documenta de forma accesible.
+
+---
+
+## 15. Empezar a jugar **[F1]**
+
+**[orig]** El original publica sus valores de partida
+([ORIGINAL.md §4.1](ORIGINAL.md)) y **los adoptamos**:
+
+| | |
+|---|---|
+| Tierra inicial | **200 acres** |
+| Turnos iniciales | **180** — el almacén lleno |
+| Periodo de protección | **los primeros 120 turnos gastados**: ni atacas ni te atacan |
+
+**[nuestro]** Que los turnos iniciales sean el almacén lleno no es
+casualidad del original: hace que **la primera sesión sea una sesión de
+verdad** y no una espera. Lo mantenemos aunque cambiemos la cadencia del
+servidor.
+
+**[nuestro]** La protección se mide en **turnos gastados, no en tiempo
+real**. Quien juega despacio no pierde su escudo por el calendario, y
+quien quema los 120 turnos el primer día sale a la intemperie
+inmediatamente — que es coherente con que el turno sea la moneda (§2).
+
+**[nuestro]** Edificios de partida sobre esos 200 acres: **45 farms, 15
+towns, 20 nodes, 10 workshops, 10 barracks, 5 guilds, 1 fortress** — 106
+acres construidos y **94 yermos**. Elegidos para tres cosas: que el mago
+arranque con ingreso positivo de los cuatro recursos, que farms y towns
+estén ya en la proporción de equilibrio 3:1 (§5.4), y que **casi la
+mitad de la tierra esté sin construir**, porque decidir en qué la gasta
+es la primera decisión del juego y no se le puede dar hecha.
+
+**[nuestro]** Recursos de partida: **100.000 geld**, **5.000 maná**,
+**4.500 habitantes** — que es a la vez el tope de espacio de 15 towns y
+el de comida de 45 farms, así que empieza justo lleno y con los dos
+límites igualados.
+
+Lo que eso produce por turno, comprobado el 2026-09-21: **200 de maná**
+(20 nodes son el 10% de 200 acres), **4.050 de geld** brutos y **3.355
+netos** tras 695 de mantenimiento, y **~118 habitantes** si hubiera sitio.
+Los 100.000 de geld dan para unos 60 edificios baratos: suficiente para
+que la primera sesión construya de verdad, insuficiente para no tener
+que elegir.
+
+> **El fort inicial no es decorativo.** Con 0 forts el mago muere (§4).
+> Empezar con exactamente uno significa que la primera lección del juego,
+> cuando acabe la protección, es que hay que construir más.
+
+---
+
+## 16. Fuera de alcance, a propósito
+
+Lo que **no** vamos a hacer, y por qué. Un hueco declarado es deuda; uno
+callado es un fallo esperando a una temporada real.
+
+- **Turnos, recursos o ventajas por dinero real.** El turno es el
+  equilibrio entero del juego (§2). Si se compra, no hay juego.
+- **Los dioses y el sistema de favor.** El original los tiene y la wiki
+  no documenta el mecanismo ([ORIGINAL.md §11](ORIGINAL.md)). Inventarlo
+  entero es una fase por sí misma.
+- **Combate táctico sobre un mapa.** Las batallas se resuelven por stacks
+  e iniciativa (§9), sin posiciones. Es lo que permite resolver una
+  batalla de 40.000 unidades en milisegundos y lo que hace que el juego
+  quepa en 15 minutos al día.
+- **Aplicación móvil nativa.** La web tiene que funcionar bien en un
+  móvil ([INTERFAZ.md](INTERFAZ.md)); una app aparte no.
+- **Chat en tiempo real.** Mensajería interna sí **[F5]**; chat no.
+- **Más de ocho edificios o más de seis escuelas.** Las dos listas están
+  cerradas (§4, §6).
+
+> Si lo que echas en falta está en esta lista, **no es un fallo: es una
+> decisión**. Cambiarla es legítimo, pero entonces es una spec nueva
+> (`/spec`), no un parche.
+
+---
+
+## 17. Criterios de aceptación de la economía
+
+**Spec del 2026-09-21.** Los números de §3, §4.2, §5 y §15 están
+**cerrados como primera tirada**: se implementan tal cual y se calibran
+contra estos criterios. Ninguno se ajusta «a ojo» — cada uno tiene aquí
+la comprobación que lo da por bueno.
+
+### 17.1. Lo que tiene que cumplirse siempre (tests del núcleo)
+
+Estos no son de calibración: si fallan, hay un fallo.
+
+1. **La sierra del maná existe.** Con 10.000 acres, un mago con 3.980
+   nodes (39,8%) produce **28.178** de maná por turno y uno con 4.000
+   (40,0%) produce **28.000**. El primero produce más con menos nodes.
+2. **El máximo está en ~56%, y es una meseta.** Implementado el
+   2026-09-21 se midió que **truncar convierte el pico en un empate**:
+   con 10.000 acres rinden lo mismo 54,99% y 55,99% (30.695 los dos), y
+   con 200 acres empatan tres valores (54,50%, 55,50% y 56,50%, a 609).
+   La fórmula exacta sí tiene un único máximo en 55,99%; el redondeo a
+   entero de [ARQUITECTURA.md §9.2](ARQUITECTURA.md) lo aplana.
+
+   **No es un fallo, y de hecho ayuda**: el jugador no tiene que clavar
+   un número exacto de nodes para estar en el pico, lo que hace el
+   «sin ayudas» de [INTERFAZ.md §1](INTERFAZ.md) menos cruel sin quitar
+   la decisión.
+3. **La sierra muerde según el tamaño.** El primer cruce de porcentaje
+   que **resta** maná es el **41%** con 200 acres, el **20%** con 1.000,
+   el **13%** con 3.500 y el **11%** con 10.000 o más. Es una tabla de
+   test, no una regla escrita: si la implementación no la reproduce, la
+   fórmula está mal copiada.
+
+   *(Con 1.000 acres la fórmula exacta daba 19%; el truncamiento lo mueve
+   a 20%. Medido el 2026-09-21.)*
+4. **El almacén son los nodes.** El maná no pasa nunca de `nodes × 1.000`;
+   lo que sobra se pierde y queda anotado como evento.
+5. **La proporción 3:1 sale sola.** Con 3 farms por cada town, el tope
+   de espacio y el de comida son iguales. Con 2:1 manda la comida; con
+   4:1 manda el espacio.
+6. **La exploración muere en 3.500.** A 3.500 acres, explorar da 0 y
+   **no gasta el turno**: el juego no te deja tirar un turno a la basura
+   sin avisar.
+7. **El colapso es en cascada y en orden.** Un mago a cero de geld
+   pierde forts a la mitad por turno; a cero de maná pierde stacks y
+   encantamientos; a cero de población, stacks e ingreso. Los tres se
+   comprueban construyendo el estado, no jugando hasta él.
+8. **Todo en enteros.** Ninguna secuencia de acciones deja un recurso en
+   negativo por redondeo, y el mismo cálculo da el mismo número dos
+   veces.
+
+### 17.2. Lo que se calibra con la simulación de temporada
+
+> **Primera pasada de calibración, 2026-09-21.** El simulador existe
+> (`packages/content/src/simulate.ts`) y **los números aguantan**: no se
+> movió ninguno. Lo que sí cambió es **qué se puede juzgar todavía**, y
+> está anotado criterio por criterio.
+>
+> **Un aviso sobre el instrumento.** La primera versión del simulador
+> elegía qué construir por **déficit absoluto** respecto a la cuota, y
+> con eso se obsesionaba con el edificio de cuota más grande y no
+> construía towns nunca. Daba de todo: población congelada en 4.500 e
+> ingreso neto **negativo** con el reparto que recomiendan las guías del
+> original. **No era el juego: era el simulador.** Con déficit relativo
+> —qué fracción de su cuota le falta a cada uno— los mismos números dan
+> una economía sana. Si vuelves a ver un reparto «imposible», sospecha
+> primero de la estrategia simulada.
+
+Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
+§5.4 se mueven si hace falta:
+
+9. **Nadie gana siempre con el mismo reparto.** ⏸ **No se puede juzgar en
+   la fase 1, y ahora sabemos por qué.** Sin magia y sin combate, el maná
+   **no sirve para nada**, así que el reparto volcado a economía domina a
+   los demás por definición: a 600 turnos da 62.664 de geld neto contra
+   6.309 del volcado a maná. Eso no es un desequilibrio, es que falta
+   medio juego. **Se reevalúa en la fase 3**, cuando el maná compre
+   hechizos y el ejército sirva para tomar tierra.
+
+   Lo que sí se comprobó: **el reparto a maná da más maná y el de
+   economía más geld**, así que las dos decisiones existen y no hay una
+   estrictamente mejor en su propio terreno.
+10. **La curva de crecimiento se parece a la del original.** ✅
+    **Cumple.** Llegar de 200 a **1.250 acres cuesta 61 turnos** de
+    exploración, así que un mago que reparta sus 120 primeros turnos
+    entre explorar y construir cae dentro de los **1.200-1.300 acres**
+    que documenta el original ([ORIGINAL.md §4.1](ORIGINAL.md)).
+    Comprobado con el simulador, que acaba en **1.253**.
+
+    *(Explorando los 120 turnos seguidos se llega a 1.951 acres, por
+    encima de la banda. No es un fallo de la curva: es que ningún jugador
+    real hace eso, porque no tendría con qué explotar la tierra.)*
+11. **El geld no es ni gratis ni asfixiante.** ✅ **Cumple, con el punto
+    de medida corregido.** El reparto de las guías, a 600 turnos y 1.253
+    acres, sostiene **13.636 unidades**: dentro de las 10.000-20.000 del
+    original.
+
+    **Lo que cambió**: este criterio decía «a 5.000 acres», y **5.000
+    acres son inalcanzables en la fase 1** — la exploración se agota en
+    **3.421** (§3), y pasar de ahí exige atacar, que es la fase 3. El
+    cuadro de §4.2 sigue valiendo como comprobación de escala, pero **no
+    como estado alcanzable** hasta que haya PvP.
+12. **Ningún reparto es una trampa.** ✅ **Cumple.** Ninguno de los
+    cuatro repartos simulados —guías, maná, economía, ejército— acaba con
+    ingreso neto negativo de geld ni de maná a 600 turnos. Un reparto
+    puede ser peor que otro; ninguno puede arruinarte por seguirlo.
+13. **Net Power cuadra con la intuición.** ⏸ **Fase 3.** Sin el
+    coeficiente de poder del ejército, el net power de un mago es **~98%
+    tierra**, así que hoy no distingue estrategias. El ancla de §5.7
+    sigue valiendo para calibrar precios; como ranking, se juzga cuando
+    exista el combate.
+
+### 17.3. Fuera del alcance de esta spec
+
+- **Los números de unidades** —ataque, defensa, HP, coste, upkeep— y el
+  coeficiente de poder del ejército en net power. Son la spec del
+  combate, fase 3.
+- **Los costes de los hechizos.** Spec de la magia, fase 2.
+- **El reclutamiento**: cuántas unidades por turno da un barracks. Va con
+  la spec de unidades, porque sin saber qué unidad es no se puede poner
+  el ritmo.
+- **Los modificadores de la fórmula del maná** por items y
+  encantamientos (*Alchemist* −10%, *Moon's Favour* +10%). Fase 2, cuando
+  existan los encantamientos.
+- **Rebalancear después de jugar.** Esta spec cierra la primera tirada.
+  La segunda saldrá de partidas reales, y será otra spec.

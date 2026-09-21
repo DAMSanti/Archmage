@@ -1,0 +1,410 @@
+# Roadmap
+
+El plan por fases, y **«En curso»**: el trabajo vivo.
+
+Los cuatro comandos del embudo (`/spec`, `/plan-tarea`, `/tareas`,
+`/depurar`) usan este fichero como índice. Si algo se está haciendo,
+tiene un bloque en «En curso» que dice **en qué documento está su spec**.
+
+El diseño completo está en [docs/SISTEMAS.md](docs/SISTEMAS.md); las
+fases construyen **capas completas** de ese diseño, no trozos, que es lo
+que evita rehacer la fase 1 en la 3.
+
+---
+
+## En curso
+
+### Economía de la fase 1 — spec escrita, sin implementar
+
+**Spec y criterios de aceptación: [docs/SISTEMAS.md §3, §4.2, §5, §15 y
+§17](docs/SISTEMAS.md).** Escrita el 2026-09-21 con `/spec`.
+
+Qué cerró, y de dónde salió cada cosa:
+
+- **La fórmula del maná resultó estar publicada**, y no se parecía a la
+  que este ROADMAP daba por supuesta. Es una **sierra** con el máximo en
+  **55,99%**, no una curva suave con umbral en el 30%. La versión
+  anterior de `SISTEMAS.md §5.1` era una invención mía a partir de una
+  sola frase; queda corregida y así consta en el propio documento.
+- **Net Power también está publicada**, con coeficientes exactos, y la
+  adoptamos: nos da la tasa de cambio entre recursos y, en la fase 4, el
+  ranking hecho.
+- **El estado inicial estaba documentado** (200 acres, 180 turnos, 120
+  turnos de protección), así que se cerró aquí en vez de necesitar su
+  propia spec.
+- **Lo que sigue siendo nuestro**: coste y mantenimiento de los ocho
+  edificios, ingreso de geld, espacio y comida, curva de exploración y
+  edificios de partida. Todos **deducidos** de anclas del original, no
+  inventados, y todos son **primera tirada a calibrar** contra §17.
+
+Sin tareas todavía: las saca `/plan-tarea` cuando se ataque la fase 1.
+
+**Decisión de diseño que cambió otros documentos.** Se eligió **fidelidad
+sin ayudas**: la sierra se copia con sus saltos y la interfaz **no
+calcula el óptimo**. Eso contradecía a `VISION.md §1` y `INTERFAZ.md §1`,
+que prometían «la hoja de cálculo es nuestro trabajo». Los dos quedan
+corregidos con el principio nuevo: **la interfaz informa, no optimiza**.
+
+---
+
+### Estilo visual — spec escrita, sin implementar
+
+**Spec y criterios de aceptación:
+[docs/INTERFAZ.md §6](docs/INTERFAZ.md)**, y el inventario de arte que se
+deriva de ella en [docs/ASSETS.md](docs/ASSETS.md). Escrita el
+2026-09-21 con `/spec`.
+
+Qué cerró:
+
+- **Pintado y ornamentado**: una ilustración de fondo por pantalla y los
+  datos en paneles enmarcados. **Solo tema oscuro** — `INTERFAZ.md`
+  prometía claro y oscuro, y queda corregido.
+- **Paleta en tokens**, con positivo y negativo **deliberadamente
+  apagados** para no confundirse con Verdant y Eradication.
+- **Los cinco colores de escuela no pintan la interfaz**: solo aparecen
+  donde se habla de una escuela. Es lo que libera el rojo y el verde para
+  señalar estado.
+- **Nether se separa de su color nominal** porque el negro sobre fondo
+  oscuro no se ve: violeta ceniza, y la identidad por forma y reborde.
+- **Cifras tabulares obligatorias** en toda columna de números.
+- **Nueve criterios de aceptación**, la mayoría automatizables sobre los
+  tokens sin abrir el navegador.
+
+**El riesgo, declarado.** Se eligió pintado sabiendo que una ilustración
+de fondo estorba a un juego de leer números densos. Por eso §6.5 y §6.6
+son sobre todo restricciones —paneles opacos, nada de texto sobre la
+imagen, la interfaz entera funciona sin ninguna ilustración, presupuesto
+de peso, el ornamento no lleva información— y §6.7 las hace
+comprobables. Si al implementar resulta que la ilustración sigue
+estorbando, **lo que cede es la ilustración**.
+
+Assets de fase 1: **cuatro fondos** (portal, reino, ejército, crónica),
+los **seis iconos de escuela**, los **ocho de edificio**, los **seis de
+recurso** y **dos piezas de ornamento**.
+
+---
+
+### Fase 1 — implementación
+
+**Specs**: la economía en [docs/SISTEMAS.md §17](docs/SISTEMAS.md), el
+estilo visual en [docs/INTERFAZ.md §6](docs/INTERFAZ.md).
+**Plan técnico**: [docs/ARQUITECTURA.md §9](docs/ARQUITECTURA.md).
+Escrito el 2026-09-21 con `/plan-tarea`.
+
+**Cómo se ataca**, decidido con el usuario el 2026-09-21: **de la 1 a la
+21 seguidas**, parando solo si algo falla, si el simulador obliga a mover
+números, o si aparece una decisión que no es mía. La **22 (assets) va al
+final, en una sesión con el usuario**, así que las tareas 18-21 se
+construyen con marcadores de posición — lo que de paso comprueba el
+criterio 4 de `INTERFAZ.md §6.7`: la interfaz tiene que funcionar entera
+sin ningún asset.
+
+**La comida es capacidad derivada**, no un recurso almacenado
+(`ARQUITECTURA.md §9.1`).
+
+**Andamiaje**
+
+- [x] **1. Monorepo.** pnpm workspaces con `core`, `content`, `contract`,
+      `apps/server`, `apps/web`; referencias de proyecto de TypeScript,
+      Vitest y lint. *Comprobación: `tsc -b` y `vitest` en verde con un
+      test trivial por paquete.*
+
+      > **HECHO (2026-09-21).** pnpm workspaces, `tsconfig.base.json` con
+      > `strict`, `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes`,
+      > referencias de proyecto y Vitest. **`tsc -b` sale 0 y pasan 2
+      > tests.** Node 24.18, pnpm 9.12, TypeScript 5.9.3, Vitest 2.1.9.
+      >
+      > **Distinto de lo planeado**: solo se crearon `core` y `content`.
+      > `contract`, `apps/server` y `apps/web` se crean en sus tareas (17
+      > y 18) para no instalar React, Fastify y Drizzle antes de
+      > necesitarlos. No hay lint todavía: `tsc` en modo estricto cubre lo
+      > que importa de momento, y meter ESLint ahora era trabajo sin
+      > código que mirar.
+
+**Núcleo — fundamentos**
+
+- [x] **2. Formas del estado y corrigendum del contrato.** `MageState`,
+      `Action`, `Ctx`, `Result`, `GameEvent`, sin reglas todavía. Incluye
+      los **tres cambios de contrato** de `ARQUITECTURA.md §9.1` y
+      actualizar `docs/SPECS.md §1`. *Toca `packages/core`, `docs/SPECS.md`.*
+
+      > **HECHO (2026-09-21).** `types.ts` y `mage.ts` en `core`, con los tres
+      > cambios de contrato aplicados a `docs/SPECS.md §1`: `turnsSpent` en
+      > lugar de `protectedUntil`, `recruiting`, y **`food` fuera de
+      > `resources`**. *Verificado con 6 tests, incluido que la tierra cuadra
+      > y que el mago de partida sale con lo que dice SISTEMAS §15.*
+      >
+      > **De paso se añadió el invariante 11 a `SPECS.md §5`**
+      > (`land.total = land.free + Σ buildings`): no estaba escrito porque se
+      > daba por obvio, que es como se rompen estas cosas. Y salió
+      > `assignment` de la lista, que era de fase 3.
+- [x] **3. Devengo de turnos.** `accrue()`. *Tests: acumulación, tope, y
+      el caso con trampa del resto al llegar al tope (§9.4).*
+
+      > **HECHO (2026-09-21).** `accrue()` en `core/src/turns.ts`, función
+      > pura. *8 tests, y el del detalle con trampa está escrito explícito:*
+      > un mago tres días al tope no guarda el resto, así que al gastar un
+      > turno **no le entran veinte de golpe**. También cubre el reloj hacia
+      > atrás y empezar por encima del tope.
+- [x] **4. `apply()`.** El despachador puro: estado nuevo + eventos, o
+      error de dominio. *Test: acción desconocida devuelve error, no
+      excepción; nunca hay mutación en sitio.*
+
+      > **HECHO (2026-09-21).** `apply()` en `core/src/actions.ts`, con
+      > `resolveTurn()` en `tick.ts` haciendo la producción, el mantenimiento y
+      > el colapso de cada turno gastado. *Verificado: acción desconocida da
+      > `unknown_action`, y un test comprueba que el estado de entrada no se
+      > muta.* Se decidió **producir antes de construir** dentro del turno, así
+      > que lo que ganas ese turno se puede gastar ese turno.
+
+**Contenido**
+
+- [x] **5. Catálogo.** Los ocho edificios con coste, mantenimiento,
+      velocidad y topes; las cinco tropas básicas **solo con su mitad
+      económica** (§9.3). Esquemas Zod. *Test: el catálogo entero valida.*
+
+      > **HECHO (2026-09-21).** `packages/content` con los ocho edificios, las
+      > cinco tropas, los coeficientes de economía, los topes y el reino de
+      > partida. Todo con esquema Zod. *8 tests, incluido que el catálogo
+      > entero valida y que el coste de los edificios respeta la proporción
+      > del tiempo de construcción del original.*
+      >
+      > **Sorpresa: la mitad económica de las unidades no estaba en ninguna
+      > spec** — `SISTEMAS §8` la tenía `[abierto]`. En vez de inventarla, se
+      > derivó del ancla del original (10.000-20.000 tropas al turno 120) y se
+      > escribió en **`SISTEMAS.md §8.1`** con su derivación. Cerrada como
+      > `[nuestro]`, y marcada como primera tirada a calibrar.
+      >
+      > **Fallo por el camino**: faltaba declarar `@archmage/core` como
+      > dependencia de workspace, y el fichero de test **no falló: desapareció**.
+      > El total bajó de 15 a 14 y por eso se vio. Es exactamente el caso que
+      > CLAUDE.md avisa.
+
+**Núcleo — economía**
+
+- [x] **6. La sierra del maná.** `manaIncome(nodes, land)` con el `floor`
+      único de §9.2. *Tests = criterios 1, 2 y 3 de `SISTEMAS.md §17.1`,
+      incluida la tabla de primer-cruce-que-resta por tamaño.*
+
+      > **HECHO (2026-09-21).** `manaIncome()` en `core/src/mana.ts`, con el
+      > `floor` único de ARQUITECTURA §9.2. *10 tests = los criterios 1, 2 y 3
+      > de SISTEMAS §17.1.*
+      >
+      > **Y el test tumbó dos afirmaciones de la spec.** Truncar **aplana el
+      > pico**: la fórmula exacta tiene un máximo único en 55,99%, pero con
+      > enteros empatan 54,99% y 55,99% (y tres valores con 200 acres). Y el
+      > primer cruce que resta con 1.000 acres se mueve de 19% a 20%.
+      > Corregidos `SISTEMAS §17.1` y `ARQUITECTURA §9.2` con los valores
+      > medidos. **Se deja así**: el efecto juega a favor del «sin ayudas»,
+      > porque el pico deja de exigir clavar un número exacto.
+- [x] **7. Geld, población y comida.** `income()` y `capacity()`.
+      *Test = criterio 5: la proporción 3:1 sale sola.*
+
+      > **HECHO (2026-09-21).** `income()` y `populationCapacity()` en
+      > `core/src/economy.ts`. *Verificado el criterio 5: con 3 farms por town
+      > los dos topes se igualan, con 2:1 manda la comida y con 4:1 el
+      > espacio.* El geld va **sin sierra** a propósito: el freno es que cada
+      > town es un acre que no es farm, y son las farms las que sostienen la
+      > población que produce el geld.
+- [x] **8. Upkeep e ingreso neto.** `upkeep()`. *Test: el cuadro del mago
+      de 5.000 acres de `SISTEMAS.md §4.2` sale clavado.*
+
+      > **HECHO (2026-09-21).** `upkeep()` y `netIncome()`. *El cuadro de §4.2
+      > sale clavado: 97.800 de población, 14.625 de maná, 41.025 de
+      > mantenimiento y 45.078 de geld neto, y construirlo entero son
+      > 23.485.000.* Esos tests viven en `packages/content` y no en `core`,
+      > porque son los únicos que necesitan ver **las reglas y los datos a la
+      > vez** y el núcleo no puede importar el contenido.
+- [x] **9. Colapso.** Los tres recursos, en cascada, con el azar por
+      `RandomSource` y semilla guardada. *Test = criterio 7, construyendo
+      el estado, no jugando hasta él.*
+
+      > **HECHO (2026-09-21).** Las tres cascadas de SISTEMAS §5.6, cada una
+      > distinta. *9 tests, todos construyendo el estado.* Los forts caen a la
+      > mitad, las unidades desertan **antes** de perder edificios, las
+      > barriers se deshacen y **sus acres vuelven a estar libres** — si no, el
+      > invariante 11 se rompía en silencio. Qué stack se disuelve sale del
+      > `RandomSource`: con la misma semilla, el mismo resultado.
+
+**Núcleo — acciones**
+
+- [x] **10. `Build` / `Demolish`.** Velocidad por workshops, acarreo de
+      fracciones en punto fijo, coste en geld, tierra libre. *Test de
+      propiedad: `land.total = land.free + Σ buildings` tras cualquier
+      secuencia (§9.4).*
+
+      > **HECHO (2026-09-21).** Punto fijo en diezmilésimas, como mandaba el
+      > plan. *Verificado el corolario publicado del original: **299 workshops
+      > construyen exactamente 1 fort y 30 workshops por turno**, y la
+      > proporción 2/4/6/60 entre edificios.* El test de propiedad del
+      > invariante 11 pasa sobre una secuencia de 8 acciones mezcladas.
+- [x] **11. `Explore`.** La curva, el tope de 3.500, y que a 3.500 **no
+      gaste el turno**. *Test = criterio 6.*
+
+      > **HECHO (2026-09-21).** La curva pasa por los extremos medidos: 21
+      > acres con 200 de tierra (el original mide 18-26), 14 con 1.250, 1 con
+      > 3.400, 0 en 3.500. *A tope devuelve `exploration_exhausted` y **no
+      > gasta el turno**.*
+- [x] **12. `ChargeMana` / `ChargeGeld`.** *Test: duplican el ingreso de
+      ese turno y de ningún otro.*
+
+      > **HECHO (2026-09-21).** Multiplicador ×2 aplicado solo en el turno
+      > cargado. *Verificado contra un turno normal del mismo mago.*
+- [x] **13. `SetRecruit`.** Y la llegada de tropa a lo largo de varios
+      turnos. *Test: no gasta turnos al fijarlo; llega escalonada; exige
+      espacio y comida.*
+
+      > **HECHO (2026-09-21).** *Verificado que fijarlo **no gasta turnos**,
+      > que cobra el geld por adelantado, y que la tropa llega escalonada: 300
+      > falanges con 10 barracks entran de 30 en 30.* Unidad desconocida y
+      > geld insuficiente dan error de dominio, no excepción.
+
+**Calibración**
+
+- [x] **14. Simulador de temporada.** Y los criterios de
+      `SISTEMAS.md §17.2`. **Aquí es donde los números se mueven si hace
+      falta**, y se mueven en `content`, no en el código.
+
+      > **HECHO (2026-09-21).** `content/src/simulate.ts` con cuatro repartos
+      > de referencia. **No hubo que mover ningún número**, pero la
+      > calibración cambió tres criterios, y está todo en `SISTEMAS §17.2`:
+      >
+      > - **Criterios 10, 11 y 12: cumplen.** 61 turnos de exploración llevan
+      >   a 1.250 acres, el reparto de las guías sostiene 13.636 unidades, y
+      >   ningún reparto acaba en números rojos.
+      > - **Criterio 11 medía en el sitio equivocado**: pedía 5.000 acres, y
+      >   **5.000 acres son inalcanzables en la fase 1** — la exploración se
+      >   agota en 3.421 y pasar de ahí exige atacar. Reformulado.
+      > - **Criterios 9 y 13 no se pueden juzgar todavía.** Sin magia ni
+      >   combate el maná no sirve para nada, así que el reparto económico
+      >   domina por definición; y sin el poder del ejército, el net power es
+      >   ~98% tierra. Aplazados a la fase 3, con el motivo escrito.
+      >
+      > **Y el simulador mintió primero.** Elegía qué construir por déficit
+      > absoluto, no construía towns nunca, y daba ingreso neto negativo con
+      > el reparto del original. Era el instrumento, no el juego.
+
+**Persistencia y servidor**
+
+- [ ] **15. Postgres.** Drizzle, migraciones aditivas, esquema de mago y
+      de eventos.
+- [ ] **16. Repositorio transaccional.** Bloqueo de fila y estado+eventos
+      en la misma transacción. *Test: dos acciones concurrentes sobre el
+      mismo mago se serializan (invariantes 4 y 6).*
+- [ ] **17. Fastify.** `GET /mage/me` ya devengado y
+      `POST /mage/me/actions`; errores de dominio como 422; esquemas en
+      `packages/contract`. *Toca `packages/contract`: rompe los dos lados
+      a la vez, y eso es lo que queremos.*
+
+**Cliente**
+
+- [ ] **18. Andamiaje y tokens.** React + Vite, y los tokens de color y
+      tipografía de `INTERFAZ.md §6.2-6.4`. *Test automatizable: los
+      criterios 1, 2 y 3 de `INTERFAZ.md §6.7` se calculan sobre los
+      tokens sin abrir el navegador.*
+- [ ] **19. `/reino`.** Recursos, ingreso neto, reparto de tierra,
+      construir, explorar — **sin marcar umbrales ni sugerir óptimos**
+      (`INTERFAZ.md §1`).
+- [ ] **20. `/ejercito` y `/cronica`.**
+- [ ] **21. La piel.** Paneles, ornamento y fondos, y los criterios 4 a
+      10 de `INTERFAZ.md §6.7`. *Las tareas 19, 20 y 21 se verifican en
+      **una sola pasada de navegador**.*
+
+**Assets**
+
+- [ ] **22. Tanda de fase 1.** 4 fondos, 6 iconos de escuela, 8 de
+      edificio, 6 de recurso y 2 de ornamento
+      ([docs/ASSETS.md](docs/ASSETS.md)). **Una sola sesión con el
+      usuario**, y Nether se mira sobre `#1e1813` antes de dar el set por
+      bueno.
+
+---
+
+## Fase 1 — Reino
+
+Gestionar un reino de verdad, solo. Sin magia y sin guerra.
+
+- [ ] Monorepo: pnpm workspaces, `packages/core`, `content`, `contract`,
+      `apps/server`, `apps/web`. `tsc -b` y Vitest funcionando en todos.
+- [ ] **El devengo de turnos** como función pura, con sus tests
+      ([docs/SPECS.md §3](docs/SPECS.md)). Es la pieza de la que cuelga
+      todo lo demás.
+- [ ] `apply()` y la forma de `MageState`
+      ([docs/SPECS.md §1-2](docs/SPECS.md)).
+- [ ] Tierra y los ocho edificios, con la fórmula de construcción por
+      workshops y el acarreo de fracciones.
+- [ ] Economía: geld, maná, población y comida, con la curva de
+      decrecimiento por porcentaje y los topes de efectividad.
+- [ ] Colapso por cada uno de los tres recursos, y el aviso previo en la
+      interfaz.
+- [ ] Explorar.
+- [ ] Reclutamiento de tropa básica (llega a lo largo de varios turnos).
+- [ ] Postgres, migraciones y persistencia del estado + eventos en una
+      transacción.
+- [ ] Servidor Fastify: `GET /mage/me`, `POST /mage/me/actions`.
+- [ ] Cliente: portal, `/reino`, `/ejercito`, `/cronica`.
+- [ ] Simulador de temporada contra el núcleo, para calibrar los números
+      abiertos.
+
+## Fase 2 — Magia
+
+- [ ] Libro de hechizos por escuela y rango, con la rueda de adyacencia.
+- [ ] Investigación dependiente de guilds, y el nivel de hechizo.
+- [ ] Lanzar: cast turns, coste aunque falles, fallo por concentración.
+- [ ] Encantamientos con upkeep, propios y ofensivos.
+- [ ] Invocación de unidades.
+- [ ] Contenido: **Plain + una escuela completa** antes que las seis a
+      medias.
+- [ ] Cliente: `/magia`.
+
+## Fase 3 — Guerra
+
+- [ ] Stacks, orden de batalla, iniciativa, arrastre de daño, fatiga.
+- [ ] Habilidades de unidad como datos, no como casos especiales.
+- [ ] Los tres ataques: regular, siege, pillage.
+- [ ] Forts y barriers en defensa. Muerte a 0 forts.
+- [ ] Assignment.
+- [ ] Batallas reproducibles por semilla, y `/batalla/:id`.
+- [ ] Previsualización del ataque en el cliente con el mismo núcleo.
+- [ ] Cliente: `/guerra`.
+
+## Fase 4 — Mundo
+
+- [ ] Varios magos y ranking.
+- [ ] Mercado negro: items, hechizos ancient, taberna.
+- [ ] Items: generación por guilds, uso, assignment.
+- [ ] Héroes: niveles, liderazgo de stacks, bonus de eficiencia.
+- [ ] Las 10 habilidades.
+- [ ] Cliente: `/mercado`, `/ranking`.
+
+## Fase 5 — Temporada
+
+- [ ] Gremios, aliados y refuerzos automáticos.
+- [ ] NAP y diplomacia.
+- [ ] Varios servidores a velocidades distintas.
+- [ ] Armageddon, Hall of Fame y reset de temporada.
+- [ ] Cliente: `/gremio`.
+
+---
+
+## Cerrado
+
+*(Nada todavía. Los bloques cerrados dejan aquí una línea con la fecha y
+adónde fue a parar lo aprendido; si el relato tiene valor, va a
+`docs/archivo/`.)*
+
+- **2026-09-21 — Documentación inicial.** Se investigó el juego original
+  contra la wiki oficial ([docs/ORIGINAL.md](docs/ORIGINAL.md)), se
+  revisó la arquitectura del PDF y se sustituyó
+  ([docs/ARQUITECTURA.md §8](docs/ARQUITECTURA.md)), y se escribió el
+  conjunto de `docs/`. **La investigación refutó tres cosas del PDF**: lo
+  que regenera con el reloj son los turnos y no el maná, los edificios
+  son ocho con fórmulas publicadas y no cuatro supuestos, y el combate no
+  es una comparación de totales.
+
+  **Validado por el usuario el 2026-09-21**: la arquitectura
+  ([docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)), el alcance de juego
+  completo por fases, y la corrección del maná —desmintió su propio
+  recuerdo de los 8 minutos: eran los turnos—. `docs/` queda como
+  documentación definitiva; a partir de aquí se cambia con `/spec`, no a
+  mano.
