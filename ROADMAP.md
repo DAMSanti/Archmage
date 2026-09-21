@@ -84,6 +84,59 @@ recurso** y **dos piezas de ornamento**.
 
 ---
 
+**Ampliado el 2026-09-22 con `/spec`**, a partir de una referencia visual
+del usuario. **La spec vive en los mismos sitios**:
+[docs/INTERFAZ.md §6](docs/INTERFAZ.md) —§6.5 la escena, §6.9 el marco,
+§6.7 los criterios 11 a 17— y [docs/ASSETS.md §8.2 y §8.3](docs/ASSETS.md).
+Toca además [docs/INTERFAZ.md §5](docs/INTERFAZ.md), que cambia.
+
+Qué cierra, y las cuatro decisiones que se tomaron con el usuario:
+
+- **La escena del reino es emblemática**: una pieza por **tipo** de
+  edificio que tengas, no por unidad. Es lo que la hace posible — un
+  reino calibrado tiene cientos de edificios de cada tipo, y una escena
+  cuantitativa miente en cuanto llega a su tope.
+- **Manda la barra de abajo; el mapa es atajo.** Ninguna acción tiene
+  como única puerta un clic en un dibujo. Seis de las trece pantallas no
+  tienen edificio que tocar, así que la barra hacía falta igualmente.
+- **En móvil cede el mapa, no §5.** El móvil sigue siendo el caso
+  principal y ahí se sirven paneles. Se puede porque el mapa no manda.
+- **Un marco persistente en las trece**: recursos y net power arriba,
+  turnos con su cuenta atrás debajo, navegación abajo.
+
+**Lo que la referencia proponía y no se adopta**, con su porqué escrito
+en §6.1: rótulos de texto sobre la ilustración, una ciudadela que no es
+uno de los ocho edificios, y el mapa como navegación principal.
+
+**Y cuatro cifras del mock que no son las de este juego**, por si alguien
+las copia al implementar: 125 acres (se empieza con **200**), tierra que
+se devenga sola a `+0.5/hr` (**la tierra no se devenga**: sale de
+explorar y de atacar), turnos a `+1/15m` (Terra va a **10 minutos** y
+Veloz a **5**, y la cadencia **se lee del servidor**), y «Archmage
+Citadel» como edificio.
+
+**El riesgo, declarado, y es el mismo de antes agravado.** §6.1 ya
+avisaba de que una ilustración estorba a un juego de leer números; una
+escena interactiva estorba más. Por eso las reglas 7 a 12 de §6.5 son
+**todas restricciones** y los criterios 11 a 17 las hacen comprobables.
+**Y se eligió el alcance más ambicioso de los tres que se ofrecieron —las
+trece pantallas—, sabiendo que compromete la dirección visual entera
+antes de que ninguna escena haya pasado por una pantalla real.** Si al
+implementar la escena estorba, **lo que cede es la escena**: la interfaz
+de paneles ya funciona y es la que se sirve en móvil.
+
+Queda **`[abierto]`**: **cómo se agrupan las trece rutas** en la barra
+inferior, y por tanto cuántos iconos de navegación hacen falta. Lo cierra
+`/plan-tarea` con la lista delante. Decidido ya: `/reino` va suelta, y
+`/cronica` no se esconde.
+
+Assets que añade: **el fondo de `/reino` se rehace** —era un interior de
+torre y la escena pide exterior sin edificios pintados—, se revisan los
+ocho iconos de edificio **a dos tamaños**, y hacen falta los iconos de
+la barra que no existan ya.
+
+---
+
 ### Guerra de la fase 3 — cerrada el 2026-09-21
 
 **Las 22 tareas hechas.** La spec y el plan siguen en

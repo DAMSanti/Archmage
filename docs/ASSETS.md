@@ -169,7 +169,7 @@ bordes**.
 | Pantalla | Fase | Motivo |
 |---|---|---|
 | Portal `/` | 1 | `a vast night sky over the world of Terra seen from a tower balcony` |
-| Reino `/reino` | 1 | `a wizard's tower interior at dusk, maps and ledgers on a great table` |
+| Reino `/reino` | 1 | **Ver §8.2**: es el único que no sigue la coletilla de arriba. |
 | Ejército `/ejercito` | 1 | `a muster field below a castle at dawn, empty banners and tents` |
 | Crónica `/cronica` | 1 | `a candlelit scriptorium, open chronicles and quills` |
 | Magia `/magia` | 2 | `an arcane library vault, floating tomes and a rune circle` |
@@ -197,6 +197,77 @@ fondo de una pantalla que no existe es trabajo guardado en un cajón.
 **Se generan una vez y se reutilizan en todas las pantallas.** El
 ornamento **no lleva información y desaparece en móvil**, así que no
 merece más de estas dos piezas.
+
+---
+
+## 8.2. El fondo del reino es distinto
+
+**Spec del 2026-09-22**, a partir de una referencia visual del usuario.
+`/reino` lleva una **escena** con piezas encima
+([INTERFAZ.md §6.5](INTERFAZ.md)), y eso le cambia el encargo respecto a
+los otros nueve fondos.
+
+**Lo que decía antes, y por qué deja de valer.** El prompt era `a
+wizard's tower interior at dusk, maps and ledgers on a great table`: un
+**interior**. Sobre una mesa de despacho no se pueden colocar una granja
+y unos barracones. La escena pide **exterior**.
+
+**Y la coletilla también cambia.** Los demás fondos piden `composition
+with an empty central area` porque los paneles se ponen en el centro y
+taparían lo interesante. Aquí el centro **es** lo interesante: hace falta
+terreno donde apoyar las piezas.
+
+```
+wide fantasy game background, a green valley seen from above at dusk,
+forest and mountains framing the edges, winding dirt paths,
+dark medieval fantasy atmosphere, painterly style, muted warm palette,
+no characters, no buildings, no text,
+open uncluttered ground across the middle with clear flat areas
+```
+
+**`no buildings` es lo que más importa de este prompt**, y es lo que
+más fácil ignora un generador al oír «reino». Los edificios **son las
+piezas**, que se colocan encima: si el fondo ya trae un castillo
+pintado, el reino enseña algo que el mago no ha construido.
+
+> **Lo que sí puede traer pintado** es paisaje de fondo lejano —
+> montañas, bosque, un camino—. La referencia del usuario lleva una
+> ciudadela grande en el centro y **ésa no entra**: no es uno de los
+> ocho edificios ([SISTEMAS.md §4](SISTEMAS.md)).
+
+**Las piezas no son arte nuevo.** Son **los ocho iconos de edificio de
+§4**, los mismos que las tablas. Es la razón por la que esta spec sale
+casi gratis en arte, y la prueba de que se eligió bien la escena
+emblemática: la cuantitativa habría pedido variantes y agrupaciones.
+
+**Lo único que hay que revisar de los ocho** es que funcionen **a dos
+tamaños**: pequeños en una tabla y grandes sobre el paisaje. Si alguno
+solo lee bien en uno de los dos, se regenera ése, no los ocho.
+
+---
+
+## 8.3. Los iconos de la barra de navegación
+
+**Spec del 2026-09-22.** El marco persistente
+([INTERFAZ.md §6.9](INTERFAZ.md)) necesita un icono por entrada de la
+barra inferior.
+
+**Cuántos son es `[abierto]`**: depende de cómo se agrupen las trece
+rutas, y eso lo cierra `/plan-tarea`. Lo que sí está decidido:
+
+- **Se reutiliza lo que ya hay** siempre que se pueda. La barra tendrá
+  entradas de edificios, de ejército y de magia, y para eso están los
+  iconos de §4, §7 y §6.
+- **Los que falten son de acción, no de cosa**: explorar, guerra,
+  crónica. Mismo estilo base, y **más simples que los de tabla** —
+  a 24px un icono con detalle es una mancha.
+- **Llevan etiqueta de texto debajo**, así que **el icono no tiene que
+  cargar solo con el significado**. Es lo que permite que sean simples.
+
+```
+simple fantasy game UI icon of <motivo>, bold silhouette,
+minimal detail, legible at 24 pixels, [estilo base]
+```
 
 ---
 

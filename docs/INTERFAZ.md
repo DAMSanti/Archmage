@@ -103,6 +103,13 @@ Tiene que responder de un vistazo, sin abrir nada:
   umbrales ni decir si eso es bueno** (§1).
 - **Qué se está construyendo** y cuánto le falta.
 
+**Y desde el 2026-09-22, además, tiene una escena** (§6.5): una vista
+pintada del reino con **una pieza por cada tipo de edificio que tengas**.
+No sustituye a nada de lo de arriba — los números siguen en sus paneles,
+porque son los que se leen. Lo que añade es saber **de un vistazo qué
+clase de mago eres**: un reino con node y guild y sin barracks se
+reconoce antes de leer una cifra.
+
 ### 3.1. La pantalla de magia **[F2]**
 
 Spec en [SISTEMAS.md §7.1](SISTEMAS.md). Lo que esta pantalla tiene que
@@ -306,6 +313,20 @@ se juegan en el móvil.
   cobrar 150 KB por algo que no se ve es cobrar por nada.
 - **El ornamento se simplifica a un filete** y no pasa del 15% del ancho
   (§6.6). En móvil el marco es lo primero que sobra.
+- **[nuestro]** **Y la escena del reino tampoco aparece** (§6.5,
+  decidido el 2026-09-22). En vertical se sirven los paneles y las
+  listas, que es lo que se lee en quince minutos y con una mano.
+
+  > **Esto se preguntó y se decidió, no se dio por supuesto.** Un mapa
+  > interactivo y «en móvil la ilustración desaparece» no caben a la vez,
+  > porque un mapa que desaparece deja de ser navegación. **Cede el
+  > mapa.** El motivo es que este apartado dice que el móvil es el caso
+  > principal, y el caso principal no puede ser el que peor lee.
+  >
+  > Es viable **porque el mapa no manda** (§6.5): todo lo que se alcanza
+  > tocando un edificio se alcanza también por la barra inferior, que sí
+  > está en las dos. Si el mapa fuera la única puerta a construir, esta
+  > decisión dejaría el juego sin construir en móvil.
 
 ---
 
@@ -337,7 +358,31 @@ solución sería pelearse con la identidad del original.
 > La regla que gobierna todas las demás: **si hay que elegir entre que se
 > vea bonito y que se lea, se lee.**
 
-### 6.2. Paleta de la interfaz
+**Ampliación del 2026-09-22, a partir de una referencia visual del
+usuario.** La dirección no cambia; se le añaden **dos cosas**, y las dos
+afectan a las trece pantallas:
+
+1. **Un marco persistente** — barra de recursos arriba, barra de
+   navegación abajo — en lugar de que cada pantalla resuelva por su
+   cuenta dónde enseña el estado y cómo se va a otro sitio (§6.9).
+2. **Una escena del reino**, solo en `/reino`, con piezas que se pueden
+   tocar (§6.5).
+
+**Lo que la referencia proponía y NO se adopta**, porque choca con reglas
+que ya estaban escritas y siguen siendo buenas:
+
+- **Rótulos pintados encima de la ilustración.** La referencia lleva
+  «Archmage Citadel» y «Farm» como texto libre sobre la imagen. §6.5
+  regla 1 lo prohíbe y no se toca: los nombres van en **placas opacas**.
+  Un rótulo sobre un cielo pintado es legible en el mock y deja de serlo
+  en cuanto la imagen cambia.
+- **Una ciudadela como edificio.** No es uno de los ocho
+  ([SISTEMAS.md §4](SISTEMAS.md)). Puede estar **pintada en el fondo**
+  como parte del paisaje, pero no es una pieza ni se puede tocar: una
+  pieza que no corresponde a un edificio real enseña un juego que no es
+  éste.
+- **La escena como navegación principal.** Se preguntó y se decidió que
+  **manda la barra**; el mapa es atajo (§6.5).
 
 **[nuestro]** Tokens. Todo color del producto sale de aquí; **ningún
 componente escribe un color a mano**.
@@ -428,7 +473,7 @@ Tamaño base **16px**, y **14px como mínimo absoluto** para cualquier
 dato. Nada de 12px «porque cabe más»: ver §4, la densidad es legítima y
 la ilegibilidad no.
 
-### 6.5. La ilustración
+### 6.5. La ilustración, y la escena del reino
 
 **[nuestro]** Las reglas que hacen que el fondo pintado sea seguro:
 
@@ -450,6 +495,56 @@ la ilegibilidad no.
 6. **En móvil se sirve una versión reducida**, y con `prefers-reduced-
    data` o conexión lenta **no se sirve ninguna**: color plano.
 
+#### La escena del reino
+
+**[nuestro]** **Spec del 2026-09-22.** `/reino` —y **solo** `/reino`—
+tiene encima de su ilustración una **escena**: el paisaje del reino con
+piezas colocadas.
+
+**Es emblemática, no cuantitativa, y ésa es la decisión que la hace
+posible.** Se pinta **una pieza por cada tipo de edificio del que tengas
+al menos uno**. Ocho tipos, ocho piezas como mucho, y la escena no cambia
+entre tener 40 farms y tener 4.000.
+
+> **Por qué no crece con lo que construyes**, que era la alternativa.
+> Un reino calibrado llega a **miles de acres con cientos de edificios de
+> cada tipo** ([ESTADO.md](ESTADO.md)). Pintar más granjas cuando hay más
+> granjas funciona hasta un tope, y a partir del tope **la escena miente
+> y deja de decir nada**: un mago con 200 farms y uno con 4.000 verían lo
+> mismo. Una escena emblemática no promete una cantidad, así que no puede
+> incumplirla.
+>
+> Y hay una razón de coste, que conviene decir aunque sea la menos noble:
+> emblemática, el arte que hace falta son **los ocho iconos de edificio
+> que [ASSETS.md §4](ASSETS.md) ya tiene inventariados**. Cuantitativa,
+> haría falta arte nuevo y lógica de composición.
+
+Las reglas de la escena, que son las que impiden que se coma lo de
+siempre:
+
+7. **La escena no es la navegación: es un atajo.** Todo lo que se alcanza
+   tocando una pieza se alcanza **también** por la barra inferior (§6.9).
+   Se decidió así el 2026-09-22 porque lo contrario esconde funciones
+   detrás de saber que un dibujo se puede tocar — y porque seis de las
+   trece pantallas (crónica, mercado, ranking, gremio, mensajes,
+   temporada) **no tienen edificio que tocar** y necesitarían otra puerta
+   igualmente.
+8. **Los rótulos van en placas opacas**, nunca como texto sobre la
+   imagen. Es la regla 1 aplicada a la escena, y es donde la referencia
+   visual se separa de lo que hacemos.
+9. **La escena dice QUÉ, el panel dice CUÁNTO.** La pieza de farm dice
+   que tienes farms; «437, el 12,3% de tu tierra» está en su fila. Una
+   pieza **nunca** es el único sitio donde vive un dato.
+10. **Una pieza que no puedes tocar no se pinta distinta de una que sí**,
+    porque no hay ninguna que no se pueda tocar: si un tipo de edificio
+    está en la escena, tiene su panel. Lo que no tienes, no aparece.
+11. **Sigue siendo una ilustración por pantalla** (regla 4). La escena es
+    **un fondo más las ocho piezas**, y las piezas son los iconos que ya
+    existen para las tablas: no hay un segundo juego de arte.
+12. **Y sigue funcionando sin ninguna imagen** (regla 3). Sin la escena,
+    `/reino` es la pantalla de paneles que ya era. Ése es además el
+    estado normal en móvil (§5).
+
 ### 6.6. El ornamento
 
 **[nuestro]**
@@ -463,6 +558,46 @@ la ilegibilidad no.
   un marco mal puesto.
 - **Sin animación de ambiente**: nada de parpadeos, partículas ni
   parallax. Ver §7.
+- **[nuestro] Y una distinción que la escena obliga a hacer (2026-09-22):
+  ornamento y control no son lo mismo.** La regla de arriba dice que el
+  ornamento no lleva información; las piezas de la escena **sí llevan**,
+  y se pueden tocar. No es una excepción a la regla: es que una pieza de
+  edificio **no es ornamento, es un control**, y como control tiene que
+  cumplir lo de los controles — zona de toque de dedo, foco visible,
+  nombre accesible, y alcanzable por teclado. El marco de bronce sigue
+  sin llevar nada.
+
+### 6.9. El marco persistente
+
+**[nuestro]** **Spec del 2026-09-22.** Hasta ahora cada pantalla
+resolvía por su cuenta dónde enseñaba el estado. Pasa a haber **dos
+barras fijas en las trece**, y es la parte de la referencia visual que
+más se gana:
+
+**Arriba, los recursos.** Geld, maná, población sobre su tope, y net
+power. Con su icono y su cifra, siempre en el mismo sitio, **siempre
+visibles**. El tope de población va junto al número (`54.320 / 60.000`)
+porque acercarse a él es una decisión, no una sorpresa.
+
+**Y los turnos justo debajo**, con **cuánto falta para el siguiente**.
+Es la moneda del juego ([SISTEMAS.md §2](SISTEMAS.md)), así que no
+comparte fila con nada: quien mira la pantalla tiene que saber cuántos
+turnos puede gastar sin buscarlo.
+
+> **Ojo con copiar la referencia aquí.** El mock dice `+1/15m`, y
+> nuestros servidores van a **10 minutos** (Terra) y **5** (Veloz)
+> ([SISTEMAS.md §2 y §14.1](SISTEMAS.md)). La cadencia **se lee del
+> servidor**, no se escribe en la plantilla. Y el almacén lleno se avisa
+> (§3): estar al tope es estar desperdiciando.
+
+**Abajo, la navegación.** Iconos grandes, de dedo, con etiqueta de texto
+—no solo icono, que se adivina mal—. Las trece rutas no caben en una
+barra, así que se agrupan; **cuál va suelta y cuál agrupada es
+`[abierto]`** y lo cierra `/plan-tarea` con la lista delante.
+
+Lo que sí está decidido de la agrupación: **`/reino` siempre suelta**,
+porque es donde se pasa el tiempo; y **nada de esconder `/cronica`**,
+porque es donde el jugador se entera de que le han atacado.
 
 ### 6.7. Criterios de aceptación
 
@@ -502,6 +637,37 @@ navegador:
 10. **El color nunca es la única señal** (§4). Un ingreso negativo lleva
    signo y flecha además de color.
 
+**Y los de la escena y el marco, añadidos el 2026-09-22:**
+
+11. **La escena no inventa edificios.** Las piezas pintadas son
+    **exactamente** los tipos de los que el mago tiene al menos uno, ni
+    uno más ni uno menos. *Test: un estado con `barracks: 0` no produce
+    pieza de barracks, y uno con los ocho produce ocho.* Es el criterio
+    que caza el fallo de pintar una escena bonita fija que no se
+    corresponde con el reino de nadie.
+12. **La escena no es la única puerta.** Para cada pieza de la escena
+    existe la misma acción en la barra inferior o dentro de la pantalla a
+    la que lleva. *Comprobable recorriendo las rutas: ninguna acción
+    tiene como único origen un clic en la imagen.*
+13. **Ningún dato vive solo en la escena.** Todo número que aparezca
+    junto a una pieza aparece también en un panel. *Se comprueba en la
+    pasada de navegador, con la escena oculta: no falta ningún dato.*
+14. **Las piezas son controles de verdad.** Zona de toque ≥ **44px**,
+    foco visible, nombre accesible, y se llega a todas con el tabulador
+    en un orden que se entiende. *Comprobable en la pasada de navegador.*
+15. **El marco no miente sobre el reloj.** La cadencia de turnos que
+    enseña la barra es la del servidor del mago, no una constante.
+    *Test: el mismo estado en Terra dice 10 minutos y en Veloz dice 5.*
+16. **El marco no roba la pantalla.** Las dos barras juntas ocupan
+    ≤ **20%** del alto a 360×640, y el área de datos sigue cumpliendo el
+    criterio 8. Es el riesgo real de poner dos barras fijas en un juego
+    de leer tablas.
+17. **Y el peso no sube por la escena.** El criterio 6 (≤ 250 KB por
+    pantalla) **incluye las piezas**. Se cumple porque son los iconos que
+    ya se cargan para las tablas; si alguna vez hiciera falta un segundo
+    juego de arte para la escena, es señal de que la escena se está
+    yendo de madre.
+
 ### 6.8. Fuera de alcance
 
 - **Tema claro.** Decidido el 2026-09-21. Los tokens de §6.2 dejan la
@@ -512,6 +678,21 @@ navegador:
 - **Modo de alto contraste propio.** Los criterios de §6.7 ya piden 7:1
   para el texto principal, que está por encima del mínimo habitual.
 
+**Y de la escena, añadido el 2026-09-22:**
+
+- **Escena cuantitativa.** Más edificios no pintan más piezas. El porqué
+  está en §6.5, y es que a partir del tope dejaría de decir la verdad.
+- **Colocar los edificios.** El jugador no elige dónde va nada: la
+  composición es fija. No hay decisión de juego detrás — el original no
+  tiene posiciones ([SISTEMAS.md §16](SISTEMAS.md)) — y añadirla sería
+  inventar una mecánica para justificar un dibujo.
+- **Escena en las otras doce pantallas.** Solo `/reino` tiene edificios
+  que enseñar. Las demás siguen con fondo pintado y paneles, que es lo
+  que §6.5 ya decía.
+- **Escena en móvil.** Decidido en §5, y con su porqué.
+- **Animar la escena**: humo, agua, gente andando. Ya estaba fuera por
+  §6.6 y §7; la escena no lo reabre.
+
 ---
 
 ## 7. Fuera de alcance
@@ -519,7 +700,15 @@ navegador:
 - **Animaciones de combate en tiempo real.** La repetición de batalla es
   ronda a ronda, con números y estado de los stacks. Un juego que resuelve
   40.000 unidades en milisegundos no gana nada animándolas.
-- **Mapa del mundo.** No hay posiciones ([SISTEMAS.md §16](SISTEMAS.md)).
+- **Mapa del mundo.** No hay posiciones ([SISTEMAS.md §16](SISTEMAS.md)):
+  ningún mago está *al lado* de otro, y atacar no depende de la
+  distancia.
+
+  > **Y esto no lo contradice la escena del reino** (§6.5), aunque lo
+  > parezca. La escena es **tu** reino, y dentro de él las piezas no
+  > tienen coordenadas que signifiquen nada: es una vitrina de lo que has
+  > construido, no un terreno. Lo que sigue sin existir es la geografía
+  > **entre** magos, que es lo que este punto descarta.
 - **Aplicación nativa.**
 - **Y lo que declara §6.8**: tema claro, temas personalizables,
   ilustración animada o con parallax, y una ilustración por escuela.
