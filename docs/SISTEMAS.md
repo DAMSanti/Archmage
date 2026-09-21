@@ -2345,6 +2345,12 @@ Nombre, escuela, net power final y puesto — nada que dé ventaja en la
 temporada siguiente. Un juego por temporadas donde lo anterior te hace
 más fuerte no es un juego por temporadas.
 
+**[nuestro]** **Todo muere con la temporada: gremios, alianzas y
+mensajes.** Decidido el 2026-09-22. Un gremio que sobreviviera al reset
+daría ventaja al grupo ya formado — y el reset existe justamente para que
+empezar de cero sea normal y no un castigo (§14). Lo que persiste es la
+cuenta y la lista de honor, nada más.
+
 **[nuestro]** **El reset no borra: archiva.** La temporada que termina
 queda guardada y legible, y la nueva empieza limpia. Borrar de verdad
 haría imposible responder «qué pasó en la temporada 3», que es
@@ -2380,6 +2386,122 @@ exactamente lo que da ganas de jugar la cuarta.
   protege a una persona; un sistema de denuncias necesita a alguien que
   las lea, y eso no es código.
 - **Migrar un mago entre servidores.** Cada mundo es suyo.
+
+#### Plan técnico
+
+**Escrito el 2026-09-22.** Cómo se construye la spec de arriba.
+
+> **Una deuda heredada que hay que decir antes de nada.** `war.ts` llama a
+> `resolveBattle()` **directamente** y **nunca a `prepareBattle()`**. La
+> capa de pre-batalla de la fase 4 está escrita y probada con 21 tests,
+> pero **un ataque de verdad no aplica los items**: se construyó la capa
+> y no se enchufó. Se arregla en la tarea 2, antes de tocar nada de
+> gremios, porque los refuerzos de aliado entran exactamente por ahí.
+
+**Paquetes y módulos afectados**
+
+| Qué | Dónde | Nuevo o tocado |
+|---|---|---|
+| Gremios: fundar, entrar, protección | `packages/core/src/guild.ts` | **nuevo** |
+| Alianzas y refuerzos | `packages/core/src/alliance.ts` | **nuevo** |
+| Los siete sellos | `packages/core/src/armageddon.ts` | **nuevo** |
+| Fin de temporada y halls | `packages/core/src/season.ts` | **nuevo** |
+| Enchufar la pre-batalla, y los refuerzos | `packages/core/src/war.ts` | tocado |
+| El hechizo *Armageddon* | `packages/content/src/spells.ts` | tocado |
+| Los dos servidores | `packages/content/src/index.ts` | tocado |
+| Esquemas de gremio, mensaje, sello | `packages/contract/src/index.ts` | tocado |
+| Tablas y migración | `apps/server/src/schema.ts`, `db.ts` | tocados |
+| Consultas **por servidor** | `apps/server/src/repository.ts` | tocado |
+| Rutas | `apps/server/src/app.ts` | tocado |
+| Pantallas | `apps/web/src/routes/{Gremio,Mensajes,Temporada}.tsx` | **nuevas** |
+
+**Toca `packages/core`, `packages/contract`, `packages/content` y el
+esquema de base de datos** ([AGENTES.md §1.1](AGENTES.md)).
+
+**Dónde va cada cosa**
+
+- **¿Es una regla?** Que un gremio necesite cinco, que no se pueda atacar
+  a un compañero, que un aliado mande todo menos sus dos mejores stacks,
+  que un sello pida 24 horas y un mago distinto: **todo eso es
+  `packages/core`, y puro**.
+- **¿Es un número?** Los dos servidores con su cadencia y su tope, y el
+  coste del hechizo *Armageddon*, son **`packages/content`**.
+- **El reloj entra por parámetro**, como en el mercado: «han pasado 24
+  horas desde el último sello» es función de `(estado, now)`, nunca de
+  `Date.now()` (invariante 2).
+
+**El invariante 16 es el trabajo de verdad de la primera tarea.**
+`TERRA` aparece **26 veces** en `app.ts`, y hoy la regla «un mago solo ve
+su servidor» se cumple **por accidente**: como solo hay un servidor, da
+igual. Con dos deja de cumplirse sola. El plan es sacar el `serverId`
+**del mago de la sesión**, igual que su id, y que toda consulta que
+devuelva magos lo lleve — no como parámetro opcional, sino obligatorio,
+por la misma razón que `netPower()` pide el catálogo.
+
+**El contrato cambia primero**, y la **migración es aditiva**: tablas
+nuevas `guilds`, `guild_members`, `alliances`, `messages`, `blocks`,
+`seals` y `seasons`, y **una columna `mages.season_id`** anulable.
+
+**Decisiones de arquitectura que la spec obliga a tomar**
+
+1. **Los refuerzos se resuelven en la pre-batalla**, no en la ronda. Es
+   la capa que ya existe: llegan como stacks extra del defensor antes del
+   primer golpe. Así la ronda no sabe que las alianzas existen.
+2. **Las bajas del aliado se separan al final.** Sus stacks van marcados,
+   y al acabar se devuelven a su dueño con lo que quedó. Si no se
+   marcaran, el defensor se quedaría con el ejército de su aliado — que
+   es exactamente el bug que hace que ayudar sea un negocio.
+3. **Romper una alianza es un plazo, no un evento.** Se guarda «pedido
+   romper en T» y la alianza **sigue activa** hasta T+24h. Lo resuelve un
+   proceso programado idempotente, de los de [SPECS.md §3](SPECS.md).
+4. **Una temporada es una fila, no una bandera.** `seasons` tiene su
+   inicio, su fecha tope y su estado; los magos apuntan a ella. Archivar
+   es marcar la temporada cerrada, **no tocar los magos** — así el
+   invariante 17 se cumple con una escritura y no con miles.
+5. **El hechizo *Armageddon* no suma nivel.** Es el único del catálogo
+   con esa propiedad, así que el catálogo necesita un campo para decirlo
+   en vez de un caso especial en el código (§4 de SPECS: el contenido es
+   dato).
+
+**Orden de dependencias**
+
+```
+dos servidores ──► todo lo demás (el invariante 16 toca cada consulta)
+enchufar la pre-batalla ──► refuerzos de aliado
+gremios ──► alianzas ──► refuerzos
+gremios ──► tablón de mensajes
+hechizo Armageddon ──► sellos ──► fin de temporada
+fin de temporada ──► halls y archivo
+todo ──► una sola pasada de navegador
+```
+
+**Qué queda fuera, y va al docstring de cada módulo**
+
+- Chat, dioses, los ocho servidores, unique items, habilidades de héroe,
+  moderación y migrar magos entre servidores: declarados en la spec.
+- **La ronda no sabe de alianzas.** Si un día hiciera falta que un aliado
+  actuara *durante* la batalla —y no solo aportando tropa antes—, eso es
+  otra spec.
+
+**Riesgos técnicos, declarados**
+
+1. **El invariante 16 se rompe sin dar error**, y es el riesgo mayor.
+   Una consulta sin `serverId` devuelve magos del otro mundo y la
+   pantalla los pinta igual. La defensa es un test que **crea dos
+   servidores con un mago cada uno** y comprueba que ninguna lista los
+   mezcla.
+2. **Los refuerzos tocan el combate calibrado de la fase 3.** La defensa
+   es la misma que con las habilidades: **sin aliado, el resultado tiene
+   que ser idéntico al de antes**, y los tests de calibración existentes
+   son el canario.
+3. **La deuda de `prepareBattle`.** Al enchufarla, las batallas de la
+   fase 3 pasan a resolverse por un camino nuevo. Si algún test de
+   guerra cambia de resultado **sin que haya items de por medio**, la
+   capa está mutando algo que no debería.
+4. **Coordinar siete magos** no se puede probar con dos. El test
+   construye los siete estados, **no los juega**.
+
+---
 
 ## 15. Empezar a jugar **[F1]**
 

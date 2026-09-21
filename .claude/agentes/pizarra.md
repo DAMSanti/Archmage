@@ -27,3 +27,8 @@ con `mkdir`.
 
 <!-- Los bloques van debajo de esta línea. Si no hay ninguno, nadie está
      trabajando y el repositorio está libre. -->
+
+## claude — Temporada fase 5, tareas 1-22
+tarea: implementar la fase 5 entera
+toco: packages/core, packages/content, packages/contract, apps/server, apps/web, ROADMAP.md
+puede que toque: docs/SISTEMAS.md, docs/SPECS.md, docs/INTERFAZ.md, docs/ESTADO.md

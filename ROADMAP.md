@@ -130,7 +130,106 @@ diseño — **siete sellos que rompen siete magos distintos**, uno cada 24
 horas. El final de la temporada **no es una fecha, es una decisión
 colectiva**; la fecha solo pone el tope.
 
-Sin tareas todavía: las saca `/plan-tarea`.
+**Plan técnico**: [docs/SISTEMAS.md §14.1](docs/SISTEMAS.md), apartado
+«Plan técnico». Escrito el 2026-09-22.
+
+**Lo que hay que arreglar antes de construir encima**
+
+- [ ] **1. Dos servidores, y el invariante 16.** Catálogo de servidores
+      en `content`, `serverId` **del mago de la sesión**, y las 26
+      apariciones de `TERRA` en `app.ts` fuera. *Test = criterios 11, 12
+      y 13: una cuenta con un mago en cada servidor, el rápido devenga al
+      doble, y **ninguna lista mezcla los dos mundos**.* **Es el riesgo
+      1 del plan.** *Toca `packages/content`, `apps/server` y el
+      contrato.* **Migración aditiva.**
+- [ ] **2. Enchufar la pre-batalla en un ataque de verdad.** `war.ts`
+      llama a `resolveBattle()` **sin pasar por `prepareBattle()`**: la
+      capa de la fase 4 está escrita, probada y **desconectada**, así que
+      hoy un ataque real no aplica los items. *Test: un ataque con
+      Tambores de Guerra baja el ataque enemigo; **y sin items el
+      resultado es idéntico al de la fase 3**, que es el canario.*
+      *Toca `packages/core/src/war.ts`.*
+
+**Gremios**
+
+- [ ] **3. Fundar y entrar.** Cinco fundadores, solicitud e invitación,
+      **un mago un gremio**. *Test = criterios 1 y 3: con cuatro no se
+      funda, con cinco sí, y la segunda solicitud aceptada es error de
+      dominio.* **Migración aditiva.**
+- [ ] **4. No se ataca a los tuyos.** *Test = criterio 2: atacar a un
+      compañero es un **422 con su código**, no un 500 ni un ataque que
+      sale.* *Toca `packages/core/src/war.ts`.*
+- [ ] **5. Listas y registros.** Miembros, enemigos declarados y las
+      batallas del gremio. *Test del servidor.*
+
+**Alianzas y refuerzos — aquí se toca el combate**
+
+- [ ] **6. Proponer y aceptar una alianza.** 1 o 2 según servidor.
+      *Test: el tercero no entra.*
+- [ ] **7. Romper tarda 24 horas.** *Test = criterio 7 con el reloj
+      inyectado: durante el plazo **los refuerzos siguen yendo**.*
+      **Proceso programado idempotente.**
+- [ ] **8. Los refuerzos, en la pre-batalla.** *Test = criterios 4, 5 y
+      6: el defensor pelea con más, **el aliado pierde unidades**, sus
+      dos stacks más potentes **no aparecen**, y un compañero que no es
+      aliado no manda nada.* **Es el riesgo 2**: sin aliado el resultado
+      tiene que ser idéntico al de la fase 3.
+- [ ] **9. Devolver al aliado lo que le quedó.** Sus stacks van marcados
+      y vuelven a su dueño. *Test: el defensor **no se queda** con el
+      ejército de su aliado.* Sin esto, ayudar sería un negocio.
+
+**Mensajería**
+
+- [ ] **10. Directos y bandeja.** *Test = criterio 8: pedir la bandeja de
+      otro es un 403.* **Es el invariante 13 otra vez.**
+- [ ] **11. Tablón de gremio.** *Test = criterio 10: solo lo leen sus
+      miembros.*
+- [ ] **12. Bloquear a un mago.** *Test = criterio 9: el bloqueado no
+      escribe, y **el que bloquea no se entera de que lo intentó**.*
+
+**Armageddon**
+
+- [ ] **13. El hechizo, como dato.** Se investiga **después de todos los
+      demás** y **no suma nivel de hechizo**: el catálogo necesita un
+      campo para decirlo, no un `if` con su nombre. *Test = criterio 16.*
+      *Toca `packages/content` y `packages/core`.*
+- [ ] **14. Los siete sellos.** *Test = criterios 14 y 15: siete magos
+      **distintos**, y dos sellos seguidos en menos de 24 horas es error
+      de dominio.* **El reloj por parámetro.**
+- [ ] **15. La fecha tope, 90 días.** *Test = criterio 17 por las dos
+      vías: acaba al séptimo sello, y acaba sola a los 90 días.*
+      **Proceso programado idempotente.**
+
+**El final**
+
+- [ ] **16. Cerrar la temporada.** Una fila que se marca cerrada, **no
+      miles de magos que se tocan**. *Test = criterios 18 y 20: la cuenta
+      sigue y puede crear mago nuevo, el viejo no se juega, y **no
+      aparece** en el ranking de la nueva.* **Es el invariante 17.**
+- [ ] **17. Hall of Fame y Hall of Immortals.** Diez por net power y los
+      siete de los sellos. *Test = criterio 19.*
+- [ ] **18. Que lo que sobrevive NO dé ventaja.** *Test = criterio 21: un
+      mago nuevo de una cuenta con Hall of Fame empieza exactamente igual
+      que uno de una cuenta nueva.*
+
+**Cliente**
+
+- [ ] **19. `/gremio`.** Miembros, aliados, y **el coste de aliarse
+      dicho antes de aceptar**.
+- [ ] **20. `/mensajes`.** Bandeja, directos, tablón, y el **bloqueo a un
+      clic** en la conversación.
+- [ ] **21. `/temporada`.** **Los sellos y la fecha tope a la vez**, y
+      los dos Halls.
+
+      *Las tareas 19 a 21 se verifican en **una sola pasada de
+      navegador**, con los criterios de presentación dentro.*
+
+**Calibración**
+
+- [ ] **22. ¿Rompe algo la fase 5?** *Que los 568 tests de las fases 1-4
+      sigan en verde, que una batalla sin aliado dé el mismo resultado
+      que antes, y que **el reparto de ejército siga siendo el que más
+      net power saca**.*
 
 ### El mundo de la fase 4 — cerrada el 2026-09-22
 
