@@ -9,8 +9,15 @@ services:
       POSTGRES_DB: archmage
     ports:
       - '5433:5432'
+    # Volumen con nombre: sin él, `docker compose down` se lleva la partida
+    # de desarrollo y el mago vuelve a empezar de cero sin avisar.
+    volumes:
+      - archmage-db:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U archmage']
       interval: 2s
       timeout: 3s
       retries: 20
+
+volumes:
+  archmage-db:

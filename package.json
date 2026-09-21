@@ -4,9 +4,15 @@
   "type": "module",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "dev:server": "pnpm --filter @archmage/server start",
+    "dev:web": "pnpm --filter @archmage/web dev",
     "build": "tsc -b",
     "test": "vitest run",
-    "check": "tsc -b && vitest run"
+    "check": "tsc -b && vitest run",
+    "browser": "node apps/web/tests/navegador.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.63.0",
