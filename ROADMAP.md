@@ -115,7 +115,83 @@ Qué cerró:
 maná no sirve para nada** y el reparto económico domina por definición.
 El criterio 10 de §7.1 es exactamente el que los reabre.
 
-Sin tareas todavía: las saca `/plan-tarea`.
+**Plan técnico**: [docs/SISTEMAS.md §7.1](docs/SISTEMAS.md), apartado
+«Plan técnico». Escrito el 2026-09-21.
+
+**Confirmado con el usuario el 2026-09-21**: los encantamientos de
+combate van **en el catálogo con sus costes pero no lanzables** hasta la
+fase 3, y se atacan **las 15 tareas seguidas**.
+
+**La rueda y los costes**
+
+- [ ] **1. La rueda de adyacencia.** Qué escuela es adyacente, opuesta o
+      propia de cuál, y qué rangos puede investigar cada una.
+      *Test: un Verdant investiga Complex de Ascendant y Eradication pero
+      no de Nether ni Phantasm — el criterio 1 de §7.1.*
+      *Toca `packages/core`.*
+- [ ] **2. El coste fuera de color.** La tabla 100/125/150/200/350/600
+      según rango y distancia. *Test = criterio 2: un Complex opuesto
+      cuesta exactamente 6× su Cast M.P.*
+- [ ] **3. El nivel de hechizo.** +1/+3/+7/+20/+15 al aprender, y el
+      máximo del catálogo. *Test = criterio 4, y que el máximo sale
+      reproducible del catálogo.*
+
+**El catálogo**
+
+- [ ] **4. La forma de un hechizo y de su efecto.** Esquema Zod, con el
+      efecto como **forma cerrada** —invocar, encantar, recurso—, no un
+      nombre que el núcleo tenga que reconocer. *Test: el catálogo valida,
+      y añadir una entrada no toca `core`.*
+      *Toca `packages/content` y `packages/core` (los tipos).*
+- [ ] **5. Plain y Verdant, el catálogo entero.** Los hechizos con sus
+      cuatro costes; los de combate **marcados como no lanzables hasta la
+      fase 3**. Las unidades invocables con su mitad económica.
+      *Test: los tres hechizos con ficha publicada salen clavados —
+      Dryad 3.000/900, Nymph 7.900/1.400, Regeneration 30.000/3.000.*
+
+**Las reglas**
+
+- [ ] **6. Investigar.** Progreso por turno según guilds, sin duplicados.
+      *Test = criterio 5: investigar algo sabido es error de dominio y no
+      gasta nada.* **Cambia el contrato**: `spellbook.researching` pasa a
+      llevar progreso.
+- [ ] **7. El libro de hechizos.** Qué puede investigar este mago y a qué
+      precio le saldría lanzarlo. Función de consulta pura, para que la
+      pantalla no recalcule nada.
+- [ ] **8. Lanzar, con sus cast turns.** Maná cobrado **al iniciar**,
+      turnos consumidos de verdad. *Test = criterio 7: un hechizo de 4
+      turnos no surte efecto hasta el cuarto.* **Cambia el contrato**:
+      columna `casting`.
+- [ ] **9. Fallar por concentración.** Nunca en color; fuera de color
+      según rango, distancia y nivel. *Test = criterio 3, con la semilla
+      fijada en un fallo: el maná baja y el efecto no ocurre.*
+- [ ] **10. Invocar.** Cantidad escalada por nivel de hechizo, contra el
+      máximo de **nuestro** catálogo. *Test = criterio 8: si no cabe en la
+      población, falla **sin cobrar** el maná.*
+- [ ] **11. Encantar.** Solo los económicos. Potencia **congelada al
+      lanzar**, no recalculada. *Test = criterio 6: no se puede lanzar dos
+      veces, y su upkeep aparece en el ingreso neto.*
+
+**Servidor y cliente**
+
+- [ ] **12. Las tres acciones en el contrato y el servidor.** `Research`,
+      `CastSpell`, `DispelEnchantment`, más la migración aditiva de
+      `casting`. *Tests contra Postgres real.*
+      *Toca `packages/contract` y `apps/server`.*
+- [ ] **13. `/magia`.** Libro, investigación en curso, lanzamiento en
+      curso y encantamientos activos, con las reglas de
+      [docs/INTERFAZ.md §3.1](docs/INTERFAZ.md). *Se verifica en **una
+      sola pasada de navegador** con la tarea 14.*
+- [ ] **14. La crónica y el reino, al día.** Los eventos nuevos
+      traducidos a frases, y el upkeep de encantamientos visible en el
+      ingreso neto. *Misma pasada de navegador que la 13.*
+
+**Calibración**
+
+- [ ] **15. ¿Compite ya el maná?** Rehacer la simulación de §17.2 con
+      magia. *Criterio 10 de §7.1, y **el que reabre los criterios 9 y 13
+      de §17.2**, aplazados desde la fase 1.* Aquí es donde se mueven los
+      precios si hace falta — en `content`, no en el código.
 
 ---
 

@@ -596,6 +596,125 @@ comprobar.
 - **Armageddon**, que es un hechizo pero pertenece al final de temporada.
   Fase 5.
 
+#### Plan técnico
+
+**Escrito el 2026-09-21 con `/plan-tarea`.** Las tareas están en
+[ROADMAP.md](../ROADMAP.md) «En curso».
+
+##### Lo que planear destapó, y no estaba en la spec
+
+**Casi todos los encantamientos reales de Verdant son buffs de
+combate.** *Plant Growth* da +228% de ataque, contraataque y vida a los
+treefolk; *Nature's Lore* sube el daño de los elfos; *Sunray* da
+resistencia a magia enemiga ([ORIGINAL.md §6.4](ORIGINAL.md)). Los tres
+necesitan combate, que es la fase 3.
+
+Los que **sí hacen algo** en la fase 2 son los económicos: *Nature's
+Favor* (producción de farms, ingreso de población, generación de
+unidades) y *Weather Summoning* (producción de farms).
+
+**Decisión**: la fase 2 implementa **solo los encantamientos cuyo efecto
+se puede comprobar hoy**, que son los económicos. Los de combate se
+escriben en el catálogo con su rango y sus costes, **marcados como no
+lanzables todavía**, y se activan en la fase 3. Así el libro de hechizos
+enseña la escuela entera —que es lo que hace que elegir escuela
+signifique algo— sin que haya código que nadie puede verificar.
+
+##### Qué cambia del contrato
+
+Dos huecos en [SPECS.md §1](SPECS.md), y ninguno se resuelve en silencio:
+
+1. **La investigación no tiene dónde guardar el progreso.**
+   `spellbook.researching` es un `SpellId | null` y no dice cuánto falta.
+   Se convierte en `{ spellId, progress } | null`. **No hace falta
+   migración**: `spellbook` ya es `jsonb`.
+2. **No hay dónde guardar un lanzamiento en curso.** Los hechizos con
+   *Cast Turn* tardan varios turnos ([§7](SISTEMAS.md), `[orig]`), así
+   que hace falta `casting: { spellId, turnsRemaining } | null`. Eso **sí
+   es una columna nueva**, aditiva y anulable.
+
+##### Los números que el plan tiene que cerrar
+
+Tres marcas que la spec dejó abiertas y que **no se improvisan al
+implementar**:
+
+- **Velocidad de investigación.** El original dice que depende de los
+  guilds y no publica la fórmula. Se cierra con
+  `progreso por turno = guilds × factor`, y el factor se calibra contra
+  el criterio 11 de §7.1: el catálogo completo de Verdant y Plain tiene
+  que costar un número de turnos del orden del que documenta el original.
+- **Escalado de la invocación con el nivel de hechizo.** Las cifras
+  publicadas son a nivel **624**, y nuestro catálogo de una escuela llega
+  a un máximo muy inferior —del orden de **150**, contando +1/+3/+7/+20
+  sobre unos treinta hechizos—. Así que el nivel de referencia **es el
+  nuestro, no el del original**: la cantidad invocada va de un suelo a la
+  cifra publicada según `nivel / nivelMáximoDelCatálogo`.
+- **Probabilidad de fallo por concentración.** No publicada. Sale del
+  rango del hechizo y de la distancia en la rueda, y mejora con el nivel.
+  **En color nunca falla**, que es lo que hace valiosa tu escuela.
+
+##### Dónde va cada cosa
+
+| | Va a | Por qué |
+|---|---|---|
+| La rueda, el multiplicador fuera de color, el nivel de hechizo, investigar, lanzar, el fallo, los encantamientos y la invocación | **`packages/core`** | Son reglas. Funciones puras. |
+| El catálogo de hechizos de Plain y Verdant, y las unidades invocables con su mitad económica | **`packages/content`** | Son datos. Añadir un hechizo no toca código. |
+| Las tres acciones nuevas y el estado que devuelven | **`packages/contract`** | Rompe los dos lados a la vez, que es lo que queremos. |
+| La columna `casting` | **`apps/server`** | Migración aditiva. |
+| `/magia` | **`apps/web`** | Ver [INTERFAZ.md §3.1](INTERFAZ.md). |
+
+**El efecto de un hechizo es dato, no un `switch` por nombre.** Un
+hechizo lleva un efecto de una forma cerrada —invocar, encantar,
+recurso— y el núcleo sabe resolver esas formas. Si añadir un hechizo
+obliga a tocar el núcleo, el modelo de efectos está mal.
+
+##### Detalles con trampa
+
+1. **El maná se cobra al iniciar el lanzamiento, no al terminarlo.** El
+   original dice que cuesta **aunque falles** ([§7](SISTEMAS.md)), y un
+   hechizo de 10 turnos que cobrara al final sería gratis si lo
+   abandonas.
+2. **Un encantamiento ya lanzado no se actualiza** si tu nivel de hechizo
+   sube después ([ORIGINAL.md §6.2](ORIGINAL.md), confianza alta). Su
+   potencia se congela al lanzarlo, así que se guarda **con** el
+   encantamiento, no se recalcula.
+3. **El upkeep de los encantamientos ya lo suma `upkeep()`** de la fase 1
+   — el hueco estaba previsto. Lo que falta es que el ingreso neto de la
+   pantalla del reino lo refleje, y eso sale solo.
+4. **Invocar puede no caber.** Si el ejército no entra en la población,
+   el hechizo falla **sin cobrar el maná**: es un error de dominio antes
+   de empezar, no un lanzamiento fallido.
+
+##### Orden de dependencias
+
+```
+rueda + coste fuera de color + nivel de hechizo (core)
+   └─ catálogo de Plain y Verdant (content)
+         └─ investigar ── libro de hechizos
+               └─ lanzar: cast turns, coste aunque falles, concentración
+                     ├─ invocar ── encantar (solo económicos)
+                     └─ contrato → columna `casting` → servidor
+                           └─ /magia
+                                 └─ simulación: ¿compite ya el maná?
+```
+
+**La simulación va al final** porque el criterio 10 de §7.1 —que el
+reparto volcado a maná deje de ser estrictamente peor— **no se puede
+medir hasta que el maná compre algo**.
+
+##### Riesgos
+
+- **El catálogo es el trabajo grande, y la mayoría de sus números son
+  nuestros.** La wiki publica ficha completa de tres hechizos de Verdant;
+  el resto se deduce de la escala por rango. Si al simular sale que un
+  rango está mal valorado, se mueve **el dato**, no el código.
+- **El criterio 10 puede no cumplirse a la primera.** Es su razón de ser:
+  si el maná sigue sin competir con magia, el problema está en los
+  precios de los hechizos o en el rendimiento de los nodes, y ahí es
+  donde hay que mirar.
+- **Los buffs de combate quedan inertes hasta la fase 3.** Declarado
+  arriba, no escondido.
+
 **[nuestro]** Referencia de escala, del único hechizo con ficha pública
 del original: *Summon Unicorn*, Ascendant, Complex — 4 cast turns, 30.000
 de maná, 2.500 de investigación, sin upkeep, invoca **887-1010**
