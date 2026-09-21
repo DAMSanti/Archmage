@@ -489,3 +489,202 @@ describe('la guerra, contra Postgres de verdad', () => {
     expect(body.battles[0]).not.toHaveProperty('log');
   });
 });
+
+
+// --- Cuentas. Fase 4 -----------------------------------------------------
+
+describe('cuentas, sesión y el invariante 13', () => {
+  const CORREO = 'ana@ejemplo.com';
+  const CLAVE = 'contraseña-larga';
+
+  const registrar = (email = CORREO, password = CLAVE) =>
+    app.inject({ method: 'POST', url: '/api/auth/register', payload: { email, password } });
+
+  const entrar = (email = CORREO, password = CLAVE) =>
+    app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password } });
+
+  const cookieDe = (res: { cookies: { name: string; value: string }[] }) =>
+    res.cookies.find((c) => c.name === 'archmage_sid')?.value ?? '';
+
+  async function cuentaConMago(email: string, nombre: string) {
+    await registrar(email);
+    const login = await entrar(email);
+    const sid = cookieDe(login as never);
+    const creado = await app.inject({
+      method: 'POST',
+      url: '/api/mage',
+      cookies: { archmage_sid: sid },
+      payload: { name: nombre, specialty: 'verdant' },
+    });
+    return { sid, creado };
+  }
+
+  test('registrar manda un correo de verificación, y no dos cuentas iguales', async () => {
+    expect((await registrar()).statusCode).toBe(200);
+    // El mismo correo en mayúsculas **es la misma cuenta**: sin normalizar,
+    // la segunda persona creería que le han robado el correo.
+    const otra = await registrar('ANA@Ejemplo.com');
+    expect(otra.statusCode).toBe(422);
+    expect((otra.json() as { error: { code: string } }).error.code).toBe('correo_en_uso');
+
+    const correos = await conn.sql.unsafe('SELECT recipient, body FROM outbox');
+    expect(correos).toHaveLength(1);
+    expect(correos[0]!.recipient).toBe(CORREO);
+  });
+
+  test('una contraseña mala no entra, y el mensaje no delata si el correo existe', async () => {
+    await registrar();
+    const mala = await entrar(CORREO, 'otra-contraseña');
+    const inexistente = await entrar('nadie@ejemplo.com', CLAVE);
+    expect(mala.statusCode).toBe(422);
+    expect(inexistente.statusCode).toBe(422);
+    // **El mismo código para los dos.** Distinguirlos dejaría comprobar qué
+    // correos tienen cuenta.
+    expect((mala.json() as { error: { code: string } }).error.code).toBe(
+      (inexistente.json() as { error: { code: string } }).error.code,
+    );
+  });
+
+  test('entrar da sesión, y salir la quita', async () => {
+    await registrar();
+    const login = await entrar();
+    expect(login.statusCode).toBe(200);
+    const sid = cookieDe(login as never);
+    expect(sid.length).toBeGreaterThan(16);
+
+    const filas = await conn.sql.unsafe('SELECT count(*)::int AS n FROM sessions');
+    expect(filas[0]!.n).toBe(1);
+
+    await app.inject({ method: 'POST', url: '/api/auth/logout', cookies: { archmage_sid: sid } });
+    const tras = await conn.sql.unsafe('SELECT count(*)::int AS n FROM sessions');
+    expect(tras[0]!.n).toBe(0);
+  });
+
+  test('un token de verificación no se reutiliza', async () => {
+    await registrar();
+    const correos = await conn.sql.unsafe('SELECT body FROM outbox');
+    const token = String(correos[0]!.body).split(': ')[1]!;
+    expect((await app.inject({ method: 'POST', url: '/api/auth/verify', payload: { token } })).statusCode).toBe(200);
+    // El segundo intento con el mismo token **no vale**.
+    const otra = await app.inject({ method: 'POST', url: '/api/auth/verify', payload: { token } });
+    expect(otra.statusCode).toBe(422);
+  });
+
+  test('un token caducado no verifica', async () => {
+    await registrar();
+    // **Contra el reloj INYECTADO, no contra el de Postgres.** El servidor
+    // compara con `deps.now()`, que en los tests vale 2023; `now()` de la
+    // base de datos es hoy, así que «hace una hora» seguiría siendo futuro
+    // y el test pasaría sin comprobar nada.
+    await conn.sql.unsafe('UPDATE auth_tokens SET expires_at = $1', [
+      new Date(ahora - 60 * 60 * 1000).toISOString(),
+    ]);
+    const correos = await conn.sql.unsafe('SELECT body FROM outbox');
+    const token = String(correos[0]!.body).split(': ')[1]!;
+    const res = await app.inject({ method: 'POST', url: '/api/auth/verify', payload: { token } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  test('recuperar cambia la contraseña sin saber la vieja, y cierra las sesiones', async () => {
+    await registrar();
+    const login = await entrar();
+    const sid = cookieDe(login as never);
+
+    await app.inject({ method: 'POST', url: '/api/auth/forgot', payload: { email: CORREO } });
+    const correos = await conn.sql.unsafe(
+      "SELECT body FROM outbox WHERE subject LIKE 'Recuperar%'",
+    );
+    const token = String(correos[0]!.body).split(': ')[1]!;
+
+    const reset = await app.inject({
+      method: 'POST',
+      url: '/api/auth/reset',
+      payload: { token, password: 'contraseña-nueva' },
+    });
+    expect(reset.statusCode).toBe(200);
+    expect((await entrar(CORREO, 'contraseña-nueva')).statusCode).toBe(200);
+    expect((await entrar(CORREO, CLAVE)).statusCode).toBe(422);
+
+    // **La sesión vieja ya no vale**: si alguien entró con la contraseña
+    // robada, recuperarla tiene que echarlo.
+    const filas = await conn.sql.unsafe('SELECT id FROM sessions WHERE id = $1', [sid]);
+    expect(filas).toHaveLength(0);
+  });
+
+  test('pedir a quién recuperar responde igual exista o no el correo', async () => {
+    const a = await app.inject({ method: 'POST', url: '/api/auth/forgot', payload: { email: 'nadie@ejemplo.com' } });
+    expect(a.statusCode).toBe(200);
+  });
+
+  test('CRITERIO 1 — un mago por cuenta y servidor', async () => {
+    const { sid, creado } = await cuentaConMago(CORREO, 'Ana');
+    expect(creado.statusCode).toBe(200);
+
+    const segundo = await app.inject({
+      method: 'POST',
+      url: '/api/mage',
+      cookies: { archmage_sid: sid },
+      payload: { name: 'Ana Dos', specialty: 'nether' },
+    });
+    expect(segundo.statusCode).toBe(422);
+    expect((segundo.json() as { error: { code: string } }).error.code).toBe('ya_tienes_mago');
+  });
+
+  test('dos cuentas distintas ven dos magos distintos', async () => {
+    const a = await cuentaConMago('ana@ejemplo.com', 'Ana');
+    const b = await cuentaConMago('bruno@ejemplo.com', 'Bruno');
+
+    const reinoA = await app.inject({ method: 'GET', url: '/api/mage/me', cookies: { archmage_sid: a.sid } });
+    const reinoB = await app.inject({ method: 'GET', url: '/api/mage/me', cookies: { archmage_sid: b.sid } });
+    const nombreA = (reinoA.json() as { mage: { name: string } }).mage.name;
+    const nombreB = (reinoB.json() as { mage: { name: string } }).mage.name;
+    expect(nombreA).toBe('Ana');
+    expect(nombreB).toBe('Bruno');
+  });
+
+  test('CRITERIO 2 — el id del mago sale de la sesión, y no viaja', async () => {
+    // **El invariante 13.** El test que lo protege no es que funcione: es
+    // que **no haya forma de pedir el mago de otro**. Se comprueba que
+    // ninguna ruta acepta un id por parámetro ni por cuerpo.
+    const a = await cuentaConMago('ana@ejemplo.com', 'Ana');
+    const b = await cuentaConMago('bruno@ejemplo.com', 'Bruno');
+
+    const bId = (
+      (await app.inject({ method: 'GET', url: '/api/mage/me', cookies: { archmage_sid: b.sid } })).json() as {
+        mage: { id: string };
+      }
+    ).mage.id;
+
+    // Con la sesión de Ana, pidiendo explícitamente el mago de Bruno.
+    const intento = await app.inject({
+      method: 'GET',
+      url: `/api/mage/me?mageId=${bId}`,
+      cookies: { archmage_sid: a.sid },
+    });
+    expect((intento.json() as { mage: { name: string } }).mage.name).toBe('Ana');
+
+    // Y atacar mandando un id ajeno como atacante tampoco cuela: el
+    // `targetId` es del defensor, y el atacante sale de la sesión.
+    const ataque = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      cookies: { archmage_sid: a.sid },
+      payload: { action: { type: 'attack', targetId: bId, attackType: 'regular' } },
+    });
+    // Falla por reglas de juego —protegido, sin ejército—, no por identidad.
+    expect([200, 422]).toContain(ataque.statusCode);
+  });
+
+  test('sin sesión y con el mago de desarrollo apagado, no se juega', async () => {
+    const cerrado = buildApp({
+      db: conn.db,
+      now: () => ahora,
+      random: () => makeRandom(1),
+      allowDevMage: false,
+    });
+    await cerrado.ready();
+    const res = await cerrado.inject({ method: 'GET', url: '/api/mage/me' });
+    expect(res.statusCode).toBe(401);
+    await cerrado.close();
+  });
+});

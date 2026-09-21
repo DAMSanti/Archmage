@@ -100,10 +100,64 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
     CREATE INDEX IF NOT EXISTS battles_attacker_idx ON battles (attacker_id, created_at);
     CREATE INDEX IF NOT EXISTS battles_defender_idx ON battles (defender_id, created_at);
     CREATE INDEX IF NOT EXISTS battles_server_idx   ON battles (server_id, created_at);
+
+    -- Fase 4, 2026-09-21. Cuentas y sesiones. Todo aditivo: la columna
+    -- mages.account_id es ANULABLE a propósito, porque el mago de
+    -- desarrollo no tiene cuenta y tiene que seguir funcionando
+    -- (docs/SISTEMAS.md §12.1).
+    CREATE TABLE IF NOT EXISTS accounts (
+      id            text PRIMARY KEY,
+      email         text NOT NULL UNIQUE,
+      password_hash text NOT NULL,
+      verified_at   timestamptz,
+      created_at    timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id         text PRIMARY KEY,
+      account_id text NOT NULL REFERENCES accounts(id),
+      expires_at timestamptz NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS sessions_account_idx ON sessions (account_id);
+
+    -- Tokens de verificacion y de recuperacion. La columna kind los
+    -- distingue y used_at impide reutilizar uno: un token gastado no
+    -- vale dos veces.
+    CREATE TABLE IF NOT EXISTS auth_tokens (
+      id         text PRIMARY KEY,
+      account_id text NOT NULL REFERENCES accounts(id),
+      kind       text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      used_at    timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS auth_tokens_account_idx ON auth_tokens (account_id, kind);
+
+    -- El correo que se habría mandado, cuando no hay SMTP. Es la segunda
+    -- implementacion del Mailer, y la que usan los tests.
+    CREATE TABLE IF NOT EXISTS outbox (
+      id         serial PRIMARY KEY,
+      recipient  text NOT NULL,
+      subject    text NOT NULL,
+      body       text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    ALTER TABLE mages ADD COLUMN IF NOT EXISTS account_id text REFERENCES accounts(id);
+    CREATE INDEX IF NOT EXISTS mages_account_idx ON mages (account_id);
+
+    -- Un mago por cuenta y servidor. En el original es norma de
+    -- convivencia; aquí es regla del código, porque si el juego lo permite
+    -- alguien lo usa (docs/SISTEMAS.md §13).
+    CREATE UNIQUE INDEX IF NOT EXISTS mages_account_server_uniq
+      ON mages (account_id, server_id) WHERE account_id IS NOT NULL;
   `);
 }
 
 /** Solo para los tests: vacía las tablas sin tocar el esquema. */
 export async function truncateAll(sql: postgres.Sql): Promise<void> {
-  await sql.unsafe('TRUNCATE battles, events, mages RESTART IDENTITY CASCADE;');
+  await sql.unsafe('TRUNCATE outbox, auth_tokens, sessions, battles, events, mages, accounts RESTART IDENTITY CASCADE;');
 }

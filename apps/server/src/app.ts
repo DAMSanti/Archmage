@@ -15,6 +15,7 @@
 
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
+import fastifyCookie from '@fastify/cookie';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,16 +37,47 @@ import { makeRandom as _makeRandom, resolveAttack } from '@archmage/core';
 import { PILLAGE_MIN_POWER_SHARE } from '@archmage/core';
 import type { Ctx, MageState, RandomSource } from '@archmage/core';
 import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from '@archmage/content';
-import { actionRequestSchema } from '@archmage/contract';
+import {
+  actionRequestSchema,
+  createMageSchema,
+  forgotSchema,
+  loginSchema,
+  registerSchema,
+  resetSchema,
+  tokenSchema,
+} from '@archmage/contract';
 import type { Db } from './db.js';
 import {
+  type Mailer,
+  SESSION_COOKIE,
+  SESSION_DAYS,
+  hashPassword,
+  newToken,
+  normalizeEmail,
+  sessionExpiry,
+  tokenExpiry,
+  verifyPassword,
+} from './auth.js';
+import {
+  accountByEmail,
+  accountOfSession,
   applyAction,
   applyBattle,
   insertMage,
   listBattles,
   listTargets,
+  createAccount,
+  createSession,
+  createToken,
+  deleteSession,
+  deleteSessionsOf,
   loadAccrued,
+  mageOfAccount,
+  markVerified,
   namesOf,
+  outboxMailer,
+  setPassword,
+  useToken,
   readBattle,
   readChronicle,
   rowToState,
@@ -57,6 +89,11 @@ import {
  * El log de una batalla grande son cientos de golpes; mandarlo en una lista
  * de veinte batallas sería megabytes para pintar veinte líneas.
  */
+/** El `Mailer` que toque: el inyectado, o el de la tabla `outbox`. */
+function mailerDe(deps: AppDeps): Mailer {
+  return deps.mailer ?? outboxMailer(deps.db);
+}
+
 function sinLog(f: Record<string, unknown>) {
   const { log: _log, ...resto } = f as { log: unknown };
   return { ...resto, createdAt: String((f as { createdAt: Date }).createdAt) };
@@ -64,7 +101,14 @@ function sinLog(f: Record<string, unknown>) {
 
 const TUNING = { ...ECONOMY };
 
-/** El mago de desarrollo. Fase 1: uno, fijo. */
+/**
+ * El mago de desarrollo.
+ *
+ * **Sobrevive a la fase 4 detrás de una bandera** (`allowDevMage`). Sin él,
+ * la pasada de navegador —la comprobación más cara que tenemos— tendría que
+ * registrarse y verificar un correo cada vez (docs/SISTEMAS.md §12.1).
+ * Con la bandera apagada, **no hay forma de jugar sin sesión**.
+ */
 export const DEV_MAGE_ID = 'dev';
 
 export interface AppDeps {
@@ -79,6 +123,18 @@ export interface AppDeps {
   /** Inyectados para que los tests no dependan del reloj ni del azar. */
   now: () => number;
   random: () => RandomSource;
+  /**
+   * Cómo se manda el correo. Si no se pasa, los mensajes van a la tabla
+   * `outbox` — que es la segunda implementación de la que habla la spec, y
+   * la que impide que un test mande correo de verdad.
+   */
+  mailer?: Mailer;
+  /**
+   * Si se permite jugar **sin sesión** como el mago de desarrollo. Por
+   * defecto **sí**, porque quitarlo rompería la pasada de navegador; en
+   * producción se apaga.
+   */
+  allowDevMage?: boolean;
 }
 
 /**
@@ -128,20 +184,61 @@ function derive(state: MageState, now: number) {
   };
 }
 
+/**
+ * El mago de quien pide, **sacado de la sesión**.
+ *
+ * Invariante 13 de docs/SPECS.md: el id **no viaja** en el cuerpo ni en la
+ * URL. Una ruta que lo aceptara por parámetro funcionaría perfectamente y
+ * dejaría leer y jugar el reino de cualquiera, sin dar un solo error.
+ *
+ * Devuelve `null` si no hay sesión válida. El mago de desarrollo solo entra
+ * si la bandera lo permite, y **después** de haber mirado la sesión: una
+ * sesión de verdad siempre manda sobre la bandera.
+ */
+async function mageOf(
+  deps: AppDeps,
+  req: { cookies?: Record<string, string | undefined> },
+): Promise<string | null> {
+  const sid = req.cookies?.[SESSION_COOKIE];
+  if (sid) {
+    const cuenta = await accountOfSession(deps.db, sid, new Date(deps.now()));
+    if (cuenta) {
+      const mago = await mageOfAccount(deps.db, cuenta, TERRA.id);
+      return mago ?? null;
+    }
+  }
+  return deps.allowDevMage === false ? null : DEV_MAGE_ID;
+}
+
+/** El 401 de siempre, en un sitio. */
+function sinSesion(reply: { code: (n: number) => { send: (b: unknown) => unknown } }) {
+  return reply
+    .code(401)
+    .send({ error: { code: 'sin_sesion', message: 'Entra con tu cuenta para jugar.' } });
+}
+
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false });
+
+  // La sesión viaja en una cookie **opaca**: dentro solo hay un id, nunca el
+  // `mageId` (docs/SPECS.md §5, invariante 13). Cerrar sesión es borrar una
+  // fila, no esperar a que caduque algo que el cliente sigue teniendo.
+  void app.register(fastifyCookie);
 
   app.get('/api/health', async () => ({ ok: true }));
 
   app.get('/api/catalog', async () => CATALOG);
 
-  app.get('/api/mage/me', async (_req, reply) => {
+  app.get('/api/mage/me', async (req, reply) => {
     const now = deps.now();
-    let state = await loadAccrued(deps.db, DEV_MAGE_ID, now, TERRA);
+    const yoId = await mageOf(deps, req);
+    if (!yoId) return sinSesion(reply);
+    let state = await loadAccrued(deps.db, yoId, now, TERRA);
 
-    // Fase 1: si el mago de desarrollo no existe, se crea. En cuanto haya
-    // cuentas, esto se va con la autenticación.
-    if (!state) {
+    // Si el mago no existe **y es el de desarrollo**, se crea. Un jugador de
+    // verdad crea el suyo en `POST /api/mage`, eligiendo nombre y escuela;
+    // esto es solo para que la pasada de navegador no tenga que registrarse.
+    if (!state && yoId === DEV_MAGE_ID) {
       const nuevo = createMage({
         id: DEV_MAGE_ID,
         name: 'Archimago',
@@ -159,16 +256,26 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       state = nuevo;
     }
 
+    // Una cuenta sin mago todavía. El cliente lo lee y manda al portal a
+    // crearlo: **no es un error**, es un estado normal del primer día.
+    if (!state) {
+      return reply
+        .code(404)
+        .send({ error: { code: 'sin_mago', message: 'Todavía no tienes mago en este servidor.' } });
+    }
+
     return reply.send({ mage: state, derived: derive(state, now), server: TERRA });
   });
 
   /** Contra quién se puede luchar. */
-  app.get('/api/war/targets', async (_req, reply) => {
+  app.get('/api/war/targets', async (_req: { cookies?: Record<string, string | undefined> }, reply) => {
     const now = deps.now();
-    const yo = await loadAccrued(deps.db, DEV_MAGE_ID, now, TERRA);
+    const yoId = await mageOf(deps, _req);
+    if (!yoId) return sinSesion(reply);
+    const yo = await loadAccrued(deps.db, yoId, now, TERRA);
     if (!yo) return reply.send({ targets: [] });
     const miPoder = netPower(yo, CATALOG);
-    const filas = await listTargets(deps.db, TERRA.id, DEV_MAGE_ID);
+    const filas = await listTargets(deps.db, TERRA.id, yoId);
     return reply.send({
       targets: filas.map((f) => {
         const s = rowToState(f);
@@ -189,8 +296,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   });
 
   /** Las últimas batallas del mago, atacadas y sufridas. */
-  app.get('/api/war/battles', async (_req, reply) => {
-    const filas = await listBattles(deps.db, DEV_MAGE_ID);
+  app.get('/api/war/battles', async (req, reply) => {
+    const yoId = await mageOf(deps, req);
+    if (!yoId) return sinSesion(reply);
+    const filas = await listBattles(deps.db, yoId);
     const ids = [...new Set(filas.flatMap((f) => [f.attackerId, f.defenderId]))];
     const nombres = await namesOf(deps.db, ids);
     return reply.send({
@@ -228,6 +337,141 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     });
   });
 
+  // --- Cuentas. Fase 4 ---------------------------------------------------
+
+  app.post('/api/auth/register', async (req, reply) => {
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: { code: 'invalid_request', message: parsed.error.issues[0]?.message ?? 'Datos inválidos.' },
+      });
+    }
+    const email = normalizeEmail(parsed.data.email);
+    const out = await createAccount(deps.db, email, await hashPassword(parsed.data.password));
+    if (!out) {
+      // **El mismo mensaje que si el correo estuviera libre no serviría**:
+      // el registro tiene que decir que está cogido, o la persona no sabe
+      // si ya tiene cuenta. Es información suya, no de un tercero.
+      return reply
+        .code(422)
+        .send({ error: { code: 'correo_en_uso', message: 'Ya hay una cuenta con ese correo.' } });
+    }
+    const token = newToken();
+    await createToken(deps.db, token, out, 'verify', tokenExpiry(deps.now()));
+    await mailerDe(deps).send(
+      email,
+      'Verifica tu cuenta de Archmage',
+      `Tu código de verificación es: ${token}`,
+    );
+    return reply.send({ accountId: out, verificationSent: true });
+  });
+
+  app.post('/api/auth/verify', async (req, reply) => {
+    const parsed = tokenSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_request', message: 'Token inválido.' } });
+    const ok = await useToken(deps.db, parsed.data.token, 'verify', new Date(deps.now()));
+    if (!ok) {
+      return reply
+        .code(422)
+        .send({ error: { code: 'token_invalido', message: 'Ese código no vale o ya se usó.' } });
+    }
+    await markVerified(deps.db, ok, new Date(deps.now()));
+    return reply.send({ verified: true });
+  });
+
+  app.post('/api/auth/login', async (req, reply) => {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    const cuenta = await accountByEmail(deps.db, normalizeEmail(parsed.data.email));
+    // **Un solo mensaje para «no existe» y «contraseña mala».** Distinguirlos
+    // deja comprobar qué correos tienen cuenta.
+    const malo = { code: 'credenciales', message: 'Correo o contraseña incorrectos.' };
+    if (!cuenta || !(await verifyPassword(parsed.data.password, cuenta.passwordHash))) {
+      return reply.code(422).send({ error: malo });
+    }
+    const sid = newToken();
+    await createSession(deps.db, sid, cuenta.id, sessionExpiry(deps.now()));
+    void reply.setCookie(SESSION_COOKIE, sid, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_DAYS * 24 * 60 * 60,
+    });
+    return reply.send({ accountId: cuenta.id, verified: cuenta.verifiedAt !== null });
+  });
+
+  app.post('/api/auth/logout', async (req, reply) => {
+    const sid = req.cookies?.[SESSION_COOKIE];
+    if (sid) await deleteSession(deps.db, sid);
+    void reply.clearCookie(SESSION_COOKIE, { path: '/' });
+    return reply.send({ ok: true });
+  });
+
+  app.post('/api/auth/forgot', async (req, reply) => {
+    const parsed = forgotSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    const cuenta = await accountByEmail(deps.db, normalizeEmail(parsed.data.email));
+    // **Responde igual exista o no.** Si dijera «ese correo no está
+    // registrado», cualquiera podría averiguar quién juega.
+    if (cuenta) {
+      const token = newToken();
+      await createToken(deps.db, token, cuenta.id, 'reset', tokenExpiry(deps.now()));
+      await mailerDe(deps).send(
+        cuenta.email,
+        'Recuperar tu cuenta de Archmage',
+        `Tu código para cambiar la contraseña es: ${token}`,
+      );
+    }
+    return reply.send({ ok: true });
+  });
+
+  app.post('/api/auth/reset', async (req, reply) => {
+    const parsed = resetSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    const cuenta = await useToken(deps.db, parsed.data.token, 'reset', new Date(deps.now()));
+    if (!cuenta) {
+      return reply
+        .code(422)
+        .send({ error: { code: 'token_invalido', message: 'Ese código no vale o ya se usó.' } });
+    }
+    await setPassword(deps.db, cuenta, await hashPassword(parsed.data.password));
+    // **Cambiar la contraseña cierra todas las sesiones.** Si alguien entró
+    // con la vieja, recuperarla tiene que echarlo.
+    await deleteSessionsOf(deps.db, cuenta);
+    return reply.send({ ok: true });
+  });
+
+  /** Crear el mago de esta cuenta en este servidor. Uno, y solo uno. */
+  app.post('/api/mage', async (req, reply) => {
+    const sid = req.cookies?.[SESSION_COOKIE];
+    const cuenta = sid ? await accountOfSession(deps.db, sid, new Date(deps.now())) : null;
+    if (!cuenta) return sinSesion(reply);
+
+    const parsed = createMageSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+
+    const ya = await mageOfAccount(deps.db, cuenta, TERRA.id);
+    if (ya) {
+      // Criterio 1 de docs/SISTEMAS.md §12.1: **un mago por cuenta y
+      // servidor**, y es regla del código, no norma de foro.
+      return reply.code(422).send({
+        error: { code: 'ya_tienes_mago', message: 'Ya tienes un mago en este servidor.' },
+      });
+    }
+
+    const now = deps.now();
+    const nuevo = createMage({
+      id: `m_${newToken().slice(0, 16)}`,
+      name: parsed.data.name,
+      specialty: parsed.data.specialty,
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now,
+    });
+    await insertMage(deps.db, nuevo, cuenta);
+    return reply.send({ mage: nuevo, derived: derive(nuevo, now), server: TERRA });
+  });
+
   app.post('/api/mage/me/actions', async (req, reply) => {
     const parsed = actionRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -237,6 +481,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
 
     const now = deps.now();
+    const yoId = await mageOf(deps, req);
+    if (!yoId) return sinSesion(reply);
     const ctx: Ctx = { now, random: deps.random(), server: TERRA, catalog: CATALOG };
 
     // **Atacar no pasa por `apply()`**: toca a dos magos, así que va por su
@@ -245,7 +491,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     // aquí solo se carga, se llama y se guarda.
     if (parsed.data.action.type === 'attack') {
       const { targetId, attackType } = parsed.data.action;
-      const res = await applyBattle(deps.db, DEV_MAGE_ID, targetId, now, TERRA, (a, d) => {
+      const res = await applyBattle(deps.db, yoId, targetId, now, TERRA, (a, d) => {
         const r = resolveAttack(a, d, attackType, ctx);
         if ('error' in r) return { error: r.error as never };
         return {
@@ -284,7 +530,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       });
     }
 
-    const out = await applyAction(deps.db, DEV_MAGE_ID, parsed.data.action, ctx, TUNING);
+    const out = await applyAction(deps.db, yoId, parsed.data.action, ctx, TUNING);
 
     if (out === null) {
       return reply.code(404).send({ error: { code: 'mage_not_found', message: 'No existe ese mago.' } });
@@ -302,8 +548,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     });
   });
 
-  app.get('/api/mage/me/chronicle', async () => {
-    const filas = await readChronicle(deps.db, DEV_MAGE_ID);
+  app.get('/api/mage/me/chronicle', async (req, reply) => {
+    const yoId = await mageOf(deps, req);
+    if (!yoId) return sinSesion(reply);
+    const filas = await readChronicle(deps.db, yoId);
     return filas.map((f) => ({ seq: f.seq, type: f.type, payload: f.payload, at: f.createdAt }));
   });
 

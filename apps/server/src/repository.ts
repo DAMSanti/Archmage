@@ -19,7 +19,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { accrue, apply } from '@archmage/core';
 import type { Action, Ctx, GameEvent, MageState, Result, ServerConfig } from '@archmage/core';
 import type { ApplyTuning } from '@archmage/core';
-import { battles, events, mages } from './schema.js';
+import { accounts, authTokens, battles, events, mages, outbox, sessions } from './schema.js';
 
 type Db = PostgresJsDatabase<Record<string, never>>;
 type Row = typeof mages.$inferSelect;
@@ -47,7 +47,15 @@ export function rowToState(row: Row): MageState {
   };
 }
 
-function stateToRow(state: MageState): Omit<Row, 'createdAt' | 'updatedAt'> {
+/**
+ * El estado del mago, en fila.
+ *
+ * **`accountId` no está aquí y es a propósito.** De quién es un mago no es
+ * parte de su estado de juego —`MageState` no lo lleva, y el núcleo no debe
+ * saberlo—, así que se escribe al crearlo y `stateToRow` no lo toca: si
+ * estuviera, cada guardado lo reescribiría y un día lo borraría.
+ */
+function stateToRow(state: MageState): Omit<Row, 'createdAt' | 'updatedAt' | 'accountId'> {
   return {
     id: state.id,
     serverId: state.serverId,
@@ -74,8 +82,19 @@ function stateToRow(state: MageState): Omit<Row, 'createdAt' | 'updatedAt'> {
   };
 }
 
-export async function insertMage(db: Db, state: MageState): Promise<void> {
-  await db.insert(mages).values(stateToRow(state));
+/**
+ * Guarda un mago nuevo.
+ *
+ * `accountId` es opcional porque **el mago de desarrollo no tiene cuenta**
+ * (docs/SISTEMAS.md §12.1), y es el único parámetro que `stateToRow` no
+ * produce: de quién es un mago no es parte de su estado de juego.
+ */
+export async function insertMage(
+  db: Db,
+  state: MageState,
+  accountId?: string,
+): Promise<void> {
+  await db.insert(mages).values({ ...stateToRow(state), accountId: accountId ?? null });
 }
 
 /**
@@ -335,4 +354,109 @@ export async function namesOf(db: Db, ids: string[]): Promise<Record<string, str
     .from(mages)
     .where(inArray(mages.id, ids));
   return Object.fromEntries(filas.map((f) => [f.id, f.name]));
+}
+
+// --- Cuentas y sesiones. Fase 4 -----------------------------------------
+
+/** La cuenta de una sesión, si la sesión existe y no ha caducado. */
+export async function accountOfSession(db: Db, sessionId: string, now: Date) {
+  const filas = await db
+    .select({ accountId: sessions.accountId, expiresAt: sessions.expiresAt })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId));
+  const f = filas[0];
+  if (!f) return null;
+  // **Caducar se comprueba al leer, no con un proceso que barra la tabla.**
+  // Una sesión vencida que siga en la fila no hace daño; una que se acepte,
+  // sí. Es el mismo principio que el devengo de turnos (docs/SPECS.md §3).
+  if (f.expiresAt.getTime() <= now.getTime()) return null;
+  return f.accountId;
+}
+
+/** El mago que esa cuenta juega en ese servidor, si lo tiene. */
+export async function mageOfAccount(db: Db, accountId: string, serverId: string) {
+  const filas = await db
+    .select({ id: mages.id })
+    .from(mages)
+    .where(and(eq(mages.accountId, accountId), eq(mages.serverId, serverId)));
+  return filas[0]?.id;
+}
+
+export async function createAccount(db: Db, email: string, passwordHash: string) {
+  const id = `a_${email.length}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  try {
+    await db.insert(accounts).values({ id, email, passwordHash });
+    return id;
+  } catch {
+    // El índice único del correo. Se deja que la base de datos decida en vez
+    // de consultar antes: entre la consulta y el insert cabe otro registro.
+    return null;
+  }
+}
+
+export async function accountByEmail(db: Db, email: string) {
+  const filas = await db.select().from(accounts).where(eq(accounts.email, email));
+  return filas[0];
+}
+
+export async function setPassword(db: Db, accountId: string, passwordHash: string) {
+  await db.update(accounts).set({ passwordHash }).where(eq(accounts.id, accountId));
+}
+
+export async function markVerified(db: Db, accountId: string, at: Date) {
+  await db.update(accounts).set({ verifiedAt: at }).where(eq(accounts.id, accountId));
+}
+
+export async function createSession(db: Db, id: string, accountId: string, expiresAt: Date) {
+  await db.insert(sessions).values({ id, accountId, expiresAt });
+}
+
+export async function deleteSession(db: Db, id: string) {
+  await db.delete(sessions).where(eq(sessions.id, id));
+}
+
+export async function deleteSessionsOf(db: Db, accountId: string) {
+  await db.delete(sessions).where(eq(sessions.accountId, accountId));
+}
+
+export async function createToken(
+  db: Db,
+  id: string,
+  accountId: string,
+  kind: string,
+  expiresAt: Date,
+) {
+  await db.insert(authTokens).values({ id, accountId, kind, expiresAt });
+}
+
+/**
+ * Gasta un token y devuelve su cuenta, o `null`.
+ *
+ * **Marcar usado y comprobar van en la misma transacción**: si no, dos
+ * peticiones con el mismo token lo gastarían las dos. Un token es de un solo
+ * uso o no es nada.
+ */
+export async function useToken(db: Db, id: string, kind: string, now: Date) {
+  return db.transaction(async (tx) => {
+    const filas = await tx
+      .select()
+      .from(authTokens)
+      .where(and(eq(authTokens.id, id), eq(authTokens.kind, kind)))
+      .for('update');
+    const t = filas[0];
+    if (!t) return null;
+    if (t.usedAt !== null) return null;
+    if (t.expiresAt.getTime() <= now.getTime()) return null;
+    await tx.update(authTokens).set({ usedAt: now }).where(eq(authTokens.id, id));
+    return t.accountId;
+  });
+}
+
+/** El `Mailer` de la tabla: la segunda implementación de la que habla §12.1. */
+export function outboxMailer(db: Db) {
+  return {
+    async send(to: string, subject: string, body: string) {
+      await db.insert(outbox).values({ recipient: to, subject, body });
+    },
+  };
 }

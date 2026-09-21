@@ -52,11 +52,19 @@ export const mages = pgTable(
     items: jsonb('items').$type<Record<string, number>>().notNull().default({}),
     skills: jsonb('skills').$type<Record<string, number>>().notNull().default({}),
 
+    /**
+     * La cuenta que juega este mago. **Anulable a propósito**: el mago de
+     * desarrollo no tiene cuenta (docs/SISTEMAS.md §12.1), y la migración
+     * es aditiva.
+     */
+    accountId: text('account_id'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
     porServidor: index('mages_server_idx').on(t.serverId),
+    porCuenta: index('mages_account_idx').on(t.accountId),
   }),
 );
 
@@ -126,3 +134,45 @@ export const battles = pgTable(
     porServidor: index('battles_server_idx').on(t.serverId, t.createdAt),
   }),
 );
+
+// --- Cuentas y sesiones. Fase 4 -----------------------------------------
+
+export const accounts = pgTable('accounts', {
+  id: text('id').primaryKey(),
+  /** Normalizado a minúsculas antes de guardar: ver `normalizeEmail`. */
+  email: text('email').notNull().unique(),
+  /** `scrypt$<salt>$<hash>`. El algoritmo va dentro para poder migrarlo. */
+  passwordHash: text('password_hash').notNull(),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const sessions = pgTable('sessions', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id')
+    .notNull()
+    .references(() => accounts.id),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Tokens de verificación y de recuperación. `usedAt` impide reutilizarlos. */
+export const authTokens = pgTable('auth_tokens', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id')
+    .notNull()
+    .references(() => accounts.id),
+  kind: text('kind').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** El correo que se habría mandado. La segunda implementación del `Mailer`. */
+export const outbox = pgTable('outbox', {
+  id: serial('id').primaryKey(),
+  recipient: text('recipient').notNull(),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

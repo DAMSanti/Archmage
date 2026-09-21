@@ -276,3 +276,28 @@ export type Battle = z.infer<typeof battleSchema>;
 export const battlesResponseSchema = z.object({
   battles: z.array(battleSchema.omit({ log: true })),
 });
+
+// --- Cuentas. Fase 4 -----------------------------------------------------
+
+const emailSchema = z.string().trim().min(3).max(200).email();
+/** Ocho como mínimo. Lo dice `MIN_PASSWORD` en el servidor, y aquí también. */
+const passwordSchema = z.string().min(8).max(200);
+
+export const registerSchema = z.object({ email: emailSchema, password: passwordSchema });
+export const loginSchema = z.object({ email: emailSchema, password: passwordSchema });
+export const forgotSchema = z.object({ email: emailSchema });
+export const tokenSchema = z.object({ token: z.string().min(16).max(128) });
+export const resetSchema = z.object({
+  token: z.string().min(16).max(128),
+  password: passwordSchema,
+});
+
+/**
+ * Crear el mago. **No lleva `mageId` ni `accountId`**: el primero lo genera
+ * el servidor y el segundo sale de la sesión (docs/SPECS.md §5,
+ * invariante 13).
+ */
+export const createMageSchema = z.object({
+  name: z.string().trim().min(2).max(40),
+  specialty: specialtySchema,
+});

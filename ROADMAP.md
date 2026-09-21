@@ -134,23 +134,66 @@ vez de inventarlas.
 
 **Cuentas — sin esto no hay sujeto**
 
-- [ ] **1. Cuentas y sesión.** Tablas `accounts` y `sessions`, columna
+- [x] **1. Cuentas y sesión.** Tablas `accounts` y `sessions`, columna
       `mages.account_id` **anulable**, contraseñas con `scrypt` de
       `node:crypto`, cookie firmada con id de sesión. *Test contra
       Postgres: registrar, entrar, salir, y que una contraseña mala no
       entre.* **Migración aditiva.** *Toca `apps/server` y
       `packages/contract`.*
-- [ ] **1 bis. Verificación por correo y recuperación.** *Decidido por el
+
+      > **HECHO (2026-09-21).** `apps/server/src/auth.ts`, tablas
+      > `accounts`, `sessions` y `auth_tokens`, y `mages.account_id`
+      > **anulable**. `scrypt` de `node:crypto`: cero dependencias nuevas.
+      > La cookie lleva **un id de sesión, no el `mageId`**, así que cerrar
+      > sesión es borrar una fila.
+      >
+      > **Tres decisiones que el código explica y que no son obvias:** el
+      > correo se **normaliza** antes de guardar —si no, `Ana@` y `ana@`
+      > serían dos cuentas—; entrar da **el mismo error** exista el correo
+      > o no, porque distinguirlos deja comprobar quién juega; y la
+      > contraseña se compara con `timingSafeEqual`.
+
+- [x] **1 bis. Verificación por correo y recuperación.** *Decidido por el
       usuario.* Tabla de mensajes, tokens con caducidad, y el envío
       **detrás de una interfaz con dos implementaciones**: SMTP real, y
       una que deja el mensaje en la tabla —la que usan los tests y el
       desarrollo—. *Test: un token caducado no verifica, uno usado no se
       reutiliza, y recuperar cambia la contraseña sin saber la vieja.*
-- [ ] **2. El id del mago sale de la sesión.** Quitar `DEV_MAGE_ID` de
+
+      > **HECHO (2026-09-21).** Tokens de un solo uso con caducidad de 24
+      > horas, y el `Mailer` **detrás de una interfaz**: la implementación
+      > de la tabla `outbox` es la que usan los tests, así que **ningún
+      > test manda correo de verdad**.
+      >
+      > **Recuperar cierra todas las sesiones.** Si alguien entró con la
+      > contraseña robada, cambiarla tiene que echarlo — y eso no estaba en
+      > el plan, salió al escribir el test.
+      >
+      > **Un test estaba mal y lo dijo el reloj.** Caducar un token con
+      > `now() - interval '1 hour'` de Postgres no caducaba nada: el
+      > servidor compara con `deps.now()`, que en los tests vale 2023,
+      > mientras `now()` de la base de datos es hoy. El test pasaba sin
+      > comprobar nada. Ahora usa el reloj inyectado.
+
+- [x] **2. El id del mago sale de la sesión.** Quitar `DEV_MAGE_ID` de
       las nueve rutas y dejarlo tras una bandera de entorno para la
       pasada de navegador. *Test = criterios 1 y 2 de §12.1: un mago por
       cuenta y servidor, y **pedir el reino con la sesión de otro da
       403**.* **Es el invariante 13.**
+
+      > **HECHO (2026-09-21).** `mageOf()` saca el id de la sesión en las
+      > nueve rutas. **El id no viaja**: no hay parámetro ni campo que lo
+      > acepte, que es la única forma de no romper el invariante 13 — un
+      > endpoint que lo aceptara funcionaría perfectamente y dejaría jugar
+      > el reino de cualquiera.
+      >
+      > Los criterios 1 y 2 salen: un segundo mago en el mismo servidor es
+      > un 422 con su código, y pedir `/api/mage/me?mageId=<otro>` con tu
+      > sesión **te devuelve el tuyo**.
+      >
+      > El mago de desarrollo sobrevive tras `allowDevMage`, apagable; con
+      > la bandera en `false`, sin sesión es un 401. **430 tests seguían en
+      > verde** tras el cambio, que era lo que había que comprobar.
 
 **Los catálogos, que son dato**
 
