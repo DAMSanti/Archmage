@@ -12,7 +12,10 @@
     "build": "tsc -b",
     "test": "vitest run",
     "check": "tsc -b && vitest run",
-    "browser": "node apps/web/tests/navegador.mjs"
+    "browser": "node apps/web/tests/navegador.mjs",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f app"
   },
   "devDependencies": {
     "playwright-core": "^1.63.0",

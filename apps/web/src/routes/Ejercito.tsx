@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import type { ActionInput, CatalogResponse, MageResponse } from '@archmage/contract';
-import { conSigno, num } from '../tokens.js';
+import { conSigno, num, plural } from '../tokens.js';
 
 export interface EjercitoProps {
   data: MageResponse;
@@ -135,8 +135,8 @@ export function Ejercito({ data, catalog, onAction, ocupado }: EjercitoProps) {
           </div>
           <div className="confirmacion__linea">
             <strong>No gasta turnos</strong>, pero la tropa llega a {num(porTurno)} por turno gastado:
-            unos {num(Math.ceil(cuantas / porTurno))} turnos con tus {num(mage.buildings.barracks)}{' '}
-            barracks.
+            unos {plural(Math.ceil(cuantas / porTurno), 'turno')} con tus{' '}
+            {num(mage.buildings.barracks)} barracks.
           </div>
           <div className="confirmacion__linea">
             Subirá tu upkeep en {num(cuantas * (spec?.upkeepGeld ?? 0))} de geld por turno.

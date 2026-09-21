@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { ESCUELA, UI, conSigno, num, pct } from '../src/tokens.js';
+import { ESCUELA, UI, conSigno, num, pct, plural } from '../src/tokens.js';
 
 /**
  * Los criterios 1, 2 y 3 de docs/INTERFAZ.md §6.7, **calculados sobre los
@@ -99,5 +99,13 @@ describe('formato de números', () => {
   test('el porcentaje lleva un decimal', () => {
     expect(pct(2_250, 5_000)).toBe('45,0 %');
     expect(pct(0, 0)).toBe('0,0 %');
+  });
+});
+
+describe('plural', () => {
+  test('«1 turnos» es de robot', () => {
+    expect(plural(1, 'turno')).toBe('1 turno');
+    expect(plural(3, 'turno')).toBe('3 turnos');
+    expect(plural(1_500, 'acre')).toBe('1.500 acres');
   });
 });

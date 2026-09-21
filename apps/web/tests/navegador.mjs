@@ -49,23 +49,34 @@ try {
   comprobar('sin errores de consola', erroresConsola.length === 0, erroresConsola[0] ?? '');
 
   // Criterio 5: ningún texto tiene la ilustración como fondo directo.
+  //
+  // Se comprueba el **fondo calculado**, no el nombre de la clase. La primera
+  // versión de este test exigía estar dentro de `.panel`, y eso es un
+  // sustituto: los avisos tienen su propio fondo opaco y cumplían el criterio
+  // aunque no fueran paneles. Un test que mide un proxy da falsos positivos y,
+  // lo que es peor, falsos negativos.
   const textoSobreIlustracion = await page.evaluate(() => {
-    const escena = document.querySelector('.escena');
-    if (!escena) return 'no hay .escena';
+    const opaco = (color) => {
+      if (!color || color === 'transparent') return false;
+      const m = color.match(/rgba?\(([^)]+)\)/);
+      if (!m) return false;
+      const partes = m[1].split(',').map((n) => parseFloat(n));
+      return partes.length < 4 || partes[3] >= 0.92;
+    };
     const nodos = [...document.querySelectorAll('body *')].filter(
       (el) => el.children.length === 0 && el.textContent?.trim(),
     );
     for (const el of nodos) {
       let p = el;
-      let dentroDePanel = false;
-      while (p && p !== document.body) {
-        if (p.classList.contains('panel') || p.classList.contains('cabecera') || p.classList.contains('nav')) {
-          dentroDePanel = true;
+      let cubierto = false;
+      while (p && p !== document.documentElement) {
+        if (opaco(getComputedStyle(p).backgroundColor)) {
+          cubierto = true;
           break;
         }
         p = p.parentElement;
       }
-      if (!dentroDePanel) return el.textContent.trim().slice(0, 40);
+      if (!cubierto) return `${el.className || el.tagName}: ${el.textContent.trim().slice(0, 40)}`;
     }
     return null;
   });

@@ -1,23 +1,45 @@
-# Postgres para desarrollo y para los tests del servidor.
-# Puerto 5433 a propósito: si ya tienes un Postgres local en 5432, no chocan.
+# Todo el proyecto con un solo `docker compose up` — o con el botón de play
+# de Docker Desktop, que actúa sobre la pila entera.
+#
+# Dos servicios, y el reparto es deliberado:
+#   app  — el API y el cliente juntos, un proceso y un puerto.
+#   db   — Postgres con su volumen. Aparte, porque meter la base de datos en
+#          el contenedor de la aplicación significaría perder la partida cada
+#          vez que se reconstruye la imagen.
+#
+# Al arrancar: http://localhost:3001
 services:
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://archmage:archmage@db:5432/archmage
+      HOST: 0.0.0.0
+      PORT: 3001
+    ports:
+      - '3001:3001'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   db:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: archmage
       POSTGRES_PASSWORD: archmage
       POSTGRES_DB: archmage
+    # El puerto se publica para poder correr los tests del servidor desde el
+    # anfitrión. 5433 a propósito: no choca con un Postgres local en 5432.
     ports:
       - '5433:5432'
-    # Volumen con nombre: sin él, `docker compose down` se lleva la partida
-    # de desarrollo y el mago vuelve a empezar de cero sin avisar.
     volumes:
       - archmage-db:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U archmage']
       interval: 2s
       timeout: 3s
-      retries: 20
+      retries: 30
+    restart: unless-stopped
 
 volumes:
   archmage-db:

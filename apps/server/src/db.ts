@@ -19,7 +19,16 @@ import postgres from 'postgres';
 export type Db = PostgresJsDatabase<Record<string, never>>;
 
 export function connect(url: string, max = 10): { sql: postgres.Sql; db: Db } {
-  const sql = postgres(url, { max });
+  const sql = postgres(url, {
+    max,
+    // `ensureSchema` es idempotente a propósito, así que Postgres avisa con
+    // un NOTICE por cada `IF NOT EXISTS` que ya existía. Son esperados: si se
+    // dejan salir, cada arranque imprime un muro de lo que parecen errores y
+    // el día que haya uno de verdad nadie lo verá.
+    onnotice: (aviso) => {
+      if (aviso.code !== '42P07' && aviso.code !== '42710') console.warn(aviso.message);
+    },
+  });
   return { sql, db: drizzle(sql) };
 }
 

@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { BUILDINGS } from '@archmage/core';
 import type { Building } from '@archmage/core';
 import type { ActionInput, CatalogResponse, MageResponse } from '@archmage/contract';
-import { conSigno, num, pct } from '../tokens.js';
+import { conSigno, num, pct, plural } from '../tokens.js';
 
 const NOMBRE: Record<Building, string> = {
   farms: 'Farms',
@@ -196,7 +196,7 @@ export function Reino({ data, catalog, onAction, ocupado }: ReinoProps) {
                 ))}
               </select>
               <span className="control__grupo">
-                <label htmlFor="turnos-construir">turnos</label>
+                <label htmlFor="turnos-construir">{turnosConstruir === 1 ? 'turno' : 'turnos'}</label>
                 <input
                   id="turnos-construir"
                   type="number"
@@ -210,7 +210,7 @@ export function Reino({ data, catalog, onAction, ocupado }: ReinoProps) {
             {/* Se dice qué cuesta lo que has pedido. No es una recomendación (§1). */}
             <div className="confirmacion">
               <div className="confirmacion__linea">
-                Gasta <strong>{num(turnosConstruir)}</strong> turnos.
+                Gasta <strong>{plural(turnosConstruir, 'turno')}</strong>.
               </div>
               <div className="confirmacion__linea">
                 Cada {NOMBRE[edificio]} cuesta {num(costeUnidad)} de geld y un acre libre.
@@ -247,7 +247,7 @@ export function Reino({ data, catalog, onAction, ocupado }: ReinoProps) {
                   value={turnosExplorar}
                   onChange={(e) => setTurnosExplorar(Math.max(1, Number(e.target.value)))}
                 />
-                <span className="recurso__nota">turnos</span>
+                <span className="recurso__nota">{turnosExplorar === 1 ? 'turno' : 'turnos'}</span>
               </span>
             </div>
             <div className="confirmacion">

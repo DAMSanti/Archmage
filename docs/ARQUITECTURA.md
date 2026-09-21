@@ -430,3 +430,29 @@ Va al docstring de cada módulo, no solo aquí:
   es dato.
 - **La fase 1 no tiene tests de cliente.** Lo que no se mire en la pasada
   de navegador, no lo mira nadie.
+
+### 9.8. Cómo se levanta
+
+**Añadido el 2026-09-21**, después de la fase 1.
+
+**Un solo `docker compose up -d --build`**, o el botón de play de Docker
+Desktop sobre la pila. Al arrancar, el juego está en
+**<http://localhost:3001>**.
+
+Dos servicios, y el reparto es deliberado:
+
+| Servicio | Qué lleva |
+|---|---|
+| `app` | **El API y el cliente juntos**: Fastify sirve `/api/*` y, para todo lo demás, el cliente ya construido. Un proceso, un puerto. |
+| `db` | Postgres con su volumen. |
+
+**Por qué Postgres no va en el mismo contenedor**, aunque «todo en uno»
+suene más cómodo: borrar o reconstruir el contenedor de la aplicación se
+llevaría la partida por delante, y arrancar dos procesos en una imagen
+hace frágil pararla y reiniciarla. El volumen con nombre es lo que hace
+que `docker compose down` **no** borre lo jugado.
+
+**Para desarrollar** sigue siendo mejor el modo suelto, que da recarga en
+caliente: `pnpm db:up`, `pnpm dev:server` y `pnpm dev:web`, con el cliente
+en `:5173` y su proxy a `/api`. El servidor sirve el cliente **solo si
+`apps/web/dist` existe**, así que los dos modos conviven sin tocar nada.

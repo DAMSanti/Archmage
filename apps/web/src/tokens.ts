@@ -74,6 +74,14 @@ export function num(n: number): string {
   return n.toLocaleString('es-ES', { useGrouping: 'always' });
 }
 
+/**
+ * «1 turnos» es de robot. Vale para cualquier palabra cuyo plural sea
+ * añadir una -s.
+ */
+export function plural(n: number, singular: string, pluralForma = `${singular}s`): string {
+  return `${num(n)} ${n === 1 ? singular : pluralForma}`;
+}
+
 /** Porcentaje con un decimal, como lo pide §4: siempre junto al absoluto. */
 export function pct(parte: number, total: number): string {
   if (total <= 0) return '0,0 %';

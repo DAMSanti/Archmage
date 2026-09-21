@@ -14,6 +14,10 @@
  */
 
 import Fastify from 'fastify';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import {
   createMage,
@@ -39,6 +43,13 @@ export const DEV_MAGE_ID = 'dev';
 
 export interface AppDeps {
   db: Db;
+  /**
+   * Carpeta con el cliente ya construido. Si se pasa, **el servidor lo
+   * sirve él mismo**: una sola aplicación, un solo puerto, un solo
+   * contenedor. En desarrollo se deja vacío y el cliente lo sirve Vite con
+   * su proxy a `/api`.
+   */
+  clientDir?: string;
   /** Inyectados para que los tests no dependan del reloj ni del azar. */
   now: () => number;
   random: () => RandomSource;
@@ -138,5 +149,30 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return filas.map((f) => ({ seq: f.seq, type: f.type, payload: f.payload, at: f.createdAt }));
   });
 
+  // El cliente, servido por el mismo servidor. Va **después** de las rutas
+  // del API para que `/api/*` nunca caiga en el catch-all.
+  const dir = deps.clientDir ?? defaultClientDir();
+  if (dir && existsSync(join(dir, 'index.html'))) {
+    void app.register(fastifyStatic, { root: dir });
+
+    // Todo lo que no sea API es la aplicación: se devuelve el index y que
+    // decida el cliente. Hoy no hay rutas profundas, pero las habrá.
+    app.setNotFoundHandler((req, reply) => {
+      if (req.url.startsWith('/api/')) {
+        return reply.code(404).send({
+          error: { code: 'not_found', message: `No existe ${req.url}.` },
+        });
+      }
+      return reply.sendFile('index.html');
+    });
+  }
+
   return app;
+}
+
+/** `apps/web/dist` relativo a este fichero, si existe. */
+function defaultClientDir(): string | null {
+  const aqui = dirname(fileURLToPath(import.meta.url));
+  const candidato = resolve(aqui, '../../web/dist');
+  return existsSync(candidato) ? candidato : null;
 }
