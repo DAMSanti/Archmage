@@ -197,17 +197,38 @@ vez de inventarlas.
 
 **Los catálogos, que son dato**
 
-- [ ] **3. Mover los cuatro items publicados a `content`.** Hoy están en
+- [x] **3. Mover los cuatro items publicados a `content`.** Hoy están en
       `packages/core/src/heroes.ts` como `BATTLE_ITEMS`, que es dato en
       un paquete de código. En el núcleo queda el tipo. *Test: el
       catálogo valida y los cuatro números siguen siendo los
       publicados.* **Toca `packages/core` y `packages/content`.**
-- [ ] **4. El catálogo de items publicados.** **No se interpola
+
+      > **HECHO (2026-09-21).** `BATTLE_ITEMS` sale de
+      > `packages/core/src/heroes.ts`. En el núcleo queda `items.ts` con el
+      > **tipo y las mecánicas**; los números viven en `content`, como los
+      > de unidades y hechizos (docs/SPECS.md §4).
+
+- [x] **4. El catálogo de items publicados.** **No se interpola
       ninguno**: la wiki los publica enteros con sus números
       ([ORIGINAL.md §7.2](docs/ORIGINAL.md)). Entran los lesser menos los
       **tres que el propio original tiene deshabilitados**. *Test =
       criterio 8 bis: el Sage Stone da 1-2 millones, el Voodoo Doll 2-8
       turnos, la Figurine of Ice Queen `100.000 + [1-3 × unidades]`.*
+
+      > **HECHO (2026-09-21).** 44 items copiados de
+      > [ORIGINAL.md §7.2](docs/ORIGINAL.md), 16 tests. Los tres
+      > deshabilitados en el propio original **no entran**, y tres que
+      > piden mecánicas que este juego no tiene —espiar, disipar hechizos
+      > de dioses, los Griales— **entran como dato diciendo por qué**.
+      >
+      > **El efecto es una unión discriminada, no una función**: un item
+      > tiene que viajar por el API, guardarse en una fila y pintarse en
+      > una pantalla, y una función no hace nada de eso.
+      >
+      > **Un campo significaba dos cosas y lo cazó un test.** `amount` era
+      > un rango en veinte items y un número en el Agua Bendita. Renombrado
+      > a `damage` — la clase de ambigüedad que muerde tres meses después.
+
 - [ ] **5. Las diez habilidades, como dato.** Nombre, si es de
       especialidad, y **qué magnitud toca**. *Test: las diez están, cinco
       son de especialidad, y el efecto al nivel 20 es +20%.*
@@ -232,7 +253,7 @@ vez de inventarlas.
 
 - [ ] **8. Generación por guilds.** *Test = criterio 8: al 10% de guilds
       el doble que al 5%, y sin guilds ninguno.*
-- [ ] **9. La pre-batalla: modificadores y daño previo.** El hueco que
+- [x] **9. La pre-batalla: modificadores y daño previo.** El hueco que
       `battle.ts` declaró en la fase 3 y que [ORIGINAL.md §9.4](docs/ORIGINAL.md)
       ya describía. Una capa que **modifica el ejército antes de la
       primera ronda** —ataque, resistencias, iniciativa, *Flying*— y
@@ -241,9 +262,35 @@ vez de inventarlas.
       el primero.* **Es el riesgo 0 del plan**: si esta capa se filtra a
       la fórmula de daño, se rompe el invariante 7. *Toca
       `packages/core/src/prebattle.ts` (nuevo) y `battle.ts`.*
-- [ ] **10. Los items de batalla, enchufados.** Los ~28 de batalla sobre
+
+      > **HECHO (2026-09-21).** `packages/core/src/prebattle.ts`, 21 tests.
+      >
+      > **La idea, y es la que no hay que perder:** un item **no toca la
+      > fórmula de daño**. Modifica el *ejército* —ataque, resistencias,
+      > iniciativa, habilidades— y la ronda pelea con un ejército ya
+      > modificado. Si se colara dentro de `casualties()` haría un segundo
+      > redondeo y rompería el invariante 7; así, la fórmula sigue sin
+      > saber que los items existen.
+      >
+      > **Y las fichas no se mutan.** Cada bando entra con copia honda: el
+      > catálogo es compartido y una batalla no puede dejar al Treant del
+      > mundo con un +20% permanente. Hay un test solo para eso.
+
+- [x] **10. Los items de batalla, enchufados.** Los ~28 de batalla sobre
       la capa de la 9. *Test: uno por familia —AP, resistencia,
       iniciativa, daño directo, resurrección— con la semilla fijada.*
+
+      > **HECHO (2026-09-21).** Las catorce familias de efecto de batalla,
+      > una por mecánica y no una por item: quince items suben el ataque y
+      > todos usan la misma.
+      >
+      > Comprobadas con semilla fijada, incluidas las que tienen gracia:
+      > el *Pixie Dust* **se reparte entre los stacks** —contra cuatro hace
+      > un 5% a cada uno, así que premia atacar a quien concentra—, el
+      > *Satchel of Mist* baja el acierto de **los dos bandos**, la
+      > *Alfombra Voladora* da *Flying* y **rompe el criterio 5 de §9.1**,
+      > y los *Oil Flasks* dejan la resistencia al fuego **en negativo**.
+
 - [ ] **11. `UseItem` fuera de batalla.** Los ~21 que dan recursos,
       unidades o tierra, y los que **atacan sin batalla**: turnos,
       población y maná del enemigo. *Test = criterio 10: el segundo

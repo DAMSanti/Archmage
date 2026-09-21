@@ -178,3 +178,4 @@ export const STARTING_KINGDOM: StartingKingdom = {
 };
 export * from './spells.js';
 export * from './units.js';
+export * from './items.js';

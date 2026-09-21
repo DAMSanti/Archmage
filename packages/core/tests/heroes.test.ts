@@ -1,14 +1,15 @@
 import { describe, expect, test } from 'vitest';
 import {
-  BATTLE_ITEMS,
   type HeroSpec,
-  applyItems,
   assignHeroes,
   assignmentTriggers,
   heroBonusFor,
   heroDies,
-  resurrected,
 } from '../src/heroes.js';
+
+// El catálogo de items y `resurrected()` se mudaron el 2026-09-21: los
+// números a `packages/content/src/items.ts` —que es dato— y la aplicación
+// a `prebattle.ts`. Sus tests viven ahora en `prebattle.test.ts`.
 import type { UnitSpec } from '../src/units.js';
 
 /** Héroes e items. docs/SISTEMAS.md §9.1. */
@@ -104,75 +105,6 @@ describe('cuándo muere un héroe', () => {
     // El matiz no es decorativo: es la razón de que proteger a un héroe sea
     // una decisión de composición.
     expect(heroDies(heroe('h', 20, { hitPoints: 5_000 }), true, 4_999)).toBe(false);
-  });
-});
-
-describe('los items publicados', () => {
-  test('sus números son los de la fuente', () => {
-    expect(BATTLE_ITEMS.bubble_wine).toMatchObject({ attack: 1.1, hitPoints: 1.3 });
-    expect(BATTLE_ITEMS.potion_of_valor!.attack).toBe(1.2);
-    expect(BATTLE_ITEMS.ash_of_invisibility!.initiative).toBe(6);
-    expect(BATTLE_ITEMS.strange_metallic_can!.resurrect).toBe(0.25);
-  });
-
-  test('aplicar uno modifica ataque y HP', () => {
-    const r = applyItems(u('x'), [BATTLE_ITEMS.bubble_wine!]);
-    expect(r.attack.power).toBe(1_100);
-    expect(r.hitPoints).toBe(130);
-  });
-
-  test('dos se multiplican entre sí', () => {
-    const r = applyItems(u('x'), [BATTLE_ITEMS.bubble_wine!, BATTLE_ITEMS.potion_of_valor!]);
-    expect(r.attack.power).toBe(Math.floor(1_000 * 1.1 * 1.2)); // 1.320
-    expect(r.hitPoints).toBe(130);
-  });
-
-  test('la iniciativa se FIJA al mayor, no se multiplica', () => {
-    // No tiene sentido multiplicar una posición en una cola.
-    const r = applyItems(u('x'), [BATTLE_ITEMS.ash_of_invisibility!]);
-    expect(r.attack.initiative).toBe(6);
-    // Y no la baja si ya era mayor.
-    const rapido = u('r', { attack: { power: 100, types: ['melee'], initiative: 6 } });
-    expect(applyItems(rapido, [BATTLE_ITEMS.ash_of_invisibility!]).attack.initiative).toBe(6);
-  });
-
-  test('el ataque extra también se modifica', () => {
-    const conExtra = u('x', {
-      extraAttack: { power: 500, types: ['melee'], initiative: 5 },
-    });
-    expect(applyItems(conExtra, [BATTLE_ITEMS.potion_of_valor!]).extraAttack!.power).toBe(600);
-  });
-
-  test('sin items, la ficha se devuelve tal cual', () => {
-    const x = u('x');
-    expect(applyItems(x, [])).toBe(x);
-  });
-
-  test('todo entero: un item no crea unidades fraccionarias', () => {
-    const r = applyItems(u('x', { attack: { power: 7, types: ['melee'], initiative: 1 } }), [
-      BATTLE_ITEMS.bubble_wine!,
-    ]);
-    expect(Number.isInteger(r.attack.power)).toBe(true);
-    expect(Number.isInteger(r.hitPoints)).toBe(true);
-  });
-});
-
-describe('la resurrección se combina multiplicando complementos', () => {
-  test('el ejemplo de la fuente: 30% + 20% + 25% ≈ 58%', () => {
-    // 1 − (0,70 × 0,80 × 0,75) = 0,58. NO es 75%.
-    expect(resurrected(1_000, [0.3, 0.2, 0.25])).toBe(580);
-  });
-
-  test('uno solo resucita lo suyo', () => {
-    expect(resurrected(1_000, [0.25])).toBe(250);
-  });
-
-  test('apilar efectos nunca resucita al ejército entero', () => {
-    expect(resurrected(1_000, [0.5, 0.5, 0.5, 0.5])).toBeLessThan(1_000);
-  });
-
-  test('sin efectos no resucita nadie', () => {
-    expect(resurrected(1_000, [])).toBe(0);
   });
 });
 

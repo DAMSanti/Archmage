@@ -1,6 +1,7 @@
 export * from './types.js';
 export * from './battle.js';
 export * from './heroes.js';
+export * from './items.js';
 export * from './war.js';
 export * from './land.js';
 export * from './combat.js';
@@ -12,6 +13,7 @@ export * from './economy.js';
 export * from './tick.js';
 export * from './actions.js';
 export * from './netpower.js';
+export * from './prebattle.js';
 export * from './magic.js';
 export * from './spells.js';
 export * from './casting.js';
