@@ -146,3 +146,60 @@ export function rollRange(r: Range, random: { nextInt: (n: number) => number }):
   if (r.max <= r.min) return r.min;
   return r.min + random.nextInt(r.max - r.min + 1);
 }
+
+// --- De dónde salen los items. docs/SISTEMAS.md §12.1 -------------------
+
+/**
+ * Items por turno según el **porcentaje de guilds sobre la tierra**.
+ *
+ * **[nuestro]** El original dice que se generan «a un ritmo que depende del
+ * % de guilds» y no publica el ritmo. Se ancla en **un item cada 40 turnos
+ * con el 5% de la tierra en guilds**, que sale de dos sitios: la misma
+ * escala que los puntos de habilidad —uno cada ~34 turnos con ese mismo 5%
+ * (docs/ORIGINAL.md §8)— y de que **un item bueno cambia una batalla**. Si
+ * salieran cada cinco turnos no la cambiaría ninguno.
+ *
+ * Es **lineal en el porcentaje**, no en el número: un mago con 5.000 acres y
+ * un 5% de guilds saca lo mismo que uno con 500 acres y un 5%. Así el item
+ * es una decisión de **reparto** y no un premio por ser grande — que ya lo
+ * es todo lo demás.
+ *
+ * Devuelve **fracción**, que se acumula. Redondear cada turno la dejaría en
+ * cero para siempre, igual que con los puntos de habilidad.
+ */
+export const ITEM_TURNS_AT_5_PERCENT = 40;
+
+export function itemsPerTurn(guilds: number, land: number, rate = 1): number {
+  if (guilds <= 0 || land <= 0) return 0;
+  const share = guilds / land;
+  // A 0,05 de share sale 1/40; el factor es 1/(40 × 0,05) = 0,5.
+  return (share / 0.05 / ITEM_TURNS_AT_5_PERCENT) * rate;
+}
+
+/**
+ * Qué se lleva un saqueo del inventario del defensor.
+ *
+ * **[orig]** El saqueo roba items (docs/ORIGINAL.md §7). **[nuestro]** Se
+ * lleva **lesser y no uniques**: un unique es, por definición, uno en el
+ * mundo, y que cambie de manos por un saqueo afortunado lo convertiría en
+ * el objetivo de todas las guerras — que es otro juego.
+ *
+ * Roba **una porción**, no el inventario: el 25%, redondeando hacia abajo,
+ * así que robar a quien tiene tres items se lleva cero y hay que atacar a
+ * quien de verdad acumula.
+ */
+export const PILLAGE_ITEM_SHARE = 0.25;
+
+export function itemsPillaged(
+  inventory: Record<string, number>,
+  catalog: Record<string, ItemSpec>,
+): Record<string, number> {
+  const robado: Record<string, number> = {};
+  for (const [id, n] of Object.entries(inventory)) {
+    const spec = catalog[id];
+    if (!spec || spec.rarity === 'unique') continue;
+    const cuantos = Math.floor(n * PILLAGE_ITEM_SHARE);
+    if (cuantos > 0) robado[id] = cuantos;
+  }
+  return robado;
+}

@@ -14,6 +14,8 @@ export * from './tick.js';
 export * from './actions.js';
 export * from './netpower.js';
 export * from './prebattle.js';
+export * from './skilleffects.js';
+export * from './skills.js';
 export * from './magic.js';
 export * from './spells.js';
 export * from './casting.js';

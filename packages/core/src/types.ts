@@ -233,6 +233,10 @@ export interface Catalog {
   spells: Record<SpellId, import('./spells.js').SpellSpec>;
   /** Nivel de hechizo máximo de **este** catálogo. Escala las invocaciones. */
   maxSpellLevel: number;
+  /** Fase 4. La ficha de cada item; el tipo vive en `items.ts`. */
+  items: Record<ItemId, import('./items.js').ItemSpec>;
+  /** Fase 4. Las diez habilidades; el tipo vive en `skills.ts`. */
+  skills: readonly import('./skills.js').SkillSpec[];
 }
 
 /** docs/SPECS.md §2: el tiempo y el azar **entran**, nunca se cogen. */

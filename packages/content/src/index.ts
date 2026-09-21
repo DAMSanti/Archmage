@@ -21,6 +21,8 @@ import { BUILDINGS, SPECIALTIES } from '@archmage/core';
 import type { Building, Catalog, ServerConfig } from '@archmage/core';
 import type { StartingKingdom } from '@archmage/core';
 import { MAX_SPELL_LEVEL, SPELLS_BY_ID } from './spells.js';
+import { ITEMS_BY_ID } from './items.js';
+import { SKILLS } from './skills.js';
 import { UNITS_BY_ID } from './units.js';
 
 // --- Esquemas -------------------------------------------------------------
@@ -76,6 +78,9 @@ export const CATALOG: Catalog = {
   // La tropa de barracks y las unidades invocables, en el mismo sitio: para
   // `upkeep()` una unidad es una unidad, venga de donde venga.
   units: UNITS_BY_ID,
+  // Fase 4: items y habilidades. Dato, no código (docs/SPECS.md §4).
+  items: ITEMS_BY_ID,
+  skills: SKILLS,
   spells: SPELLS_BY_ID,
   maxSpellLevel: MAX_SPELL_LEVEL,
 };
@@ -179,3 +184,4 @@ export const STARTING_KINGDOM: StartingKingdom = {
 export * from './spells.js';
 export * from './units.js';
 export * from './items.js';
+export * from './skills.js';

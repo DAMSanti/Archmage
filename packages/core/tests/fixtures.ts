@@ -134,6 +134,11 @@ export const CATALOG: Catalog = {
     },
   },
   spells: SPELLS_TEST,
+  // Fase 4. Vacíos en las fixtures: los tests de las fases 1-3 no llevan
+  // items ni habilidades, y **es justo lo que tienen que comprobar** —que
+  // con los diez multiplicadores a 1 nada de lo calibrado se mueve.
+  items: {},
+  skills: [],
   maxSpellLevel: 31,
 };
 

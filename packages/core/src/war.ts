@@ -16,6 +16,7 @@
 import { type Army, type AttackType, armyPower, resolveBattle } from './battle.js';
 import type { BattleStack } from './combat.js';
 import { upkeep } from './economy.js';
+import { itemsPillaged } from './items.js';
 import { landTaken, pillageTaken } from './land.js';
 import { isProtected } from './mage.js';
 import { netPower } from './netpower.js';
@@ -164,12 +165,18 @@ export function resolveAttack(
 
   // El saqueo, que no quita tierra pero roba y quema.
   let saqueo: ReturnType<typeof pillageTaken> | undefined;
+  let robados: Record<string, number> = {};
   if (attackType === 'pillage' && gana) {
     saqueo = pillageTaken(
       defender.resources.geld,
       defender.resources.population,
       armyPower(armAtt.stacks),
     );
+    // **Y roba items.** Lesser, no uniques: que un unique cambiase de manos
+    // por un saqueo afortunado lo convertiría en el objetivo de todas las
+    // guerras (docs/SISTEMAS.md §12.1).
+    robados = itemsPillaged(defender.items, ctx.catalog.items);
+
     nuevoDefensor = {
       ...nuevoDefensor,
       resources: {
@@ -177,11 +184,13 @@ export function resolveAttack(
         geld: nuevoDefensor.resources.geld - saqueo.geld,
         population: nuevoDefensor.resources.population - saqueo.population,
       },
+      items: quitarItems(defender.items, robados),
       ...quemar(nuevoDefensor, saqueo.burned),
     };
     nuevoAtacante = {
       ...nuevoAtacante,
       resources: { ...nuevoAtacante.resources, geld: nuevoAtacante.resources.geld + saqueo.geld },
+      items: sumarItems(attacker.items, robados),
     };
   }
 
@@ -194,7 +203,7 @@ export function resolveAttack(
     breached: r.defenderBreached,
     landDestroyed: tierra.destroyed,
     limitedBySurvivors: tierra.limitedBySurvivors,
-    ...(saqueo ? { pillage: saqueo } : {}),
+    ...(saqueo ? { pillage: saqueo, itemsStolen: robados } : {}),
   };
 
   const evento = (mageId: string): { mageId: string; event: GameEvent } => ({
@@ -273,4 +282,28 @@ function quemar(state: MageState, acres: number): Pick<MageState, 'buildings' | 
     buildings,
     land: { ...state.land, free: state.land.free + quemados },
   };
+}
+
+/** Suma items a un inventario, sin mutarlo. */
+function sumarItems(
+  base: Record<string, number>,
+  mas: Record<string, number>,
+): Record<string, number> {
+  const r = { ...base };
+  for (const [id, n] of Object.entries(mas)) r[id] = (r[id] ?? 0) + n;
+  return r;
+}
+
+/** Quita items de un inventario, sin dejar entradas en cero. */
+function quitarItems(
+  base: Record<string, number>,
+  menos: Record<string, number>,
+): Record<string, number> {
+  const r = { ...base };
+  for (const [id, n] of Object.entries(menos)) {
+    const queda = (r[id] ?? 0) - n;
+    if (queda > 0) r[id] = queda;
+    else delete r[id];
+  }
+  return r;
 }

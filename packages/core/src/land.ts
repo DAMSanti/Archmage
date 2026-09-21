@@ -77,8 +77,12 @@ export function landTaken(
   attackerSurvivors: number,
   attackType: AttackType,
   battleBonus = 0,
+  /** *Grand Conqueror*. Por defecto 1: sin la habilidad, nada cambia. */
+  conqueror = 1,
 ): LandOutcome {
-  const porPorcentaje = Math.floor(defenderLand * LAND_SHARE[attackType] * (1 + battleBonus));
+  const porPorcentaje = Math.floor(
+    defenderLand * LAND_SHARE[attackType] * (1 + battleBonus) * conqueror,
+  );
   const porSupervivientes = Math.floor(attackerSurvivors / SURVIVORS_PER_ACRE);
   const lost = Math.max(0, Math.min(porPorcentaje, porSupervivientes));
   const taken = Math.floor(lost * ATTACKER_LAND_SHARE);

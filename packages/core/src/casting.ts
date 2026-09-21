@@ -115,13 +115,19 @@ export function failureChance(
   specialty: Specialty,
   spellLevel: number,
   maxSpellLevel: number,
+  /**
+   * *Spell Penetration*. **Por defecto 1**, así que un mago sin la
+   * habilidad obtiene exactamente lo de antes (docs/SISTEMAS.md §12.1).
+   */
+  penetration = 1,
 ): number {
   const relation = relationTo(specialty, spell.school);
   if (relation === 'own') return 0;
   const base = FAILURE_BASE[`${relation}:${spell.rank}`] ?? 0;
   const ratio = maxSpellLevel > 0 ? Math.min(1, Math.max(0, spellLevel / maxSpellLevel)) : 0;
-  // De la base entera a la mitad, según el nivel.
-  return Math.floor((base * (100 - 50 * ratio)) / 100);
+  // De la base entera a la mitad, según el nivel. **Un solo `floor`**, y la
+  // habilidad entra antes de él: si redondeara aparte serían dos.
+  return Math.floor((base * (100 - 50 * ratio) * penetration) / 100);
 }
 
 // --- Investigar -----------------------------------------------------------

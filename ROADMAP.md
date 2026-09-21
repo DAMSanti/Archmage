@@ -229,17 +229,34 @@ vez de inventarlas.
       > un rango en veinte items y un número en el Agua Bendita. Renombrado
       > a `damage` — la clase de ambigüedad que muerde tres meses después.
 
-- [ ] **5. Las diez habilidades, como dato.** Nombre, si es de
+- [x] **5. Las diez habilidades, como dato.** Nombre, si es de
       especialidad, y **qué magnitud toca**. *Test: las diez están, cinco
       son de especialidad, y el efecto al nivel 20 es +20%.*
 
+      > **HECHO (2026-09-21).** Las diez en `packages/content/src/skills.ts`,
+      > con su magnitud y si son de especialidad. **Las diez tocan
+      > magnitudes distintas**, y hay un test para eso: si dos tocaran la
+      > misma, el jugador tendría nueve decisiones y no diez.
+
 **Habilidades: puntos, coste y efecto**
 
-- [ ] **6. Puntos y coste de entrenar.** Raíz cuadrada de los guilds para
+- [x] **6. Puntos y coste de entrenar.** Raíz cuadrada de los guilds para
       generar; 210 puntos hasta el 20; **el doble fuera de color**.
       *Test = criterios 15 y 16: 210 y 420, y un punto cada 34 turnos
       ±2 con 5.000 de tierra al 5% de guilds.* *Toca `packages/core`.*
-- [ ] **7. Enchufar las diez, una por una.** Cada habilidad en la
+
+      > **HECHO (2026-09-21).** 17 tests. 210 puntos al nivel 20, **420
+      > fuera de color**, y el ancla publicada cuadra: 5.000 de tierra al
+      > 5% de guilds da un punto cada **34 turnos**.
+      >
+      > **El test comprueba el ancla, no el coeficiente.** Si un día cambia
+      > la forma de la fórmula, lo que tiene que seguir cuadrando es ese
+      > mago, no el 0,00186 que hoy la hace cuadrar.
+      >
+      > **Un mago Plain paga el doble por las cinco de especialidad**, y es
+      > coherente: Plain no es una escuela, es la ausencia de una.
+
+- [x] **7. Enchufar las diez, una por una.** Cada habilidad en la
       fórmula que toca: coste de maná, fallo fuera de color, upkeep de
       encantamientos, unidades por invocación, ataque animal, ataque no
       muerto, acierto, tierra arrancada, barriers e items. *Test =
@@ -249,10 +266,39 @@ vez de inventarlas.
       `battle.ts` y `land.ts`, y los tests de calibración de las fases
       1-3 son el canario.
 
+      > **HECHO (2026-09-21).** `skilleffects.ts` con un struct de diez
+      > multiplicadores, 13 tests.
+      >
+      > **La defensa contra el riesgo 1 del plan es una sola idea:** al
+      > nivel 0 los diez valen **exactamente 1**, así que enchufarlas no
+      > puede mover un número de lo ya calibrado. Se comprobó midiendo —
+      > **los 484 tests de las fases 1 a 3 siguieron en verde** tras el
+      > cambio— y hay un test que llama a cada fórmula con y sin el
+      > parámetro nuevo para verificar que dan lo mismo.
+      >
+      > Los parámetros nuevos llevan **valor por defecto**, así que el
+      > cambio fue aditivo: nada de lo que ya llamaba a `castCost()`,
+      > `failureChance()` o `landTaken()` tuvo que tocarse.
+      >
+      > **Una queda sin enchufar y se declara**: *Barrier Proficiency*. La
+      > curva del bonus de fort y barrier sigue `[abierto]` en §5.7, así
+      > que **no hay magnitud que multiplicar**. El multiplicador se
+      > calcula igual y no lo usa nadie — deuda declarada, no olvido.
+
 **Items**
 
-- [ ] **8. Generación por guilds.** *Test = criterio 8: al 10% de guilds
+- [x] **8. Generación por guilds.** *Test = criterio 8: al 10% de guilds
       el doble que al 5%, y sin guilds ninguno.*
+
+      > **HECHO (2026-09-21).** Un item cada **40 turnos con el 5% de la
+      > tierra en guilds**, anclado en la misma escala que los puntos de
+      > habilidad. Al 10%, el doble; sin guilds, ninguno.
+      >
+      > **Es el porcentaje y no el número**: un mago de 500 acres al 5%
+      > saca lo mismo que uno de 5.000 al 5%. Así el item es una decisión
+      > de **reparto** y no un premio por ser grande, que ya lo es todo lo
+      > demás.
+
 - [x] **9. La pre-batalla: modificadores y daño previo.** El hueco que
       `battle.ts` declaró en la fase 3 y que [ORIGINAL.md §9.4](docs/ORIGINAL.md)
       ya describía. Una capa que **modifica el ejército antes de la
@@ -296,8 +342,16 @@ vez de inventarlas.
       población y maná del enemigo. *Test = criterio 10: el segundo
       unique es error de dominio.* *Toca `packages/core` y
       `packages/contract`.*
-- [ ] **12. El saqueo roba items.** *Test = criterio 9: se lleva lesser
+- [x] **12. El saqueo roba items.** *Test = criterio 9: se lleva lesser
       y **deja los uniques**.* *Toca `packages/core/src/war.ts`.*
+
+      > **HECHO (2026-09-21).** El saqueo se lleva el **25% de los lesser**
+      > y **deja los uniques**. Que un unique cambiara de manos por un
+      > saqueo afortunado lo convertiría en el objetivo de todas las
+      > guerras, que es otro juego.
+      >
+      > Redondea hacia abajo, así que robar a quien tiene tres items se
+      > lleva cero: hay que atacar a quien de verdad acumula.
 
 **Héroes que crecen**
 

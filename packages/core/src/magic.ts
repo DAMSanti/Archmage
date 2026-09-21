@@ -74,10 +74,20 @@ const CAST_MULTIPLIER: Record<SpellRank, Record<Relation, number | null>> = {
  * (docs/SPECS.md §5, invariante 7): el multiplicador del Simple adyacente es
  * 1,25 y no da entero con cualquier precio base.
  */
-export function castCost(baseMana: number, rank: SpellRank, relation: Relation): number | null {
+export function castCost(
+  baseMana: number,
+  rank: SpellRank,
+  relation: Relation,
+  /**
+   * *Spell Mastery*. **Por defecto 1**: un mago sin la habilidad paga
+   * exactamente lo de antes, y los tests de la fase 2 no se mueven.
+   */
+  mastery = 1,
+): number | null {
   const mult = CAST_MULTIPLIER[rank][relation];
   if (mult === null) return null;
-  return Math.floor((baseMana * mult) / 100);
+  // **Un solo `floor`**, con la habilidad dentro (docs/SPECS.md, invariante 7).
+  return Math.floor((baseMana * mult * mastery) / 100);
 }
 
 /**

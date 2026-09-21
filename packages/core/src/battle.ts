@@ -172,7 +172,19 @@ export function battleBonus(attackerPower: number, defenderPower: number): numbe
 export function resolveBattle(
   attacker: Army,
   defender: Army,
-  options: { seed: number; random: RandomSource; attackType: AttackType },
+  options: {
+    seed: number;
+    random: RandomSource;
+    attackType: AttackType;
+    /**
+     * Ajustes que vienen de fuera de la ronda: *Legendary Commander* y los
+     * items de la pre-batalla. **Por defecto 0**, así que una batalla sin
+     * habilidades ni items da exactamente lo mismo que antes de la fase 4 —
+     * y eso es lo que protege lo calibrado en la fase 3.
+     */
+    attackerAccuracy?: number;
+    defenderAccuracy?: number;
+  },
 ): BattleResult {
   const { seed, random, attackType } = options;
   const siege = attackType === 'siege';
@@ -228,6 +240,8 @@ export function resolveBattle(
       const enemigos = g.side === 'attacker' ? def : att;
       const blow = pegar(g.side, g.idx, g.c, g.attack, g.kind, enemigos, {
         round,
+        accuracyDelta:
+          (g.side === 'attacker' ? options.attackerAccuracy : options.defenderAccuracy) ?? 0,
         // **La penalización de asedio es solo del que asedia.** El defensor
         // defiende con base 30 venga el ataque que venga: la fuente dice
         // «base 30 en defensa y ataque regular, 20 en asedio», y el asedio
@@ -288,7 +302,7 @@ function pegar(
   attack: Attack,
   kind: AttackKind,
   enemigos: Combatiente[],
-  ctx: { round: number; siege: boolean; random: RandomSource },
+  ctx: { round: number; siege: boolean; random: RandomSource; accuracyDelta: number },
 ): BattleBlow | undefined {
   const objetivo = chooseTarget(c.unit, vivos(enemigos), c.count);
   if (!objetivo) return undefined; // sin objetivo: melee puro contra voladores
@@ -296,7 +310,9 @@ function pegar(
   const victima = enemigos.find((e) => e.unit.id === objetivo.unit.id && e.count > 0);
   if (!victima) return undefined;
 
-  const accuracy = accuracyFor(0, ctx.siege);
+  // El modificador entra **en la fórmula a tramos**, no sumado después: la
+  // curva de castigo de docs/ORIGINAL.md §9.1 solo tiene sentido entera.
+  const accuracy = accuracyFor(ctx.accuracyDelta, ctx.siege);
   const randomFactor = randomFactorFor(attack.types, ctx.random);
   const efficiency = efficiencyAfter(c.unit, c.fatigued);
   const resistance = resistanceAgainst(victima.unit, attack.types);
