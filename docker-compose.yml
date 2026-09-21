@@ -1,0 +1,16 @@
+# Postgres para desarrollo y para los tests del servidor.
+# Puerto 5433 a propósito: si ya tienes un Postgres local en 5432, no chocan.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: archmage
+      POSTGRES_PASSWORD: archmage
+      POSTGRES_DB: archmage
+    ports:
+      - '5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U archmage']
+      interval: 2s
+      timeout: 3s
+      retries: 20

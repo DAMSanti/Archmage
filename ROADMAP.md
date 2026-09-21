@@ -286,15 +286,47 @@ sin ningún asset.
 
 **Persistencia y servidor**
 
-- [ ] **15. Postgres.** Drizzle, migraciones aditivas, esquema de mago y
+- [x] **15. Postgres.** Drizzle, migraciones aditivas, esquema de mago y
       de eventos.
-- [ ] **16. Repositorio transaccional.** Bloqueo de fila y estado+eventos
+
+      > **HECHO (2026-09-21).** Esquema de `mages` y `events`, Postgres 17 en
+      > `docker-compose.yml` (puerto **5433** para no chocar con un Postgres
+      > local). *Verificado que crear el esquema es idempotente y que los
+      > `bigint` vuelven como número y no como texto* — que es el fallo
+      > clásico de este driver y habría roto la aritmética entera en silencio.
+      >
+      > **Distinto de lo planeado**: sin `drizzle-kit`. Con dos tablas y
+      > ningún despliegue, una carpeta de migraciones generadas no compra
+      > nada; el esquema se crea con SQL aditivo e idempotente. Queda
+      > declarado como deuda en `db.ts`: en cuanto haya despliegue, migraciones
+      > versionadas.
+- [x] **16. Repositorio transaccional.** Bloqueo de fila y estado+eventos
       en la misma transacción. *Test: dos acciones concurrentes sobre el
       mismo mago se serializan (invariantes 4 y 6).*
-- [ ] **17. Fastify.** `GET /mage/me` ya devengado y
+
+      > **HECHO (2026-09-21).** `SELECT ... FOR UPDATE` al cargar, estado y
+      > eventos en la misma transacción. *El test de concurrencia lanza **diez
+      > acciones a la vez** y comprueba que se gastan **diez turnos, no uno**.*
+      > Sin el bloqueo, las diez leerían el mismo estado, nueve se pisarían, y
+      > **el saldo cuadraría igualmente**: es justo el fallo que no da error.
+      >
+      > También verificado que un **error de dominio no escribe nada**: ni el
+      > estado, ni los eventos, ni siquiera el devengo de turnos.
+- [x] **17. Fastify.** `GET /mage/me` ya devengado y
       `POST /mage/me/actions`; errores de dominio como 422; esquemas en
       `packages/contract`. *Toca `packages/contract`: rompe los dos lados
       a la vez, y eso es lo que queremos.*
+
+      > **HECHO (2026-09-21).** `packages/contract` con los esquemas Zod, y
+      > cuatro rutas: `/api/health`, `/api/catalog`, `/api/mage/me`,
+      > `/api/mage/me/actions` y `/api/mage/me/chronicle`. *15 tests contra un
+      > Postgres real, cada uno con **su propia base de datos** creada y
+      > borrada en el fichero — nunca la de desarrollo.*
+      >
+      > Los tres códigos de estado salen como manda el contrato: **400** si la
+      > petición no valida, **422** si es un error de dominio («ya no queda
+      > tierra que explorar»), 200 con estado nuevo **y eventos**. Ninguna
+      > ruta lleva reglas.
 
 **Cliente**
 
