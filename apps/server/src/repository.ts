@@ -14,12 +14,12 @@
  * hay reglas de juego**. Se carga, se llama a `core.apply()`, se guarda.
  */
 
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { accrue, apply } from '@archmage/core';
 import type { Action, Ctx, GameEvent, MageState, Result, ServerConfig } from '@archmage/core';
 import type { ApplyTuning } from '@archmage/core';
-import { events, mages } from './schema.js';
+import { battles, events, mages } from './schema.js';
 
 type Db = PostgresJsDatabase<Record<string, never>>;
 type Row = typeof mages.$inferSelect;
@@ -180,4 +180,159 @@ export async function readChronicle(db: Db, mageId: string, limit = 100) {
     .where(eq(events.mageId, mageId))
     .orderBy(sql`${events.seq} desc`)
     .limit(limit);
+}
+
+// --- Batallas. Fase 3 ----------------------------------------------------
+
+/**
+ * Bloquea **dos** magos a la vez, siempre **por id ascendente**.
+ *
+ * Éste es el punto donde un servidor se cuelga de verdad. Si A ataca a B
+ * mientras B ataca a A y cada transacción bloquea primero al suyo, las dos
+ * se quedan esperando a la otra: interbloqueo. Postgres lo detecta y mata
+ * una, pero el jugador ve un error que no entiende y el ataque se pierde.
+ *
+ * **Ordenar por id lo hace imposible**, y no por convención: las dos
+ * transacciones piden las mismas filas en el mismo orden, así que la segunda
+ * espera a la primera y luego sigue. Es la razón de que esta función exista
+ * en vez de llamar dos veces a `lockRow`.
+ */
+async function lockTwoRows(
+  tx: Db,
+  a: string,
+  b: string,
+): Promise<{ [id: string]: Row } | undefined> {
+  if (a === b) return undefined;
+  const orden = [a, b].sort(); // ascendente, siempre
+  const filas: Record<string, Row> = {};
+  for (const id of orden) {
+    const row = await lockRow(tx, id);
+    if (!row) return undefined;
+    filas[id] = row;
+  }
+  return filas;
+}
+
+export interface BattleWrite {
+  serverId: string;
+  attackerId: string;
+  defenderId: string;
+  attackType: string;
+  seed: number;
+  winner: string;
+  rounds: number;
+  landLost: number;
+  landTaken: number;
+  log: Record<string, unknown>[];
+  summary: Record<string, unknown>;
+}
+
+/**
+ * Resuelve un ataque: carga los dos magos con bloqueo, deja que `decide`
+ * calcule, y guarda **los dos estados, la batalla y los eventos juntos**.
+ *
+ * `decide` es puro y vive fuera: aquí no hay reglas de juego (invariante 8).
+ */
+export async function applyBattle(
+  db: Db,
+  attackerId: string,
+  defenderId: string,
+  now: number,
+  server: ServerConfig,
+  decide: (
+    attacker: MageState,
+    defender: MageState,
+  ) =>
+    | {
+        attacker: MageState;
+        defender: MageState;
+        battle: BattleWrite;
+        events: { mageId: string; event: GameEvent }[];
+      }
+    | { error: NonNullable<Extract<Result, { ok: false }>['error']> },
+): Promise<
+  | { battleId: number; attacker: MageState; defender: MageState }
+  | { error: NonNullable<Extract<Result, { ok: false }>['error']> }
+  | null
+> {
+  return db.transaction(async (tx) => {
+    const filas = await lockTwoRows(tx, attackerId, defenderId);
+    if (!filas) return null;
+
+    const conTurnos = (row: Row): MageState => {
+      const s = rowToState(row);
+      return { ...s, turns: accrue(s.turns, now, server).turns };
+    };
+    const atacante = conTurnos(filas[attackerId]!);
+    const defensor = conTurnos(filas[defenderId]!);
+
+    const r = decide(atacante, defensor);
+    if ('error' in r) return { error: r.error };
+
+    await tx
+      .update(mages)
+      .set({ ...stateToRow(r.attacker), updatedAt: new Date() })
+      .where(eq(mages.id, attackerId));
+    await tx
+      .update(mages)
+      .set({ ...stateToRow(r.defender), updatedAt: new Date() })
+      .where(eq(mages.id, defenderId));
+
+    const [fila] = await tx.insert(battles).values(r.battle).returning({ id: battles.id });
+
+    // Los eventos van **en la misma transacción** (invariante 4), y cada uno
+    // a la crónica de su mago: los dos tienen derecho a saber qué pasó.
+    for (const mageId of [attackerId, defenderId]) {
+      const suyos = r.events.filter((e) => e.mageId === mageId);
+      if (suyos.length === 0) continue;
+      const [{ siguiente } = { siguiente: 0 }] = await tx
+        .select({ siguiente: sql<number>`coalesce(max(${events.seq}), -1) + 1` })
+        .from(events)
+        .where(eq(events.mageId, mageId));
+      await tx.insert(events).values(
+        suyos.map((e, i) => ({
+          mageId,
+          seq: siguiente + i,
+          type: e.event.type,
+          payload: e.event as unknown as Record<string, unknown>,
+        })),
+      );
+    }
+
+    return { battleId: fila!.id, attacker: r.attacker, defender: r.defender };
+  });
+}
+
+/** Los magos a los que se puede atacar: los del servidor, menos uno mismo. */
+export async function listTargets(db: Db, serverId: string, selfId: string) {
+  return db
+    .select()
+    .from(mages)
+    .where(and(eq(mages.serverId, serverId), ne(mages.id, selfId)));
+}
+
+/** Una batalla por su id, para la pantalla de repetición. */
+export async function readBattle(db: Db, id: number) {
+  const rows = await db.select().from(battles).where(eq(battles.id, id));
+  return rows[0];
+}
+
+/** Las últimas batallas de un mago, ataque o defensa. */
+export async function listBattles(db: Db, mageId: string, limit = 20) {
+  return db
+    .select()
+    .from(battles)
+    .where(or(eq(battles.attackerId, mageId), eq(battles.defenderId, mageId)))
+    .orderBy(sql`${battles.id} desc`)
+    .limit(limit);
+}
+
+/** Los nombres de unos magos, por id. La repetición dice nombres, no ids. */
+export async function namesOf(db: Db, ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
+  const filas = await db
+    .select({ id: mages.id, name: mages.name })
+    .from(mages)
+    .where(inArray(mages.id, ids));
+  return Object.fromEntries(filas.map((f) => [f.id, f.name]));
 }

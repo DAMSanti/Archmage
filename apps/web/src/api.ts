@@ -10,14 +10,20 @@
  */
 
 import {
+  battleSchema,
   catalogResponseSchema,
+  targetsResponseSchema,
   mageResponseSchema,
   actionResponseSchema,
   type ActionInput,
   type ActionResponse,
   type CatalogResponse,
+  type Battle,
   type MageResponse,
+  type Target,
 } from '@archmage/contract';
+
+export type { Battle, Target };
 
 export class DomainError extends Error {
   constructor(
@@ -79,4 +85,26 @@ export async function fetchChronicle(): Promise<ChronicleRow[]> {
   const res = await fetch('/api/mage/me/chronicle');
   if (!res.ok) return leerError(res);
   return (await res.json()) as ChronicleRow[];
+}
+
+// --- Guerra. Fase 3 ------------------------------------------------------
+
+/** Contra quién se puede luchar. */
+export async function fetchTargets(): Promise<Target[]> {
+  const res = await fetch('/api/war/targets');
+  if (!res.ok) return leerError(res);
+  return targetsResponseSchema.parse(await res.json()).targets;
+}
+
+/**
+ * Una batalla con su log, para la repetición.
+ *
+ * Se pide **de una en una** y no con la lista: el log de una batalla grande
+ * son cientos de golpes, y la lista solo pinta una línea por batalla.
+ */
+export async function fetchBattle(id: number): Promise<Battle> {
+  const res = await fetch(`/api/war/battles/${id}`);
+  if (!res.ok) return leerError(res);
+  const body = (await res.json()) as { battle: unknown };
+  return battleSchema.parse(body.battle);
 }

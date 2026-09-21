@@ -77,10 +77,33 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
     -- Fase 2, 2026-09-21. Aditiva y anulable: una base de datos de la fase 1
     -- sigue funcionando sin tocar nada (docs/SPECS.md §4).
     ALTER TABLE mages ADD COLUMN IF NOT EXISTS casting jsonb;
+
+    -- Fase 3, 2026-09-21. Tabla nueva: nadie la necesita para leer lo de
+    -- antes, así que la migración es aditiva (docs/SPECS.md §4).
+    CREATE TABLE IF NOT EXISTS battles (
+      id          serial PRIMARY KEY,
+      server_id   text NOT NULL,
+      attacker_id text NOT NULL REFERENCES mages(id),
+      defender_id text NOT NULL REFERENCES mages(id),
+      attack_type text NOT NULL,
+      -- Lo que hace la batalla repetible (docs/SPECS.md §5, invariante 3).
+      seed        bigint NOT NULL,
+      winner      text NOT NULL,
+      rounds      integer NOT NULL DEFAULT 0,
+      land_lost   integer NOT NULL DEFAULT 0,
+      land_taken  integer NOT NULL DEFAULT 0,
+      log         jsonb NOT NULL DEFAULT '[]'::jsonb,
+      summary     jsonb NOT NULL,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS battles_attacker_idx ON battles (attacker_id, created_at);
+    CREATE INDEX IF NOT EXISTS battles_defender_idx ON battles (defender_id, created_at);
+    CREATE INDEX IF NOT EXISTS battles_server_idx   ON battles (server_id, created_at);
   `);
 }
 
 /** Solo para los tests: vacía las tablas sin tocar el esquema. */
 export async function truncateAll(sql: postgres.Sql): Promise<void> {
-  await sql.unsafe('TRUNCATE events, mages RESTART IDENTITY CASCADE;');
+  await sql.unsafe('TRUNCATE battles, events, mages RESTART IDENTITY CASCADE;');
 }

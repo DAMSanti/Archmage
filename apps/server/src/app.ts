@@ -32,12 +32,35 @@ import {
   spellbookFor,
   upkeep,
 } from '@archmage/core';
-import { makeRandom as _makeRandom } from '@archmage/core';
+import { makeRandom as _makeRandom, resolveAttack } from '@archmage/core';
+import { PILLAGE_MIN_POWER_SHARE } from '@archmage/core';
 import type { Ctx, MageState, RandomSource } from '@archmage/core';
 import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import { actionRequestSchema } from '@archmage/contract';
 import type { Db } from './db.js';
-import { applyAction, insertMage, loadAccrued, readChronicle } from './repository.js';
+import {
+  applyAction,
+  applyBattle,
+  insertMage,
+  listBattles,
+  listTargets,
+  loadAccrued,
+  namesOf,
+  readBattle,
+  readChronicle,
+  rowToState,
+} from './repository.js';
+
+/**
+ * La ficha de una batalla **sin el log**, que es lo que va en las listas.
+ *
+ * El log de una batalla grande son cientos de golpes; mandarlo en una lista
+ * de veinte batallas sería megabytes para pintar veinte líneas.
+ */
+function sinLog(f: Record<string, unknown>) {
+  const { log: _log, ...resto } = f as { log: unknown };
+  return { ...resto, createdAt: String((f as { createdAt: Date }).createdAt) };
+}
 
 const TUNING = { ...ECONOMY };
 
@@ -139,6 +162,72 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return reply.send({ mage: state, derived: derive(state, now), server: TERRA });
   });
 
+  /** Contra quién se puede luchar. */
+  app.get('/api/war/targets', async (_req, reply) => {
+    const now = deps.now();
+    const yo = await loadAccrued(deps.db, DEV_MAGE_ID, now, TERRA);
+    if (!yo) return reply.send({ targets: [] });
+    const miPoder = netPower(yo, CATALOG);
+    const filas = await listTargets(deps.db, TERRA.id, DEV_MAGE_ID);
+    return reply.send({
+      targets: filas.map((f) => {
+        const s = rowToState(f);
+        const np = netPower(s, CATALOG);
+        return {
+          id: s.id,
+          name: s.name,
+          specialty: s.specialty,
+          land: s.land.total,
+          netPower: np,
+          protected: isProtected(s, TERRA),
+          // El 50% del saqueo, dicho antes de pinchar: la interfaz no
+          // esconde por qué algo no se puede (docs/INTERFAZ.md).
+          tooWeak: np < miPoder * PILLAGE_MIN_POWER_SHARE,
+        };
+      }),
+    });
+  });
+
+  /** Las últimas batallas del mago, atacadas y sufridas. */
+  app.get('/api/war/battles', async (_req, reply) => {
+    const filas = await listBattles(deps.db, DEV_MAGE_ID);
+    const ids = [...new Set(filas.flatMap((f) => [f.attackerId, f.defenderId]))];
+    const nombres = await namesOf(deps.db, ids);
+    return reply.send({
+      battles: filas.map((f) => ({
+        ...sinLog(f),
+        attackerName: nombres[f.attackerId] ?? f.attackerId,
+        defenderName: nombres[f.defenderId] ?? f.defenderId,
+      })),
+    });
+  });
+
+  /** Una batalla entera, con su log, para la repetición. */
+  app.get('/api/war/battles/:id', async (req, reply) => {
+    const id = Number((req.params as { id: string }).id);
+    if (!Number.isInteger(id)) {
+      return reply
+        .code(400)
+        .send({ error: { code: 'invalid_request', message: 'Id de batalla inválido.' } });
+    }
+    const fila = await readBattle(deps.db, id);
+    if (!fila) {
+      return reply
+        .code(404)
+        .send({ error: { code: 'battle_not_found', message: 'No existe esa batalla.' } });
+    }
+    // Los nombres van resueltos: la repetición dice «Malakar», no un id.
+    const nombres = await namesOf(deps.db, [fila.attackerId, fila.defenderId]);
+    return reply.send({
+      battle: {
+        ...sinLog(fila),
+        attackerName: nombres[fila.attackerId] ?? fila.attackerId,
+        defenderName: nombres[fila.defenderId] ?? fila.defenderId,
+        log: fila.log,
+      },
+    });
+  });
+
   app.post('/api/mage/me/actions', async (req, reply) => {
     const parsed = actionRequestSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -149,6 +238,52 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
     const now = deps.now();
     const ctx: Ctx = { now, random: deps.random(), server: TERRA, catalog: CATALOG };
+
+    // **Atacar no pasa por `apply()`**: toca a dos magos, así que va por su
+    // propia vía, con las dos filas bloqueadas por id ascendente
+    // (docs/SPECS.md §5, invariantes 6 y 8). La regla sigue en el núcleo;
+    // aquí solo se carga, se llama y se guarda.
+    if (parsed.data.action.type === 'attack') {
+      const { targetId, attackType } = parsed.data.action;
+      const res = await applyBattle(deps.db, DEV_MAGE_ID, targetId, now, TERRA, (a, d) => {
+        const r = resolveAttack(a, d, attackType, ctx);
+        if ('error' in r) return { error: r.error as never };
+        return {
+          attacker: r.attacker,
+          defender: r.defender,
+          battle: {
+            serverId: TERRA.id,
+            attackerId: a.id,
+            defenderId: d.id,
+            attackType,
+            seed: r.battle.seed,
+            winner: r.battle.winner,
+            rounds: r.battle.rounds,
+            landLost: r.battle.landLost,
+            landTaken: r.battle.landTaken,
+            log: r.battle.log as Record<string, unknown>[],
+            summary: r.battle.summary,
+          },
+          events: r.events,
+        };
+      });
+      if (res === null) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'mage_not_found', message: 'No existe ese objetivo.' } });
+      }
+      if ('error' in res) return reply.code(422).send({ error: res.error });
+      // **La misma forma que cualquier otra acción**, más `battleId`: el
+      // cliente parsea una sola cosa (docs/SPECS.md §6).
+      return reply.send({
+        mage: res.attacker,
+        derived: derive(res.attacker, now),
+        server: TERRA,
+        events: [],
+        battleId: res.battleId,
+      });
+    }
+
     const out = await applyAction(deps.db, DEV_MAGE_ID, parsed.data.action, ctx, TUNING);
 
     if (out === null) {

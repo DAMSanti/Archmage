@@ -18,18 +18,23 @@ import { Reino } from './routes/Reino.js';
 import { Ejercito } from './routes/Ejercito.js';
 import { Cronica } from './routes/Cronica.js';
 import { Magia } from './routes/Magia.js';
+import { Guerra } from './routes/Guerra.js';
+import { Batalla } from './routes/Batalla.js';
 
-type Pantalla = 'reino' | 'ejercito' | 'magia' | 'cronica';
+type Pantalla = 'reino' | 'ejercito' | 'magia' | 'guerra' | 'cronica';
 
 const PANTALLAS: { id: Pantalla; nombre: string }[] = [
   { id: 'reino', nombre: 'Reino' },
   { id: 'ejercito', nombre: 'Ejército' },
   { id: 'magia', nombre: 'Magia' },
+  { id: 'guerra', nombre: 'Guerra' },
   { id: 'cronica', nombre: 'Crónica' },
 ];
 
 export function App() {
   const [pantalla, setPantalla] = useState<Pantalla>('reino');
+  // Qué batalla se está mirando. `null` = ninguna, y manda `pantalla`.
+  const [batalla, setBatalla] = useState<number | null>(null);
   const [data, setData] = useState<MageResponse | null>(null);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [cronica, setCronica] = useState<ChronicleRow[]>([]);
@@ -61,6 +66,9 @@ export function App() {
     try {
       const res = await sendAction(a);
       setData({ mage: res.mage, derived: res.derived, server: res.server });
+      // Tras atacar, a ver qué pasó: el resultado **es** el contenido de la
+      // acción, y esconderlo detrás de un clic más sería raro.
+      if (res.battleId !== undefined) setBatalla(res.battleId);
       setError(null);
     } catch (e) {
       // Un 422 es juego, no avería: se enseña tal cual lo dijo el servidor.
@@ -92,7 +100,10 @@ export function App() {
               key={p.id}
               className="nav__enlace"
               aria-current={pantalla === p.id ? 'page' : undefined}
-              onClick={() => setPantalla(p.id)}
+              onClick={() => {
+                setPantalla(p.id);
+                setBatalla(null);
+              }}
             >
               {p.nombre}
             </button>
@@ -110,6 +121,17 @@ export function App() {
             <Ejercito data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
           ) : pantalla === 'magia' ? (
             <Magia data={data} onAction={onAction} ocupado={ocupado} />
+          ) : pantalla === 'guerra' ? (
+            batalla !== null ? (
+              <Batalla id={batalla} catalog={catalog} onVolver={() => setBatalla(null)} />
+            ) : (
+              <Guerra
+                data={data}
+                onAction={onAction}
+                ocupado={ocupado}
+                onBatalla={setBatalla}
+              />
+            )
           ) : (
             <Cronica filas={cronica} />
           )}

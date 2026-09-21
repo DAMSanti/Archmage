@@ -84,370 +84,31 @@ recurso** y **dos piezas de ornamento**.
 
 ---
 
-### Guerra de la fase 3 — spec escrita, sin implementar
+### Guerra de la fase 3 — cerrada el 2026-09-21
 
-**Spec y criterios de aceptación:
-[docs/SISTEMAS.md §9.1](docs/SISTEMAS.md).** Escrita el 2026-09-21 con
-`/spec`. La investigación que la sostiene, en
-[docs/ORIGINAL.md §9.1-9.5](docs/ORIGINAL.md).
+**Las 22 tareas hechas.** La spec y el plan siguen en
+[docs/SISTEMAS.md §9.1](docs/SISTEMAS.md), con los resultados de la
+calibración anotados criterio por criterio; la economía publicada que
+salió por el camino está en §5.3 y §5.4, y los hallazgos sobre el
+original en [docs/ORIGINAL.md §4.2 y §9.1](docs/ORIGINAL.md).
 
-Qué cerró:
+**Lo que de verdad pasó**, que no es lo que decía el plan:
 
-- **La fórmula de daño está publicada**, y también la del acierto, la
-  fatiga y el emparejamiento. Eran cuatro marcas `[abierto]` y ya no lo
-  son.
-- **Las fichas de unidad también**, con su `Power Rank` — que cierra de
-  paso el `[abierto]` del coeficiente de poder en net power.
-- **Alcance: los tres ataques, más héroes e items de batalla.** Es el más
-  grande de los que se plantearon, elegido a sabiendas.
-- **Doce criterios de aceptación**, nueve de test y tres de simulación.
+- **Cinco premisas nuestras se cayeron**, y ninguna la encontró un test
+  que las buscara: los upkeeps de unidad estaban inventados; `netPower()`
+  no contaba el ejército, lo que volvía cierta «invocar es una trampa»
+  **por construcción**; la economía entera estaba mal de forma y de
+  escala, y resultó estar **publicada**; la debilidad era un
+  multiplicador y no un término de la resistencia; y `powerRank` no es un
+  precio de balance.
+- **La pasada de navegador encontró cuatro fallos que 411 tests en verde
+  no vieron**, incluido que el cliente llevaba roto desde la tarea 1.
+- **Dos exploits** salieron de mirar, no de medir: disolver el ejército
+  protegía la tierra, y partirlo en stacks minúsculos lo volvía
+  intocable.
 
-**Lo que obliga a hacer antes, y no es menor.** Los upkeeps de unidad que
-inventé en las fases 1 y 2 **están mal por un factor de entre 40 y 100**:
-la Dríade cuesta 0,01 de maná y yo puse 1; el Treant 0,63 y yo puse 24.
-Se corrigen a los números del original, y eso **invalida las cifras
-medidas de las fases 1 y 2**: hay que rehacer la calibración, y es el
-criterio 12 de §9.1.
-
-**Lo que esta fase desbloquea**: el criterio 10 de `SISTEMAS §7.1` falló
-en la fase 2 porque **invocar no paga sin combate**. Éste es el que lo
-arregla, y con él los criterios 9 y 13 de §17.2, aplazados desde la
-fase 1.
-
-**Plan técnico**: [docs/SISTEMAS.md §9.1](docs/SISTEMAS.md), apartado
-«Plan técnico». Escrito el 2026-09-21.
-
-**Decidido con el usuario el 2026-09-21:**
-
-- **Los rivales son magos sembrados** de distintos tamaños y
-  composiciones, creados al arrancar. No juegan: están para atacarlos y
-  para que te ataquen. Se borran el día que haya cuentas. **Lo que se
-  mida contra ellos dice cómo funciona el combate, no cómo juega un
-  humano**, y eso queda dicho.
-- **Se para en la tarea 3**, tras recalibrar. Los upkeeps bajan entre 40
-  y 100 veces, y si eso desequilibra la economía hay que decidir qué se
-  mueve **antes** de tener el combate encima.
-
-**Las fichas, y la deuda de atrás**
-
-- [x] **1. La ficha de combate de una unidad.** Ataque, contraataque,
-      ataque extra, HP, iniciativa, tipos de daño, habilidades, tabla de
-      resistencias y `powerRank`. Y el **upkeep en punto fijo**, porque
-      los valores publicados son fraccionarios.
-      *Test: la ficha del Treant sale clavada — 4.200/1.680/2.500/4.200,
-      iniciativa 1, powerRank 423.* **Cambia el contrato.**
-      *Toca `packages/core` y `packages/content`.*
-
-      > **HECHO (2026-09-21).** `packages/core/src/units.ts` con
-      > `UnitSpec` entero: ataque, ataque extra con su propia iniciativa,
-      > contraataque, HP, 12 tipos de daño, 19 habilidades como lista
-      > cerrada, resistencias por tipo y por escuela, y `powerRank`. El
-      > upkeep va en **centésimas** y `upkeep()` redondea **una sola vez**
-      > al sumar el ejército entero. Test: la ficha del Treant sale
-      > clavada (4.200/1.680/2.500/4.200, iniciativa 1, rank 423).
-      >
-      > **Lo que apareció y no estaba previsto:** `netPower()` dejaba el
-      > ejército fuera **porque este `powerRank` estaba `[abierto]`** —lo
-      > decía en su propio docstring—. Cerrarlo aquí obligaba a
-      > arreglarlo, y resultó ser lo que más movió la recalibración de la
-      > tarea 3. Se cambió la firma a `netPower(state, catalog)` con el
-      > catálogo **obligatorio**, no opcional, y eso es ahora el
-      > invariante 12 de docs/SPECS.md.
-
-- [x] **2. Las veinte unidades con sus números reales.** Las 15
-      invocables de Verdant y las 5 de barracks. *Test: los upkeeps son
-      los publicados — Dríade 0,01 de maná, Treant 0,63, Fénix 60 — y
-      **ya no los que me inventé**.*
-
-      > **HECHO (2026-09-21).** Veinte unidades en
-      > `packages/content/src/units.ts`: **siete con ficha publicada**
-      > (Milicia, Dríade, Ninfa, Arquero élfico, Druida, Treant, Fénix) y
-      > trece interpoladas con una regla escrita,
-      > `powerRank ≈ 6 × √(ataque × HP)`. 18 tests, y las siete
-      > publicadas se comprueban **número a número**.
-      >
-      > **Se cayeron dos premisas más, además de los upkeeps de maná:**
-      > la tropa de barracks también estaba mal (la Milicia cuesta **20**
-      > de geld, no 60, y **0,32** de upkeep, no 1), y **varias unidades
-      > invocadas cuestan geld además de maná** —el Arquero élfico, 1,04—,
-      > cosa que la fase 2 daba por imposible. Tres tests de las fases 1 y
-      > 2 afirmaban los números viejos y se corrigieron; el del colapso
-      > por geld **ya no se puede provocar con tropa barata**, porque una
-      > falange cuesta 0,60 y la población que la aloja rinde 0,75: hace
-      > falta caballería.
-
-- [x] **3. Recalibrar las fases 1 y 2.** Rehacer la simulación de §17.2
-      con los upkeeps corregidos. *Criterio 12 de §9.1: los criterios 10,
-      11 y 12 de §17.2 siguen cumpliéndose, o se dice cuál no y por qué.*
-      **Va aquí y no al final**: si los upkeeps rompen la economía, mejor
-      saberlo antes de construir el combate encima.
-
-      > **HECHO (2026-09-21).** Rehecha la simulación. Resultado completo
-      > en docs/SISTEMAS.md §17.2; el resumen, en §9.1, «Lo que la
-      > recalibración midió, y lo que dejó abierto».
-      >
-      > **Tres veredictos cambiaron, y ninguno por el upkeep en sí:**
-      >
-      > - **Criterio 13, desbloqueado y cumpliendo.** Estaba aplazado
-      >   desde la fase 1 porque el net power era ~98% tierra. Con el
-      >   ejército dentro va del **50%** de tierra (reparto de ejército)
-      >   al **79%** (guías): ya distingue estrategias.
-      > - **«Invocar es una trampa» era falso**, y lo era **por
-      >   construcción**: sin `powerRank`, lo invocado no podía sumar, así
-      >   que ninguna medición podía salir de otra forma. Corregido, el
-      >   reparto de ejército es **el que más net power saca** de los
-      >   cuatro (2.531.586 contra 2.188.345 del económico).
-      > - **Criterio 11, roto.** El ejército sostenible a 600 turnos pasa
-      >   de **13.636** a **29.838**, fuera de las 10.000-20.000 del
-      >   original; con milicia pura, **85.225**.
-      >
-      > **El criterio 12 sigue cumpliendo**, y ahora también medido
-      > jugando con magia, que antes no se comprobaba.
-      >
-      > **La causa del 11 no es el upkeep**, que es `[orig]`: es que el
-      > ingreso de la fase 1 se calibró contra un upkeep medio de **2
-      > geld inventado** cuando el real es **0,914**. El ingreso quedó
-      > **2,19 veces generoso**. Se arregló de paso un número obsoleto
-      > que lo escondía: `sustainableArmy` dividía por ese 2 a mano, y
-      > ahora sale del catálogo.
-      >
-      > **Se para aquí**, como estaba decidido. Qué se mueve —bajar el
-      > ingreso, subir el coste de recluta, o aceptar ejércitos mayores—
-      > está `[abierto]` en §9.1 con las tres salidas y sus
-      > consecuencias, y es decisión del usuario.
-      >
-      > Suite: **233 tests en verde** (eran 212), `tsc -b` en 0.
-
-- [x] **4. Bajar el ingreso a los valores del original.** *Decidido por
-      el usuario tras ver la recalibración de la tarea 3: «todo tiene que
-      ser como el original».*
-
-      > **HECHO (2026-09-21).** Y salió otra cosa de la que se pedía.
-      >
-      > **Fui a buscar los valores del original para bajarlos y resultó
-      > que estaban publicados.** La economía estaba en
-      > docs/ORIGINAL.md §11 como «sin verificar» —«cuánto geld da un
-      > town, cuánta comida una farm, cuánta población cabe en un
-      > town»— y la wiki la documenta entera. Está ahora en **§4.2**,
-      > confianza alta, y sale de §11.
-      >
-      > **Lo adoptado**, todo `[orig]`:
-      >
-      > - Geld por turno: `Pob × √((100 + 10×towns) / tierra) + 1.000`.
-      >   Con **rendimiento decreciente** en los towns, con el geld por
-      >   cabeza pudiendo **bajar de 1** si creces en tierra sin
-      >   construir towns, y con **suelo de 1.000**. Nuestra recta
-      >   `Pob × (0,75 + 2×%towns)` no tenía ninguna de las tres.
-      > - Espacio y comida son **dos topes separados**: espacio =
-      >   `towns×1.000 + farms×100` (se **suman**), comida =
-      >   `farms×500`. Teníamos `min(towns×300, farms×100)` — mal de
-      >   escala **y de forma**.
-      > - Crecimiento 50 + 1,5%: **ya lo teníamos bien**.
-      >
-      > **El encargo era bajar el ingreso y los números publicados lo
-      > suben.** Los topes reales alojan **4,3 veces más gente en la
-      > misma tierra**, y el ingreso *es* la población. Aun así el
-      > criterio 11 encaja, porque el problema no era que el mago fuera
-      > rico: **se estaba midiendo en el turno 600 un ancla que el
-      > original da para el turno 120**, y en el turno 120 nuestro mago
-      > estaba artificialmente pobre.
-      >
-      > **Tres criterios se arreglaron:**
-      >
-      > - **11 de §17.2** ✅ vuelve a cumplirse. En el turno 120 el
-      >   reparto de ejército sostiene **19.242** unidades, dentro de la
-      >   banda 10.000-20.000; los otros tres la bracketean (9.592,
-      >   9.725, 22.937).
-      > - **10 de §7.1** ✅ **cumple por primera vez.** El reparto
-      >   volcado a maná acaba en 3.301.483 de net power contra
-      >   2.526.383 del económico: gana por un 31%. Sin magia pierde,
-      >   así que es la magia la que le da la vuelta.
-      > - **13 de §17.2** ✅ la tierra baja del 98% al **37-55%** del net
-      >   power, y el orden de los repartos cambia: los dos que compran
-      >   ejército se ponen delante.
-      >
-      > **Dos consecuencias que no se buscaban:**
-      >
-      > - **Del geld solo ya no se muere.** Con el suelo de 1.000, un
-      >   mago con un fort se recupera (43.541 de geld a los 40 turnos) y
-      >   uno con 40 forts **se estabiliza en 10**, donde el
-      >   mantenimiento iguala al suelo. Perder el último fort pide
-      >   guerra. Es del original, no decisión nuestra.
-      > - **La proporción de equilibrio es 2,5 farms por town, no 3** — y
-      >   eso **explica** el 3:1 de las guías: a 3:1 sobran 200 de comida
-      >   por town, que es lo que se come el ejército. Las dos cifras de
-      >   las fuentes dejan de contradecirse.
-      >
-      > *Toca `packages/core` (`economy.ts`, `EconomyTuning`) y
-      > `packages/content`.* Suite: **248 tests en verde** (eran 233),
-      > `tsc -b` en 0.
-
-**El combate, pieza a pieza**
-
-- [x] **5. La fórmula de daño.** *Test = criterio 1 de §9.1, con el
-      número exacto: 1.000 Treants contra Dríades matan **9.000**.*
-
-      > **HECHO (2026-09-21).** `packages/core/src/combat.ts` con
-      > `casualties()`, los siete términos, **un solo `floor` al final**
-      > y el criterio clavado: 9.000. 13 tests.
-      >
-      > **Y apareció un fallo que ningún test habría pillado después.**
-      > Los multiplicadores defensivos del original —0,7, 0,75, 0,8— casi
-      > nunca son representables en binario: *healing* × *scales* debería
-      > dar 0,525 y da 0,52499999999999997, con lo que `Math.floor`
-      > devolvía **4.724** donde la cuenta exacta da **4.725**. Un entero
-      > de menos, **sin dar error**, en un número que el jugador ve en la
-      > previsión y otra vez en el resultado — exactamente el fallo que
-      > el invariante 7 existe para evitar. Se arregló pegándose al
-      > entero solo cuando la distancia es error de representación, con
-      > media docena de multiplicadores reales fijados en un test.
-- [x] **6. El acierto.** Base 30, **20 en asedio**, y la fórmula a tramos
-      para los modificadores. *Test = criterio 2: el asedio hace
-      exactamente dos tercios del daño.*
-
-      > **HECHO (2026-09-21).** `accuracyFor(modificador, asedio)`, 16
-      > tests. El criterio sale exacto: 9.000 bajas en regular, 6.000 en
-      > asedio.
-      >
-      > **La fórmula publicada tenía dos ambigüedades y las dos están
-      > declaradas**, una resuelta midiendo y la otra decidida:
-      >
-      > - **El signo `[orig]`.** La fuente escribe `30 − A` con `A`
-      >   negativo, que daría *más* acierto al penalizar. Se lee con
-      >   valor absoluto, y **no es conjetura**: es la única lectura con
-      >   la que los tres tramos **empalman** en sus fronteras (15 = 15 y
-      >   6 = 6). Anotado también en docs/ORIGINAL.md §9.1.
-      > - **La base 20 `[nuestro]`.** La fuente **no dice** cómo pasa la
-      >   curva al asedio. Se reescribió en función de la base (24 y 12
-      >   son 0,8B y 0,4B; los cortes, B/2 y B), lo que deja un punto de
-      >   castigo costando un punto. La alternativa —multiplicar la curva
-      >   por B/30— daba dos tercios exactos siempre, pero hacía que un
-      >   castigo de 15 puntos costase 10 en asedio.
-      >
-      > **Consecuencia declarada:** los dos tercios son exactos sin
-      > modificadores, que es lo que pide el criterio; con castigo la
-      > proporción se mueve, y las curvas cruzan el cero en 2×base — 40
-      > en asedio y 60 en regular.
-- [x] **7. Resistencias por tipo de daño.** Media con varios tipos, y la
-      debilidad metiendo −50%. *Test = criterio 4: el Treant recibe tres
-      veces más daño de fuego que de melee.*
-
-      > **HECHO (2026-09-21).** `resistanceAgainst(unidad, tipos)`, 10
-      > tests, incluido el ejemplo literal de la fuente
-      > (`Fire Ranged = (30 + 75) / 2 = 52,5`).
-      >
-      > **Faltaba un campo en la ficha:** `weaknesses`. Una debilidad
-      > **no es lo mismo que resistir 0%**, y el Treant tiene las dos —su
-      > ficha publicada lo dice y nosotros solo teníamos la resistencia,
-      > con la debilidad escrita en el texto de `source` y en ningún
-      > sitio donde el código pudiera verla. Añadido a `UnitSpec` y a las
-      > 20 unidades.
-      >
-      > **Y el criterio resultó estar redondeado al hablar:** «tres veces
-      > más» es en realidad **100/33 = 3,0303**, y en bajas sale 3,06
-      > porque el truncado de 49,5 a 49 se come medio punto. El test fija
-      > **los dos números**, 49 y 150, en vez del cociente — que es lo
-      > que hace que el día que cambie se sepa cuál cambió.
-      >
-      > *(`tsc` pilló que las fixtures del núcleo no tenían el campo
-      > nuevo, cuando los 287 tests ya estaban en verde: vitest no
-      > comprueba tipos. Es la razón de correr las dos cosas.)*
-- [x] **8. Habilidades defensivas.** Healing 0,7, scales 0,75,
-      regeneration 0,8, charm 0,5, large shield 0,5, weakness 2,0,
-      multiplicándose. *Test: cada una por separado y dos combinadas.*
-
-      > **HECHO (2026-09-21).** `defensiveMultiplier(defensor, ataque)`,
-      > 14 tests: las cinco por separado, las tres condicionales, y
-      > combinadas de dos en dos y de cinco en cinco.
-      >
-      > **Y aquí se cazó un error mío de la tarea 7, de hace una hora.**
-      > El texto de la tarea dice «weakness 2,0» y yo la había
-      > implementado como **−50 en la media de resistencias**, que es como
-      > la resumía docs/ORIGINAL.md §9.1. Al ver que la debilidad estaba
-      > en **las dos listas** de la misma sección volví a la página
-      > *Damage Formula*, que es explícita: `weakness (2.0 if the attack
-      > contains the attack type matching the weakness)`. La media es solo
-      > de resistencias.
-      >
-      > **No era cosmético.** Como término de la media, la debilidad **se
-      > diluía** al mezclar tipos; como multiplicador basta con que el
-      > ataque *contenga* el tipo, así que un Melee+Fire aprovecha la
-      > debilidad del Treant **entera** mientras su resistencia al melee
-      > sí se queda a medias. Y el tope pasa de ×1,5 a ×2,0. Corregidos
-      > el código, los tests de la tarea 7, SISTEMAS §9.1 y ORIGINAL §9.1.
-      >
-      > Medido: el mejor defensor posible recibe **945** bajas donde el
-      > neutro recibe 9.000; el peor, **18.000**.
-- [x] **9. Orden de stacks y emparejamiento.** Multiplicadores
-      1,0/1,5/2,25; voladores y distancia pegan a todo, melee solo a
-      tierra; objetivo solo si vale ≥10%. *Test = criterio 5: melee puro
-      contra voladores puros **no hace daño**.*
-
-      > **HECHO (2026-09-21).** `sortStacks()`, `canTarget()` y
-      > `chooseTarget()`, 15 tests. El criterio 5 sale tal cual: contra un
-      > ejército solo de voladores, el melee **no encuentra objetivo** —
-      > no es que pegue poco.
-      >
-      > **Una decisión que la fuente no cierra, declarada `[nuestro]`:**
-      > de los stacks que el atacante alcanza y que valen el 10%, se coge
-      > **el primero del orden**. Podría sortearse, pero entonces haría
-      > falta guardar una semilla más para que la repetición de la batalla
-      > cuadrase (invariante 3), y no hace falta: `sortStacks()` ya fija
-      > el orden y el multiplicador depende **solo del tipo de unidad**,
-      > así que un stack de un volador va delante de veinte mil de melee.
-- [ ] **10. Fatiga.** −15 por primario o contraataque, −10 con
-      *Endurance*, los secundarios no. *Test = criterio 3, incluido que
-      **un stack de 1 fatiga igual que uno de 20.000**.*
-- [ ] **11. La ronda.** Orden de iniciativa, ataques extra con la suya,
-      y contraataques. *Test: el orden sale reproducible con la semilla.*
-- [ ] **12. La batalla entera.** Pre-batalla, batalla y post-batalla, con
-      **semilla guardada y log ronda a ronda**. *Test = criterio 6: misma
-      semilla, log idéntico.*
-- [ ] **13. Quién gana, y el bonus de batalla.** *Test = criterio 7: con
-      9% de bajas el defensor no pierde tierra; con 11%, sí.*
-- [ ] **14. La tierra y los tres ataques.** Regular 5%, asedio 10%, un
-      tercio para el atacante, 50 supervivientes por acre, y el saqueo.
-      *Test = criterio 8, con el ejemplo trabajado del original.*
-
-**Héroes e items**
-
-- [ ] **15. Héroes en batalla.** El de mayor nivel lidera el stack más
-      potente; bonus de eficiencia igual a su nivel; mueren con su stack.
-      *Test: el reparto de héroes es determinista, y el bonus se aplica
-      solo con su raza y color.*
-- [ ] **16. Items de batalla y assignment.** Usarlos en combate, y que se
-      disparen solos al defenderse según el porcentaje de ejército
-      enemigo. *Test: en defensa **no se pueden bloquear**.*
-
-**Varios magos, y la persistencia**
-
-- [ ] **17. Que exista contra quién luchar.** Hoy solo hay un mago.
-      *Test: hay objetivos, y el límite del 50% de net power para el
-      saqueo se aplica.*
-- [ ] **18. La tabla de batallas y el bloqueo de dos filas.** Siempre
-      **por id ascendente**. *Test contra Postgres: dos ataques mutuos
-      simultáneos **no se bloquean entre sí**, y la batalla queda
-      guardada con su semilla.*
-- [ ] **19. La acción y las rutas.** `attack` en el contrato, el
-      resultado con su log, y la ruta de la batalla.
-      *Toca `packages/contract` y `apps/server`.*
-
-**Cliente**
-
-- [ ] **20. `/guerra`.** Lista de objetivos, los tres ataques como tres
-      decisiones, el coste del upkeep dicho antes, y la previsión **con
-      un rango, no con un número**.
-- [ ] **21. `/batalla/:id`.** La repetición ronda a ronda, con el acierto,
-      la resistencia y la eficiencia que se aplicaron. *Las tareas 19 y 20
-      se verifican en **una sola pasada de navegador**.*
-
-**Calibración**
-
-- [ ] **22. ¿Compite ya el maná?** *Criterio 11 de §9.1, y **el que cierra
-      los criterios 9 y 13 de §17.2**, aplazados desde la fase 1.* Y el
-      criterio 10: ningún ejército de una sola unidad domina.
-
----
+Queda `[abierto]` el efecto numérico de las habilidades de héroe, y la
+lista completa de items es de la fase 4.
 
 ### Magia de la fase 2 — cerrada el 2026-09-21
 
@@ -774,11 +435,40 @@ sin ningún asset.
 
 **Assets**
 
-- [ ] **22. Tanda de fase 1.** 4 fondos, 6 iconos de escuela, 8 de
+- [x] **22. Tanda de fase 1.** 4 fondos, 6 iconos de escuela, 8 de
       edificio, 6 de recurso y 2 de ornamento
       ([docs/ASSETS.md](docs/ASSETS.md)). **Una sola sesión con el
       usuario**, y Nether se mira sobre `#1e1813` antes de dar el set por
       bueno.
+
+      > **HECHO (2026-09-21).** Doce unidades enfrentadas todas contra
+      > todas a igual net power, 6 semillas por duelo.
+      >
+      > - **Criterio 10 ✅.** **Ninguna queda invicta**, y el ciclo es
+      >   real: el elemental de tierra gana a todo menos al grifo; el
+      >   grifo gana a casi todo porque **vuela y el melee no lo
+      >   alcanza**; y al grifo lo bajan la dríade y la ninfa, que pegan a
+      >   distancia. No es una escalera, es un corro.
+      > - **Criterio 11 ✅.** Lo invocado ya no es net power guardado:
+      >   pelea, y a igual net power gana el **97%** de los duelos.
+      > - **Criterio 9 de §17.2 ✅**, desbloqueado desde la fase 1: el
+      >   resultado depende de **con qué vayas**, no solo de cuánto
+      >   lleves.
+      > - **Criterio 13 de §17.2 ✅.** Con el doble de net power se gana
+      >   **9 de cada 10** batallas. No 10 de 10, y eso es deseable.
+      >
+      > **Y se cayó una suposición nuestra: `powerRank` no es un precio de
+      > balance.** Entre las **siete fichas publicadas** el valor de
+      > combate por punto de net power va de **30** (Arquero élfico) a
+      > **157** (Treant) — un factor de **5,2**, con datos del original.
+      > Mide cuánto ocupas en la tabla, no cuánto rindes en batalla.
+      >
+      > **Consecuencia declarada:** *Arqueros* y *Caballería* no ganan un
+      > solo duelo a igual net power. No es un fallo de interpolación —los
+      > dos caen dentro de la banda de las publicadas, y el Arquero
+      > élfico, que es `[orig]`, está igual de abajo—: es que el net power
+      > no es la moneda con la que se compran. Una Caballería cuesta 150
+      > de geld y una Milicia 20.
 
 ---
 

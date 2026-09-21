@@ -1259,6 +1259,31 @@ bonus por cada 2%** que pase del doble.
 **La tierra**: regular hasta el **5%**, asedio hasta el **10%**, y en los
 dos **el atacante se queda un tercio**.
 
+**[nuestro]** **La batalla termina cuando los dos bandos están agotados**,
+no al llegar a un tope de rondas. Con 15 de fatiga por golpe, al séptimo
+todo el mundo está a eficiencia 0. Se vio **mirando la repetición**: las
+rondas 8, 9 y 10 eran tres pantallas de «0 bajas, eficiencia 0». Ningún
+número estaba mal; sobraba el ruido. Queda un tope de 10 rondas para los
+casos con *Endurance*, que aguantan diez golpes.
+
+**[nuestro]** **La penalización de asedio es solo del que asedia.** El
+defensor defiende con base 30 venga el ataque que venga: el asedio es
+algo que se *hace*, no algo que se sufre. Se vio leyendo el log de la
+repetición, donde los dos bandos pegaban con 20.
+
+**[nuestro]** **Un defensor sin ejército pierde.** Con los dos bandos
+perdiendo el 0% de su ejército, el empate daba la victoria al defensor —
+así que **disolver el ejército protegía la tierra**. Es el exploit más
+fácil de descubrir que puede tener un juego así, y lo encontró la pasada
+de navegador.
+
+**[nuestro]** **El 10% del objetivo es una preferencia, no un veto.** La
+fuente dice que un stack «solo es objetivo» si vale el 10% del que ataca.
+Al pie de la letra eso deja **invulnerable a un stack pequeño**: medido,
+un millón de soldados no podía tocar a diez, y partir el ejército en
+stacks minúsculos lo volvía intocable. Se prefiere un objetivo que valga
+la pena y, si no hay ninguno, se pega al primero que se alcance.
+
 **[nuestro]** **Supervivientes por acre: 50.** Las fuentes se
 contradicen —el *Beginner's Guide* dice 2,5 y 5; *Battle Mechanics* dice
 50 con un ejemplo aritmético que cuadra— y **nos quedamos con 50**,
@@ -1336,11 +1361,40 @@ lista completa es de la fase 4.
 
 **Simulación:**
 
-10. **Ningún ejército de una sola unidad domina.** Simulando batallas
+10. **Ningún ejército de una sola unidad domina.** ✅ **Cumple, medido el
+    2026-09-21** con doce unidades enfrentadas todas contra todas a igual
+    net power y 6 semillas por duelo.
+
+    **Ninguna queda invicta, y el ciclo es real:** el elemental de tierra
+    gana a todo menos al grifo; el grifo gana a casi todo porque **vuela y
+    el melee no lo alcanza**; y al grifo lo bajan la dríade y la ninfa,
+    que pegan a distancia. No es una escalera, es un corro.
+
+    **Lo que decide no es el precio, es el tipo.** Y eso obligó a corregir
+    una suposición nuestra: **`powerRank` no es un precio de balance**.
+    Entre las **siete fichas publicadas** el valor de combate por punto de
+    net power va de **30** (Arquero élfico) a **157** (Treant) — un factor
+    de **5,2**, con datos del original. Mide cuánto ocupas en la tabla, no
+    cuánto rindes en batalla.
+
+    **Consecuencia declarada:** *Arqueros* y *Caballería* **no ganan un
+    solo duelo** a igual net power. No es un fallo de nuestra
+    interpolación —los dos caen dentro de la banda de las publicadas, y el
+    Arquero élfico, que es `[orig]`, está igual de abajo—: es que el net
+    power **no es la moneda con la que se compran**. Una Caballería cuesta
+    150 de geld y una Milicia 20.
+
+    *(Texto original del criterio: «Simulando batallas
     entre composiciones —solo melee, solo voladores, solo a distancia,
     mezclado—, **la mezclada gana a las puras** más veces de las que
     pierde. Si una unidad sola domina, sus números están mal.
-11. **El maná ya compite** — el criterio 10 de §7.1, reabierto. Con
+11. **El maná ya compite.** ✅ **Cumple**, y por partida doble: el
+    criterio 10 de §7.1 pasó a cumplirse con la economía publicada (tarea
+    4), y ahora **lo invocado además pelea**. A igual net power gana el
+    **97%** de los duelos contra tropa de barracks — que es la otra cara
+    del hallazgo del criterio 10: el net power no es un precio.
+
+    *(Texto original: «el criterio 10 de §7.1, reabierto. Con
     combate, un reparto volcado a maná que invoque y ataque **deja de ser
     estrictamente peor** que el económico. **Éste es el criterio que
     cierra los criterios 9 y 13 de §17.2**, aplazados desde la fase 1.
@@ -1775,7 +1829,15 @@ Estos no son de calibración: si fallan, hay un fallo.
 Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
 §5.4 se mueven si hace falta:
 
-9. **Nadie gana siempre con el mismo reparto.** ⏸ **No se puede juzgar en
+9. **Nadie gana siempre con el mismo reparto.** ✅ **Desbloqueado y
+   cumpliendo desde el 2026-09-21** (fase 3, tarea 22). Con el combate
+   implementado, el resultado depende **de con qué vayas**, no solo de
+   cuánto lleves: a igual net power, unos emparejamientos los gana el
+   atacante y otros el defensor, y hay un ciclo real —elemental de tierra
+   → grifo → dríade—. Ver el criterio 10 de §9.1.
+
+   *(Motivo original del aplazamiento, que era correcto: «No se puede
+   juzgar en
    la fase 1, y ahora sabemos por qué.** Sin magia y sin combate, el maná
    **no sirve para nada**, así que el reparto volcado a economía domina a
    los demás por definición: a 600 turnos da 62.664 de geld neto contra
@@ -1854,8 +1916,18 @@ Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
     caros, y un net power que no contaba el ejército—, no por balance.
     Corregidos los dos, invocar es **la jugada más fuerte** de las
     medidas (§9.1).
-13. **Net Power cuadra con la intuición.** ✅ **Cumple, y se
-    desbloqueó en la fase 3** — estaba aplazado desde la fase 1 con el
+13. **Net Power cuadra con la intuición.** ✅ **Cumple**, y la fase 3 lo
+    cerró del todo: con el doble de net power se gana **9 de cada 10**
+    batallas —no 10 de 10, y eso es deseable: el azar de cada ronda y el
+    emparejamiento tienen que poder dar sorpresas—.
+
+    **Con un matiz que la tarea 22 midió y que conviene no olvidar:** el
+    net power dice **cuánto tienes**, no **cuánto rindes**. Entre las
+    fichas publicadas, el valor de combate por punto de net power varía un
+    factor de 5,2. Como ranking es bueno; como precio de balance no sirve,
+    y usarlo así era una suposición nuestra (§9.1, criterio 10).
+
+    *(Lo que ya decía, y sigue valiendo:* — estaba aplazado desde la fase 1 con el
     motivo escrito: sin el coeficiente de poder del ejército el net power
     era **~98% tierra** y no distinguía estrategias.
 

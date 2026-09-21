@@ -112,14 +112,25 @@ describe('criterio 5 — quién puede pegar a quién', () => {
 });
 
 describe('el objetivo tiene que valer la pena', () => {
-  test('un stack solo es objetivo si vale al menos el 10% del que ataca', () => {
+  test('se PREFIERE un stack que valga el 10% del que ataca', () => {
     expect(MIN_TARGET_SHARE).toBe(0.1);
     // Atacante: 1.000 × rank 10 = 10.000 de poder. El mínimo son 1.000.
-    const atacante = { unit: melee, count: 1_000 };
-    const gordo = { unit: melee, count: 100 }; // 1.000 — justo el 10%
     const flaco = { unit: melee, count: 99 }; // 990 — por debajo
-    expect(chooseTarget(melee, [gordo], atacante.count)?.count).toBe(100);
-    expect(chooseTarget(melee, [flaco], atacante.count)).toBeUndefined();
+    const gordo = { unit: melee, count: 100 }; // 1.000 — justo el 10%
+    // Con los dos delante y el flaco primero, se salta al que vale la pena.
+    expect(chooseTarget(melee, [flaco, gordo], 1_000)?.count).toBe(100);
+  });
+
+  test('pero si no hay ninguno que valga, se pega al que haya', () => {
+    // **[nuestro]** La fuente dice que un stack «solo es objetivo» si vale
+    // el 10%. Al pie de la letra eso deja **invulnerable a un stack
+    // pequeño**: medido al montar la batalla, un millón de soldados no
+    // podía tocar a diez, y partir el ejército en stacks minúsculos lo
+    // volvía intocable. Eso no es táctica, es un exploit — así que el 10%
+    // es preferencia y no veto.
+    const flaco = { unit: melee, count: 99 };
+    expect(chooseTarget(melee, [flaco], 1_000)?.count).toBe(99);
+    expect(chooseTarget(melee, [{ unit: melee, count: 1 }], 1_000_000)?.count).toBe(1);
   });
 
   test('con varios objetivos válidos se coge el primero del orden', () => {

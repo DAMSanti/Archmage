@@ -85,3 +85,44 @@ export const events = pgTable(
     porMago: index('events_mage_idx').on(t.mageId, t.seq),
   }),
 );
+
+/**
+ * Las batallas. Fase 3.
+ *
+ * Migración **aditiva**: tabla nueva, nadie la necesita para leer lo de
+ * antes (docs/SPECS.md §5).
+ *
+ * **La semilla se guarda aquí y no en el log** (invariante 3). El log es
+ * grande y podría regenerarse; la semilla es lo que hace que regenerarlo dé
+ * exactamente lo mismo. Si un día el log se poda por tamaño, la repetición
+ * se sigue pudiendo reconstruir.
+ */
+export const battles = pgTable(
+  'battles',
+  {
+    id: serial('id').primaryKey(),
+    serverId: text('server_id').notNull(),
+    attackerId: text('attacker_id')
+      .notNull()
+      .references(() => mages.id),
+    defenderId: text('defender_id')
+      .notNull()
+      .references(() => mages.id),
+    attackType: text('attack_type').notNull(),
+    /** Lo que hace la batalla repetible. */
+    seed: bigint('seed', { mode: 'number' }).notNull(),
+    winner: text('winner').notNull(),
+    rounds: integer('rounds').notNull().default(0),
+    landLost: integer('land_lost').notNull().default(0),
+    landTaken: integer('land_taken').notNull().default(0),
+    /** El log golpe a golpe, con los términos que se aplicaron. */
+    log: jsonb('log').$type<Record<string, unknown>[]>().notNull().default([]),
+    summary: jsonb('summary').$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    porAtacante: index('battles_attacker_idx').on(t.attackerId, t.createdAt),
+    porDefensor: index('battles_defender_idx').on(t.defenderId, t.createdAt),
+    porServidor: index('battles_server_idx').on(t.serverId, t.createdAt),
+  }),
+);

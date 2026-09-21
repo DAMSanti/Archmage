@@ -1,6 +1,43 @@
 import { describe, expect, test } from 'vitest';
 import { BUILDINGS } from '@archmage/core';
 import { BUILDING_SPECS, CATALOG, ECONOMY, STARTING_KINGDOM, catalogSchema } from '../src/index.js';
+import { catalogResponseSchema } from '@archmage/contract';
+
+describe('el catálogo pasa el esquema QUE USA EL CLIENTE', () => {
+  /**
+   * **Esto faltaba, y se pagó.** El catálogo se validaba contra
+   * `catalogSchema`, el de `content`, pero el navegador lo valida contra
+   * `catalogResponseSchema`, el del contrato — y son dos esquemas distintos.
+   *
+   * Al quitar `upkeepPopulation` de la ficha en la tarea 1 de la fase 3, el
+   * del contrato se quedó pidiéndolo. **El cliente llevaba roto desde
+   * entonces** —la pantalla entera se caía al parsear— y 411 tests en verde
+   * no dijeron nada, porque ninguno cruzaba los dos lados. Lo encontró la
+   * primera pasada de navegador.
+   */
+  test('la respuesta de /api/catalog vale para el cliente', () => {
+    const respuesta = {
+      economy: ECONOMY,
+      buildings: Object.fromEntries(
+        Object.entries(BUILDING_SPECS).map(([k, v]) => [
+          k,
+          { cost: v.cost, upkeepGeld: v.upkeepGeld, upkeepMana: v.upkeepMana },
+        ]),
+      ),
+      units: CATALOG.units,
+    };
+    const r = catalogResponseSchema.safeParse(respuesta);
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues.slice(0, 3))).toBe(true);
+  });
+
+  test('y ninguna unidad se queda sin ficha de combate en el contrato', () => {
+    for (const u of Object.values(CATALOG.units)) {
+      expect(Number.isInteger(u.hitPoints), u.id).toBe(true);
+      expect(Number.isInteger(u.powerRank), u.id).toBe(true);
+      expect(Array.isArray(u.attack.types), u.id).toBe(true);
+    }
+  });
+});
 
 describe('el catálogo', () => {
   test('valida entero contra su esquema', () => {

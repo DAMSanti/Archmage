@@ -340,13 +340,62 @@ export function chooseTarget(
   defenders: readonly BattleStack[],
   attackerCount?: number,
 ): BattleStack | undefined {
-  const minimo =
-    attackerCount === undefined ? 0 : attackerCount * attacker.powerRank * MIN_TARGET_SHARE;
-  for (const d of defenders) {
-    if (d.count <= 0) continue;
-    if (!canTarget(attacker, d.unit)) continue;
-    if (d.count * d.unit.powerRank < minimo) continue;
-    return d;
-  }
-  return undefined;
+  const alcanzables = defenders.filter((d) => d.count > 0 && canTarget(attacker, d.unit));
+  if (alcanzables.length === 0) return undefined;
+
+  if (attackerCount === undefined) return alcanzables[0];
+  const minimo = attackerCount * attacker.powerRank * MIN_TARGET_SHARE;
+  // **El 10% es una preferencia, no un veto**, y esto es decisión nuestra
+  // (docs/SISTEMAS.md §9.1). La fuente dice que un stack solo es objetivo
+  // si vale el 10% del que ataca, pero tomado al pie de la letra **un stack
+  // pequeño sería invulnerable ante un ejército grande**: medido, un millón
+  // de soldados no podía tocar a diez. Eso no es una regla táctica, es un
+  // exploit — dividir el ejército en stacks minúsculos lo volvería
+  // intocable. Así que se prefiere un objetivo que valga la pena y, si no
+  // hay ninguno, se pega al primero que se alcance.
+  return alcanzables.find((d) => d.count * d.unit.powerRank >= minimo) ?? alcanzables[0];
+}
+
+// --- La fatiga. docs/ORIGINAL.md §9.1 y §9.2 -----------------------------
+
+/** Lo que cuesta de eficiencia un ataque primario o un contraataque: 15. */
+export const FATIGUE_PER_ATTACK = 15;
+/** Lo mismo, con la habilidad *Endurance*: 10. */
+export const FATIGUE_PER_ATTACK_ENDURANCE = 10;
+
+/** Qué clase de golpe es. Solo dos de los tres fatigan. */
+export type AttackKind = 'primary' | 'counter' | 'extra';
+
+/**
+ * Lo que este golpe le cuesta de eficiencia al que lo da.
+ *
+ * **`count` está en la firma a propósito, y no se usa.** La fatiga **no
+ * depende del tamaño del stack** (docs/ORIGINAL.md §9.2): una unidad y
+ * veinte mil fatigan igual. Tenerlo en la firma obliga a quien llame a
+ * pasarlo y a ver este comentario, en vez de descubrir la regla por
+ * accidente — y es la regla que crea una táctica entera, la de los stacks
+ * diminutos de alta iniciativa que existen solo para hacer fatigar al rival.
+ */
+export function fatigueCost(
+  unit: Pick<UnitSpec, 'abilities'>,
+  count: number,
+  kind: AttackKind = 'primary',
+): number {
+  void count;
+  if (kind === 'extra') return 0;
+  return unit.abilities.includes('endurance')
+    ? FATIGUE_PER_ATTACK_ENDURANCE
+    : FATIGUE_PER_ATTACK;
+}
+
+/**
+ * La eficiencia que le queda a una unidad tras `attacks` golpes que fatigan.
+ *
+ * Empieza en 100 y no baja de 0. Con 15 por golpe, el séptimo deja seca a
+ * una unidad normal; con *Endurance* hacen falta diez — **dos ataques más**,
+ * que es la ventaja real de la habilidad.
+ */
+export function efficiencyAfter(unit: Pick<UnitSpec, 'abilities'>, attacks: number): number {
+  const porGolpe = fatigueCost(unit, 0, 'primary');
+  return Math.max(0, 100 - attacks * porGolpe);
 }

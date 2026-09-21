@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { createMage } from '@archmage/core';
-import { STARTING_KINGDOM, TERRA } from '@archmage/content';
+import { createMage, resolveAttack } from '@archmage/core';
+import { CATALOG, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import { buildApp, DEV_MAGE_ID, makeRandom } from '../src/app.js';
 import { connect, ensureSchema, truncateAll } from '../src/db.js';
-import { insertMage, loadAccrued } from '../src/repository.js';
+import { applyBattle, insertMage, loadAccrued } from '../src/repository.js';
 import type { FastifyInstance } from 'fastify';
 
 /**
@@ -317,5 +317,175 @@ describe('la magia por el API (fase 2)', () => {
     expect(leido?.spellbook.researching).toEqual({ spellId: 'summon_dryad', progress: 400 });
     expect(leido?.casting).toEqual({ spellId: 'summon_dryad', turnsRemaining: 2 });
     expect(leido?.enchantments[0]?.modifiers).toEqual({ farmOutput: 125 });
+  });
+});
+
+
+// --- Guerra. Fase 3 ------------------------------------------------------
+
+describe('la guerra, contra Postgres de verdad', () => {
+  const OTRO = 'rival-test';
+
+  async function crearRival(
+    army: { unitId: string; count: number }[] = [{ unitId: 'militia', count: 100 }],
+  ) {
+    const base = createMage({
+      id: OTRO,
+      name: 'Rival',
+      specialty: 'verdant',
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now: 0,
+    });
+    // Fuera de protección: si no, no se le puede tocar.
+    await insertMage(conn.db, { ...base, turnsSpent: TERRA.protectionTurns + 1, army });
+  }
+
+  async function prepararAtacante() {
+    await conn.sql.unsafe(
+      `UPDATE mages SET turns_spent = $1, turns_current = 100, geld = 5000000,
+       army = '[{"unitId":"militia","count":50000}]'::jsonb WHERE id = $2`,
+      [TERRA.protectionTurns + 1, DEV_MAGE_ID],
+    );
+  }
+
+  test('hay objetivos, y dicen si están protegidos o son demasiado débiles', async () => {
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    await crearRival();
+    const res = await app.inject({ method: 'GET', url: '/api/war/targets' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { targets: { id: string; protected: boolean; tooWeak: boolean }[] };
+    expect(body.targets.map((t) => t.id)).toContain(OTRO);
+    // Y **no aparece uno mismo**: atacarte a ti no es una opción que ofrecer.
+    expect(body.targets.map((t) => t.id)).not.toContain(DEV_MAGE_ID);
+    expect(typeof body.targets[0]!.protected).toBe('boolean');
+    expect(typeof body.targets[0]!.tooWeak).toBe('boolean');
+  });
+
+  test('un ataque se guarda con su semilla y aparece en las dos crónicas', async () => {
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    await crearRival();
+    await prepararAtacante();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'attack', targetId: OTRO, attackType: 'siege' } },
+    });
+    expect(res.statusCode).toBe(200);
+    const { battleId } = res.json() as { battleId: number };
+
+    const batalla = await app.inject({ method: 'GET', url: '/api/war/battles/' + battleId });
+    expect(batalla.statusCode).toBe(200);
+    const b = batalla.json() as { battle: { seed: number; log: unknown[] } };
+    expect(Number.isInteger(b.battle.seed)).toBe(true);
+    expect(b.battle.log.length).toBeGreaterThan(0);
+
+    // Los dos magos tienen el hecho en su crónica.
+    const mios = await conn.sql.unsafe('SELECT type FROM events WHERE mage_id = $1', [DEV_MAGE_ID]);
+    const suyos = await conn.sql.unsafe('SELECT type FROM events WHERE mage_id = $1', [OTRO]);
+    expect(mios.some((e) => e.type === 'battle')).toBe(true);
+    expect(suyos.some((e) => e.type === 'battle')).toBe(true);
+  });
+
+  test('DOS ATAQUES MUTUOS SIMULTÁNEOS no se bloquean entre sí', async () => {
+    // **Éste es el test que justifica ordenar por id.** Si cada transacción
+    // bloqueara primero su propia fila, A→B y B→A se quedarían esperándose:
+    // interbloqueo. Postgres mata una y el jugador ve un error que no
+    // entiende. Con las filas pedidas siempre por id ascendente, la segunda
+    // espera a la primera y luego sigue.
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    await crearRival([{ unitId: 'militia', count: 40000 }]);
+    await prepararAtacante();
+    await conn.sql.unsafe('UPDATE mages SET turns_current = 100, geld = 5000000 WHERE id = $1', [OTRO]);
+
+    const atacar = (de: string, a: string) =>
+      applyBattle(conn.db, de, a, Date.now(), TERRA, (atacante, defensor) => {
+        const r = resolveAttack(atacante, defensor, 'regular', {
+          now: 0,
+          random: makeRandom(1),
+          server: TERRA,
+          catalog: CATALOG,
+        });
+        if ('error' in r) return { error: r.error as never };
+        return {
+          attacker: r.attacker,
+          defender: r.defender,
+          battle: {
+            serverId: TERRA.id,
+            attackerId: atacante.id,
+            defenderId: defensor.id,
+            attackType: 'regular',
+            seed: r.battle.seed,
+            winner: r.battle.winner,
+            rounds: r.battle.rounds,
+            landLost: r.battle.landLost,
+            landTaken: r.battle.landTaken,
+            log: r.battle.log as Record<string, unknown>[],
+            summary: r.battle.summary,
+          },
+          events: r.events,
+        };
+      });
+
+    const [uno, dos] = await Promise.all([atacar(DEV_MAGE_ID, OTRO), atacar(OTRO, DEV_MAGE_ID)]);
+    expect(uno).not.toBeNull();
+    expect(dos).not.toBeNull();
+    const filas = await conn.sql.unsafe('SELECT count(*)::int AS n FROM battles');
+    expect(filas[0]!.n).toBe(2);
+  });
+
+  test('atacar a quien no existe es un 404, no un 500', async () => {
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    await prepararAtacante();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'attack', targetId: 'no-existe', attackType: 'regular' } },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  test('un objetivo protegido es un 422 con su código, no un 500', async () => {
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    const base = createMage({
+      id: 'bebe',
+      name: 'Bebé',
+      specialty: 'verdant',
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now: 0,
+    });
+    await insertMage(conn.db, base); // turnsSpent 0 → protegido
+    await prepararAtacante();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'attack', targetId: 'bebe', attackType: 'regular' } },
+    });
+    expect(res.statusCode).toBe(422);
+    expect((res.json() as { error: { code: string } }).error.code).toBe('objetivo_protegido');
+  });
+
+  test('una batalla que no existe es un 404', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/war/battles/99999' });
+    expect(res.statusCode).toBe(404);
+  });
+
+  test('la lista de batallas no arrastra el log', async () => {
+    // Cientos de golpes por batalla × veinte batallas serían megabytes para
+    // pintar veinte líneas.
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    await crearRival();
+    await prepararAtacante();
+    await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'attack', targetId: OTRO, attackType: 'regular' } },
+    });
+    const res = await app.inject({ method: 'GET', url: '/api/war/battles' });
+    const body = res.json() as { battles: Record<string, unknown>[] };
+    expect(body.battles.length).toBeGreaterThan(0);
+    expect(body.battles[0]).not.toHaveProperty('log');
   });
 });
