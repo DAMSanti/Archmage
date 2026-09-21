@@ -130,6 +130,7 @@ export function upkeep(state: MageState, catalog: Catalog): Upkeep {
     const spec = catalog.units[stack.unitId];
     if (!spec) continue;
     geld += stack.count * spec.upkeepGeld;
+    mana += stack.count * spec.upkeepMana;
     population += stack.count * spec.upkeepPopulation;
   }
 

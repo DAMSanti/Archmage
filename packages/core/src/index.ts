@@ -6,3 +6,5 @@ export * from './economy.js';
 export * from './tick.js';
 export * from './actions.js';
 export * from './netpower.js';
+export * from './magic.js';
+export * from './spells.js';

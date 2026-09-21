@@ -203,6 +203,12 @@ export interface UnitEconomySpec {
   /** Geld por unidad al reclutar. */
   cost: number;
   upkeepGeld: number;
+  /**
+   * Maná por turno. La tropa de barracks no cuesta maná; **las unidades
+   * invocadas sí**, y es lo que hace a las escuelas de invocación intensivas
+   * en maná (docs/ORIGINAL.md §6.4).
+   */
+  upkeepMana: number;
   upkeepPopulation: number;
   /** Espacio de población que ocupa una unidad. */
   populationSpace: number;

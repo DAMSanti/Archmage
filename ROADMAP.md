@@ -124,30 +124,79 @@ fase 3, y se atacan **las 15 tareas seguidas**.
 
 **La rueda y los costes**
 
-- [ ] **1. La rueda de adyacencia.** Qué escuela es adyacente, opuesta o
+- [x] **1. La rueda de adyacencia.** Qué escuela es adyacente, opuesta o
       propia de cuál, y qué rangos puede investigar cada una.
       *Test: un Verdant investiga Complex de Ascendant y Eradication pero
       no de Nether ni Phantasm — el criterio 1 de §7.1.*
       *Toca `packages/core`.*
-- [ ] **2. El coste fuera de color.** La tabla 100/125/150/200/350/600
+
+      > **HECHO (2026-09-21).** `core/src/magic.ts`. *8 tests, incluido que
+      > la rueda es **simétrica** y que cada color tiene exactamente dos
+      > adyacentes y dos opuestas — si alguien la edita mal, salta.*
+      >
+      > **Decisión que hubo que tomar**: `plain` no está en el círculo. Se
+      > resolvió que **Plain es color propio para todos** (si no, un mago
+      > Plain no podría lanzar ni su propia magia) y que **un mago Plain no
+      > tiene color propio**, así que todo lo demás le queda de opuesto. Es el
+      > precio de no especializarse, y está escrito en `SISTEMAS §6`.
+- [x] **2. El coste fuera de color.** La tabla 100/125/150/200/350/600
       según rango y distancia. *Test = criterio 2: un Complex opuesto
       cuesta exactamente 6× su Cast M.P.*
-- [ ] **3. El nivel de hechizo.** +1/+3/+7/+20/+15 al aprender, y el
+
+      > **HECHO (2026-09-21).** *6 tests con la tabla entera de ORIGINAL §6.1.*
+      > Un Ultimate fuera de color devuelve `null` —no es que sea caro, es que
+      > **no se puede lanzar**— y el multiplicador de 1,25 del Simple adyacente
+      > se trunca **una sola vez**, como manda el invariante 7.
+- [x] **3. El nivel de hechizo.** +1/+3/+7/+20/+15 al aprender, y el
       máximo del catálogo. *Test = criterio 4, y que el máximo sale
       reproducible del catálogo.*
 
+      > **HECHO (2026-09-21).** *3 tests.* Incluye el **+15 de Ancient**, que
+      > la primera investigación no tenía y apareció al ampliarla.
+
 **El catálogo**
 
-- [ ] **4. La forma de un hechizo y de su efecto.** Esquema Zod, con el
+- [x] **4. La forma de un hechizo y de su efecto.** Esquema Zod, con el
       efecto como **forma cerrada** —invocar, encantar, recurso—, no un
       nombre que el núcleo tenga que reconocer. *Test: el catálogo valida,
       y añadir una entrada no toca `core`.*
       *Toca `packages/content` y `packages/core` (los tipos).*
-- [ ] **5. Plain y Verdant, el catálogo entero.** Los hechizos con sus
+
+      > **HECHO (2026-09-21).** `core/src/spells.ts`. El efecto es una **forma
+      > cerrada** —`summon`, `enchantment`, `resource`, `combat`—, así que
+      > añadir un hechizo es añadir una entrada de datos. *Comprobado con un
+      > test: todo lo que no es `combat` se puede lanzar, y todo lo `combat`
+      > no.*
+      >
+      > **Cambió el contrato sin estar previsto**: las unidades invocadas
+      > cuestan **maná** de mantener, no geld, y `UnitEconomySpec` no tenía
+      > `upkeepMana`. Se añadió al tipo, al esquema Zod y a `upkeep()`. Es lo
+      > que hace a Verdant «muy intensiva en maná» como dice el original, y lo
+      > que da sentido a volcar la tierra en nodes.
+- [x] **5. Plain y Verdant, el catálogo entero.** Los hechizos con sus
       cuatro costes; los de combate **marcados como no lanzables hasta la
       fase 3**. Las unidades invocables con su mitad económica.
       *Test: los tres hechizos con ficha publicada salen clavados —
       Dryad 3.000/900, Nymph 7.900/1.400, Regeneration 30.000/3.000.*
+
+      > **HECHO (2026-09-21).** **33 hechizos** y **15 unidades invocables**,
+      > todas con nombre confirmado en el original. *22 tests.*
+      >
+      > Las tres fichas publicadas salen clavadas, y **también los costes
+      > sueltos que rompen la escala**: *Web of the Spider Woman* cuesta 600 y
+      > no 3.000, *Call Hurricane* 20.000, *Sunray* 100 de upkeep. Cuando el
+      > original y la escala se contradicen, **manda el original**, y hay un
+      > test que lo fija.
+      >
+      > **Una estimación del plan salió mal**: decía que el nivel máximo del
+      > catálogo sería «del orden de 150», y son **207**. Medido y expuesto
+      > como `MAX_SPELL_LEVEL`, porque es lo que escala las invocaciones.
+      > Corregido en `SISTEMAS §7.1`.
+      >
+      > Cada entrada lleva su `source` con tres niveles que **no se mezclan**:
+      > `[orig] ficha` (los cuatro costes publicados), `[orig] nombre` (existe
+      > en el original, números por escala) y `[nuestro]` (inventado, con su
+      > porqué). Un test comprueba que ninguna entrada se queda sin decirlo.
 
 **Las reglas**
 

@@ -33,3 +33,8 @@ tarea: plan técnico de la fase 2 y su lista de tareas
 toco: docs/SISTEMAS.md, ROADMAP.md
 puede que toque: docs/SPECS.md, docs/ARQUITECTURA.md
 
+## claude — Magia fase 2, tareas 1-15
+tarea: implementación de la magia
+toco: packages/core, packages/content, packages/contract, apps/server, apps/web, ROADMAP.md
+puede que toque: docs/SISTEMAS.md, docs/SPECS.md, docs/ESTADO.md, docs/INTERFAZ.md
+

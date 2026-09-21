@@ -645,8 +645,9 @@ implementar**:
   que costar un número de turnos del orden del que documenta el original.
 - **Escalado de la invocación con el nivel de hechizo.** Las cifras
   publicadas son a nivel **624**, y nuestro catálogo de una escuela llega
-  a un máximo muy inferior —del orden de **150**, contando +1/+3/+7/+20
-  sobre unos treinta hechizos—. Así que el nivel de referencia **es el
+  a un máximo muy inferior: **207**, medido el 2026-09-21 al escribir el
+  catálogo y expuesto como `MAX_SPELL_LEVEL`. *(El plan estimó «del orden
+  de 150»; la cifra real es 207.)* Así que el nivel de referencia **es el
   nuestro, no el del original**: la cantidad invocada va de un suelo a la
   cifra publicada según `nivel / nivelMáximoDelCatálogo`.
 - **Probabilidad de fallo por concentración.** No publicada. Sale del
