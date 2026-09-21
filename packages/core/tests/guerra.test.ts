@@ -181,3 +181,51 @@ describe('el saqueo', () => {
     }
   });
 });
+
+describe('los items de batalla se aplican en un ataque de VERDAD', () => {
+  /**
+   * **Ésta era la deuda de la fase 4.** `war.ts` llamaba a
+   * `resolveBattle()` directamente y nunca a `prepareBattle()`: la capa
+   * estaba escrita, probada con 21 tests y **desconectada**. Un ataque
+   * real no aplicaba ni un item.
+   *
+   * El canario del arreglo: **sin items, el resultado es el mismo que
+   * antes**. Los 568 tests de las fases 1-4 lo comprobaron al enchufarla.
+   */
+  const conItems = (items: Record<string, number>) =>
+    mago('a', { army: [{ unitId: 'militia', count: 50_000 }], items });
+
+  test('sin items, el ataque da exactamente lo mismo', () => {
+    const sin = resolveAttack(conItems({}), mago('b'), 'regular', ctx(21));
+    const otra = resolveAttack(conItems({}), mago('b'), 'regular', ctx(21));
+    expect(sin).toEqual(otra);
+  });
+
+  test('el log de pre-batalla aparece en el resumen', () => {
+    const r = resolveAttack(conItems({ potion_of_valor: 1 }), mago('b'), 'regular', ctx(21));
+    if ('error' in r) throw new Error(r.error.code);
+    expect(Array.isArray(r.battle.summary.preBattle)).toBe(true);
+  });
+
+  test('un item de batalla CAMBIA el resultado', () => {
+    // Con la Poción de Valor el atacante pega un 20% más, así que el
+    // defensor pierde más unidades con la misma semilla.
+    //
+    // **El defensor tiene que poder sobrevivir**, o la diferencia no se
+    // ve: con 5.000 contra 50.000 muere entero en los dos casos y el test
+    // pasaría por el motivo equivocado. Le pasó a la primera versión.
+    const gordo = mago('b', { army: [{ unitId: 'militia', count: 400_000 }] });
+    const sin = resolveAttack(conItems({}), gordo, 'regular', ctx(21));
+    const con = resolveAttack(conItems({ potion_of_valor: 1 }), gordo, 'regular', ctx(21));
+    if ('error' in sin || 'error' in con) throw new Error('el ataque falló');
+    expect(con.battle.summary.defenderLosses).toBeGreaterThan(
+      sin.battle.summary.defenderLosses as number,
+    );
+  });
+
+  test('y la resurrección de post-batalla se apunta', () => {
+    const r = resolveAttack(conItems({ strange_metallic_can: 1 }), mago('b'), 'regular', ctx(21));
+    if ('error' in r) throw new Error(r.error.code);
+    expect(typeof r.battle.summary.attackerResurrected).toBe('number');
+  });
+});

@@ -149,6 +149,34 @@ export const TERRA: ServerConfig = {
 };
 
 /**
+ * El servidor rápido. docs/SISTEMAS.md §14.1.
+ *
+ * **[orig]** Las cadencias son del original ([ORIGINAL.md §2](ORIGINAL.md)):
+ * Blitz va a 5 minutos con tope 200. Se copia esa fila.
+ *
+ * **La protección baja a la mitad.** Va en turnos **gastados** (§15), y
+ * quien juega al doble de ritmo los gasta al doble: dejarla en 120 daría
+ * el doble de tiempo real de protección en el servidor pensado para ir
+ * deprisa.
+ */
+export const VELOZ: ServerConfig = {
+  id: 'veloz',
+  turnMinutes: 5,
+  turnCap: 200,
+  protectionTurns: 60,
+};
+
+/**
+ * Los servidores que existen. **Dato, no código** (docs/SPECS.md §4):
+ * añadir el tercero es añadir una fila.
+ */
+export const SERVERS: readonly ServerConfig[] = [TERRA, VELOZ];
+
+export const SERVERS_BY_ID: Record<string, ServerConfig> = Object.fromEntries(
+  SERVERS.map((s) => [s.id, s]),
+);
+
+/**
  * docs/SISTEMAS.md §15. Los 200 acres, los 180 turnos y los 120 de protección
  * son [orig] (docs/ORIGINAL.md §4.1, confianza alta); el reparto de edificios
  * es [nuestro], elegido para arrancar con ingreso positivo de los cuatro

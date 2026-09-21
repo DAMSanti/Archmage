@@ -311,6 +311,12 @@ export const resetSchema = z.object({
 export const createMageSchema = z.object({
   name: z.string().trim().min(2).max(40),
   specialty: specialtySchema,
+  /**
+   * En qué servidor. **Es el único sitio donde el servidor viaja en el
+   * cuerpo**: elegir mundo se hace una vez, al crear el mago. Después sale
+   * de la pareja (cuenta, servidor) y no se puede cambiar.
+   */
+  serverId: z.string().min(1).max(32).default('terra'),
 });
 
 // --- Mercado y ranking. Fase 4 ------------------------------------------

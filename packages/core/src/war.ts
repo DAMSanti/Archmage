@@ -17,6 +17,8 @@ import { type Army, type AttackType, armyPower, resolveBattle } from './battle.j
 import type { BattleStack } from './combat.js';
 import { upkeep } from './economy.js';
 import { itemsPillaged } from './items.js';
+import type { ItemSpec } from './items.js';
+import { prepareBattle, resurrected } from './prebattle.js';
 import { landTaken, pillageTaken } from './land.js';
 import { isProtected } from './mage.js';
 import { netPower } from './netpower.js';
@@ -138,9 +140,31 @@ export function resolveAttack(
     };
   }
 
-  // 2. La batalla. La semilla sale del `RandomSource` y **se guarda**.
+  // 2. **La pre-batalla**, y luego la batalla.
+  //
+  // Hasta el 2026-09-22 esto llamaba a `resolveBattle()` directamente:
+  // la capa de pre-batalla estaba escrita y probada desde la fase 4, y
+  // **desconectada**, así que un ataque de verdad no aplicaba los items.
+  // Se construyó y no se enchufó. Ahora sí.
   const seed = ctx.random.nextInt(0x7fff_ffff);
-  const r = resolveBattle(armAtt, armDef, { seed, random: ctx.random, attackType });
+  const pre = prepareBattle(
+    armAtt.stacks,
+    armDef.stacks,
+    itemsDeBatalla(attacker, ctx.catalog),
+    itemsDeBatalla(defender, ctx.catalog),
+    ctx.random,
+  );
+  const r = resolveBattle(
+    { stacks: pre.attacker.stacks },
+    { stacks: pre.defender.stacks },
+    {
+      seed,
+      random: ctx.random,
+      attackType,
+      attackerAccuracy: pre.attacker.accuracyDelta,
+      defenderAccuracy: pre.defender.accuracyDelta,
+    },
+  );
 
   // 3. Lo que se lleva el ganador.
   const supervivientes = Object.values(r.attacker.survivors).reduce((a, b) => a + b, 0);
@@ -194,6 +218,11 @@ export function resolveAttack(
     };
   }
 
+  // **La resurrección de post-batalla**, que es la tercera fase de
+  // docs/ORIGINAL.md §9.4 y el otro hueco que la fase 3 dejó declarado.
+  const resucitadosAtt = resurrected(r.attacker.losses, pre.attacker.resurrectShares);
+  const resucitadosDef = resurrected(r.defender.losses, pre.defender.resurrectShares);
+
   const resumen = {
     attackerLosses: r.attacker.losses,
     defenderLosses: r.defender.losses,
@@ -203,6 +232,9 @@ export function resolveAttack(
     breached: r.defenderBreached,
     landDestroyed: tierra.destroyed,
     limitedBySurvivors: tierra.limitedBySurvivors,
+    preBattle: pre.events,
+    attackerResurrected: resucitadosAtt,
+    defenderResurrected: resucitadosDef,
     ...(saqueo ? { pillage: saqueo, itemsStolen: robados } : {}),
   };
 
@@ -304,6 +336,24 @@ function quitarItems(
     const queda = (r[id] ?? 0) - n;
     if (queda > 0) r[id] = queda;
     else delete r[id];
+  }
+  return r;
+}
+
+/**
+ * Los items de batalla que un mago lleva puestos.
+ *
+ * **Todos los que tenga**, por ahora: elegir cuáles llevar es una
+ * decisión que la interfaz todavía no ofrece, y hacerlo automático es
+ * mejor que no aplicarlos —que es lo que pasaba hasta el 2026-09-22—.
+ * Cuando `/guerra` deje elegir, esto recibe la lista elegida.
+ */
+function itemsDeBatalla(state: MageState, catalog: Catalog): ItemSpec[] {
+  const r: ItemSpec[] = [];
+  for (const [id, n] of Object.entries(state.items)) {
+    const spec = catalog.items[id];
+    if (!spec || spec.use !== 'battle' || n <= 0) continue;
+    r.push(spec);
   }
   return r;
 }

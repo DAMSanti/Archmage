@@ -35,8 +35,8 @@ import {
 } from '@archmage/core';
 import { closesAt, makeRandom as _makeRandom, minimumBid, resolveAttack } from '@archmage/core';
 import { PILLAGE_MIN_POWER_SHARE } from '@archmage/core';
-import type { Ctx, MageState, RandomSource } from '@archmage/core';
-import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from '@archmage/content';
+import type { Ctx, MageState, RandomSource, ServerConfig } from '@archmage/core';
+import { CATALOG, ECONOMY, SERVERS, SERVERS_BY_ID, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import {
   actionRequestSchema,
   bidSchema,
@@ -151,7 +151,7 @@ export interface AppDeps {
 export { makeRandom } from '@archmage/core';
 
 /** Todo lo que la interfaz necesita y que **no debe recalcular por su cuenta**. */
-function derive(state: MageState, now: number) {
+function derive(state: MageState, now: number, server: ServerConfig) {
   const inc = income(state, CATALOG, TUNING);
   const up = upkeep(state, CATALOG);
   const net = netIncome(state, CATALOG, TUNING);
@@ -162,9 +162,9 @@ function derive(state: MageState, now: number) {
     manaStorage: manaStorage(state.buildings.nodes, TUNING.manaStoragePerNode),
     populationCapacity: populationCapacity(state, TUNING),
     netPower: netPower(state, CATALOG),
-    msToNextTurn: msToNextTurn(state.turns, now, TERRA),
-    turnsAtCap: state.turns.current >= TERRA.turnCap,
-    protectedUntilTurn: isProtected(state, TERRA) ? TERRA.protectionTurns : 0,
+    msToNextTurn: msToNextTurn(state.turns, now, server),
+    turnsAtCap: state.turns.current >= server.turnCap,
+    protectedUntilTurn: isProtected(state, server) ? server.protectionTurns : 0,
     // El libro ya resuelto: la pantalla no recalcula la rueda ni el recargo.
     spellbook: spellbookFor(state.specialty, state.spellbook.known, CATALOG).map((e) => ({
       id: e.spell.id,
@@ -202,19 +202,45 @@ function derive(state: MageState, now: number) {
  * si la bandera lo permite, y **después** de haber mirado la sesión: una
  * sesión de verdad siempre manda sobre la bandera.
  */
-async function mageOf(
-  deps: AppDeps,
-  req: { cookies?: Record<string, string | undefined> },
-): Promise<string | null> {
+async function mageOf(deps: AppDeps, req: Pedido): Promise<Quien | null> {
+  const server = servidorDe(req);
   const sid = req.cookies?.[SESSION_COOKIE];
   if (sid) {
     const cuenta = await accountOfSession(deps.db, sid, new Date(deps.now()));
     if (cuenta) {
-      const mago = await mageOfAccount(deps.db, cuenta, TERRA.id);
-      return mago ?? null;
+      const mago = await mageOfAccount(deps.db, cuenta, server.id);
+      return mago ? { id: mago, server } : null;
     }
   }
-  return deps.allowDevMage === false ? null : DEV_MAGE_ID;
+  return deps.allowDevMage === false ? null : { id: DEV_MAGE_ID, server };
+}
+
+/** Lo que una ruta necesita saber de quien pide. */
+interface Quien {
+  id: string;
+  server: ServerConfig;
+}
+
+interface Pedido {
+  cookies?: Record<string, string | undefined>;
+  query?: unknown;
+}
+
+/**
+ * Qué servidor pide esta petición.
+ *
+ * **El `serverId` sí puede viajar, y el `mageId` no** (invariante 13).
+ * No son lo mismo: el id del mago es **identidad** —quién eres— y el del
+ * servidor es **contexto** —en qué mundo estás—. Como el mago se resuelve
+ * a partir de (cuenta de la sesión, servidor) y esa pareja es única,
+ * pedir otro servidor te da **tu** mago de allí, nunca el de nadie.
+ *
+ * Uno desconocido cae al de por defecto en vez de dar error: un enlace
+ * viejo con un servidor que ya no existe tiene que llevar a algún sitio.
+ */
+function servidorDe(req: Pedido): ServerConfig {
+  const q = req.query as { server?: string } | undefined;
+  return (q?.server ? SERVERS_BY_ID[q.server] : undefined) ?? TERRA;
 }
 
 /** El 401 de siempre, en un sitio. */
@@ -238,14 +264,14 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.get('/api/mage/me', async (req, reply) => {
     const now = deps.now();
-    const yoId = await mageOf(deps, req);
-    if (!yoId) return sinSesion(reply);
-    let state = await loadAccrued(deps.db, yoId, now, TERRA);
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    let state = await loadAccrued(deps.db, yo.id, now, yo.server);
 
     // Si el mago no existe **y es el de desarrollo**, se crea. Un jugador de
     // verdad crea el suyo en `POST /api/mage`, eligiendo nombre y escuela;
     // esto es solo para que la pasada de navegador no tenga que registrarse.
-    if (!state && yoId === DEV_MAGE_ID) {
+    if (!state && yo.id === DEV_MAGE_ID) {
       const nuevo = createMage({
         id: DEV_MAGE_ID,
         name: 'Archimago',
@@ -255,7 +281,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         // que un mago de desarrollo creado antes sigue siendo Plain hasta un
         // `pnpm db:reset`.
         specialty: 'verdant',
-        server: TERRA,
+        server: yo.server,
         starting: STARTING_KINGDOM,
         now,
       });
@@ -271,18 +297,19 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         .send({ error: { code: 'sin_mago', message: 'Todavía no tienes mago en este servidor.' } });
     }
 
-    return reply.send({ mage: state, derived: derive(state, now), server: TERRA });
+    return reply.send({ mage: state, derived: derive(state, now, yo.server), server: yo.server });
   });
 
   /** Contra quién se puede luchar. */
   app.get('/api/war/targets', async (_req: { cookies?: Record<string, string | undefined> }, reply) => {
     const now = deps.now();
-    const yoId = await mageOf(deps, _req);
-    if (!yoId) return sinSesion(reply);
-    const yo = await loadAccrued(deps.db, yoId, now, TERRA);
-    if (!yo) return reply.send({ targets: [] });
-    const miPoder = netPower(yo, CATALOG);
-    const filas = await listTargets(deps.db, TERRA.id, yoId);
+    const yo = await mageOf(deps, _req);
+    if (!yo) return sinSesion(reply);
+    const estado = await loadAccrued(deps.db, yo.id, now, yo.server);
+    if (!estado) return reply.send({ targets: [] });
+    const miPoder = netPower(estado, CATALOG);
+    // **Solo del mismo servidor** (docs/SPECS.md §5, invariante 16).
+    const filas = await listTargets(deps.db, yo.server.id, yo.id);
     return reply.send({
       targets: filas.map((f) => {
         const s = rowToState(f);
@@ -293,7 +320,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
           specialty: s.specialty,
           land: s.land.total,
           netPower: np,
-          protected: isProtected(s, TERRA),
+          protected: isProtected(s, yo.server),
           // El 50% del saqueo, dicho antes de pinchar: la interfaz no
           // esconde por qué algo no se puede (docs/INTERFAZ.md).
           tooWeak: np < miPoder * PILLAGE_MIN_POWER_SHARE,
@@ -304,9 +331,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   /** Las últimas batallas del mago, atacadas y sufridas. */
   app.get('/api/war/battles', async (req, reply) => {
-    const yoId = await mageOf(deps, req);
-    if (!yoId) return sinSesion(reply);
-    const filas = await listBattles(deps.db, yoId);
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const filas = await listBattles(deps.db, yo.id);
     const ids = [...new Set(filas.flatMap((f) => [f.attackerId, f.defenderId]))];
     const nombres = await namesOf(deps.db, ids);
     return reply.send({
@@ -348,8 +375,11 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   /** Los lotes a la venta, con su cierre ya calculado. */
   app.get('/api/market', async (req, reply) => {
-    const yoId = await mageOf(deps, req);
-    const lotes = await listLots(deps.db, TERRA.id);
+    // **Mirar el mercado no pide sesión**, pero el servidor sí: sin él no
+    // se sabe qué mundo enseñar (invariante 16).
+    const yo = await mageOf(deps, req);
+    const servidor = yo?.server ?? servidorDe(req);
+    const lotes = await listLots(deps.db, servidor.id);
     return reply.send({
       lots: lotes.map((l) => ({
         id: l.id,
@@ -361,15 +391,15 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         // regla y el cliente no recalcula reglas (docs/SPECS.md, invariante 5).
         nextBid: minimumBid(l),
         closesAt: closesAt(l),
-        mine: l.sellerId === yoId,
-        winning: l.currentBidderId === yoId,
+        mine: l.sellerId === yo?.id,
+        winning: l.currentBidderId === yo?.id,
       })),
     });
   });
 
   app.post('/api/market/lots', async (req, reply) => {
-    const yoId = await mageOf(deps, req);
-    if (!yoId) return sinSesion(reply);
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
     const parsed = createLotSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply
@@ -377,7 +407,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         .send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
     }
     const now = deps.now();
-    const estado = await loadAccrued(deps.db, yoId, now, TERRA);
+    const estado = await loadAccrued(deps.db, yo.id, now, yo.server);
     if (!estado) return reply.code(404).send({ error: { code: 'sin_mago', message: 'No tienes mago.' } });
 
     // **Vender lo que no se tiene es un error de dominio**, no un 500.
@@ -396,13 +426,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       }
     }
 
-    const id = await createLot(deps.db, TERRA.id, yoId, parsed.data.section, c, parsed.data.minBid, now);
+    const id = await createLot(deps.db, yo.server.id, yo.id, parsed.data.section, c, parsed.data.minBid, now);
     return reply.send({ lotId: id });
   });
 
   app.post('/api/market/lots/:id/bids', async (req, reply) => {
-    const yoId = await mageOf(deps, req);
-    if (!yoId) return sinSesion(reply);
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
     const id = Number((req.params as { id: string }).id);
     const parsed = bidSchema.safeParse(req.body);
     if (!Number.isInteger(id) || !parsed.success) {
@@ -410,7 +440,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         .code(400)
         .send({ error: { code: 'invalid_request', message: 'Puja inválida.' } });
     }
-    const r = await applyBid(deps.db, id, yoId, parsed.data.amount, deps.now(), TERRA);
+    const r = await applyBid(deps.db, id, yo.id, parsed.data.amount, deps.now(), yo.server);
     if (r === null) {
       return reply.code(404).send({ error: { code: 'lote_no_existe', message: 'No existe ese lote.' } });
     }
@@ -423,14 +453,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
    * mil veces (docs/SPECS.md §3). Sin cron todavía: la llama quien mira el
    * mercado, que es lo que evita un proceso periódico que recorra magos.
    */
-  app.post('/api/market/settle', async (_req, reply) => {
-    const n = await settleLots(deps.db, TERRA.id, deps.now());
+  app.post('/api/market/settle', async (_req: Pedido, reply) => {
+    const n = await settleLots(deps.db, servidorDe(_req).id, deps.now());
     return reply.send({ settled: n });
   });
 
   /** La clasificación del servidor. */
-  app.get('/api/ranking', async (_req, reply) => {
-    const filas = await listMages(deps.db, TERRA.id);
+  app.get('/api/ranking', async (_req: Pedido, reply) => {
+    // **Solo de este servidor** (invariante 16): mezclar dos mundos haría
+    // que la clasificación no significara nada, y no daría ningún error.
+    const servidor = servidorDe(_req);
+    const filas = await listMages(deps.db, servidor.id);
     const rows = filas
       .map((f) => {
         const st = rowToState(f);
@@ -443,7 +476,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
           netPower: netPower(st, CATALOG),
           // **Un mago protegido aparece, marcado.** Esconderlo haría que la
           // lista mintiera sobre cuánta gente hay jugando.
-          protected: isProtected(st, TERRA),
+          protected: isProtected(st, servidor),
         };
       })
       .sort((a, b) => b.netPower - a.netPower);
@@ -563,7 +596,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     const parsed = createMageSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
 
-    const ya = await mageOfAccount(deps.db, cuenta, TERRA.id);
+    // **El servidor viaja en el cuerpo aquí, y solo aquí**: crear el mago
+    // es el único momento en que se elige mundo. Después sale de la pareja
+    // (cuenta, servidor) y no se puede cambiar — migrar entre servidores
+    // está fuera de alcance (docs/SISTEMAS.md §14.1).
+    const servidor = SERVERS_BY_ID[parsed.data.serverId] ?? TERRA;
+
+    const ya = await mageOfAccount(deps.db, cuenta, servidor.id);
     if (ya) {
       // Criterio 1 de docs/SISTEMAS.md §12.1: **un mago por cuenta y
       // servidor**, y es regla del código, no norma de foro.
@@ -577,12 +616,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       id: `m_${newToken().slice(0, 16)}`,
       name: parsed.data.name,
       specialty: parsed.data.specialty,
-      server: TERRA,
+      server: servidor,
       starting: STARTING_KINGDOM,
       now,
     });
     await insertMage(deps.db, nuevo, cuenta);
-    return reply.send({ mage: nuevo, derived: derive(nuevo, now), server: TERRA });
+    return reply.send({ mage: nuevo, derived: derive(nuevo, now, servidor), server: servidor });
   });
 
   app.post('/api/mage/me/actions', async (req, reply) => {
@@ -594,9 +633,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
 
     const now = deps.now();
-    const yoId = await mageOf(deps, req);
-    if (!yoId) return sinSesion(reply);
-    const ctx: Ctx = { now, random: deps.random(), server: TERRA, catalog: CATALOG };
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const ctx: Ctx = { now, random: deps.random(), server: yo.server, catalog: CATALOG };
 
     // **Atacar no pasa por `apply()`**: toca a dos magos, así que va por su
     // propia vía, con las dos filas bloqueadas por id ascendente
@@ -604,14 +643,14 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     // aquí solo se carga, se llama y se guarda.
     if (parsed.data.action.type === 'attack') {
       const { targetId, attackType } = parsed.data.action;
-      const res = await applyBattle(deps.db, yoId, targetId, now, TERRA, (a, d) => {
+      const res = await applyBattle(deps.db, yo.id, targetId, now, yo.server, (a, d) => {
         const r = resolveAttack(a, d, attackType, ctx);
         if ('error' in r) return { error: r.error as never };
         return {
           attacker: r.attacker,
           defender: r.defender,
           battle: {
-            serverId: TERRA.id,
+            serverId: yo.server.id,
             attackerId: a.id,
             defenderId: d.id,
             attackType,
@@ -636,14 +675,14 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       // cliente parsea una sola cosa (docs/SPECS.md §6).
       return reply.send({
         mage: res.attacker,
-        derived: derive(res.attacker, now),
-        server: TERRA,
+        derived: derive(res.attacker, now, yo.server),
+        server: yo.server,
         events: [],
         battleId: res.battleId,
       });
     }
 
-    const out = await applyAction(deps.db, yoId, parsed.data.action, ctx, TUNING);
+    const out = await applyAction(deps.db, yo.id, parsed.data.action, ctx, TUNING);
 
     if (out === null) {
       return reply.code(404).send({ error: { code: 'mage_not_found', message: 'No existe ese mago.' } });
@@ -655,16 +694,16 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
     return reply.send({
       mage: out.state,
-      derived: derive(out.state, now),
-      server: TERRA,
+      derived: derive(out.state, now, yo.server),
+      server: yo.server,
       events: out.events,
     });
   });
 
   app.get('/api/mage/me/chronicle', async (req, reply) => {
-    const yoId = await mageOf(deps, req);
-    if (!yoId) return sinSesion(reply);
-    const filas = await readChronicle(deps.db, yoId);
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const filas = await readChronicle(deps.db, yo.id);
     return filas.map((f) => ({ seq: f.seq, type: f.type, payload: f.payload, at: f.createdAt }));
   });
 

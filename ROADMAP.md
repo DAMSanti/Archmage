@@ -135,20 +135,56 @@ colectiva**; la fecha solo pone el tope.
 
 **Lo que hay que arreglar antes de construir encima**
 
-- [ ] **1. Dos servidores, y el invariante 16.** Catálogo de servidores
+- [x] **1. Dos servidores, y el invariante 16.** Catálogo de servidores
       en `content`, `serverId` **del mago de la sesión**, y las 26
       apariciones de `TERRA` en `app.ts` fuera. *Test = criterios 11, 12
       y 13: una cuenta con un mago en cada servidor, el rápido devenga al
       doble, y **ninguna lista mezcla los dos mundos**.* **Es el riesgo
       1 del plan.** *Toca `packages/content`, `apps/server` y el
       contrato.* **Migración aditiva.**
-- [ ] **2. Enchufar la pre-batalla en un ataque de verdad.** `war.ts`
+
+      > **HECHO (2026-09-22).** Dos servidores en `content` —`TERRA` a 10
+      > minutos y `VELOZ` a 5 con tope 200, del original— y las 25
+      > apariciones de `TERRA` fuera de `app.ts`.
+      >
+      > **El `serverId` sí puede viajar, y el `mageId` no**, y la
+      > diferencia no es un matiz: el id del mago es **identidad** y el
+      > del servidor es **contexto**. Como el mago se resuelve a partir de
+      > (cuenta de la sesión, servidor), pedir otro servidor te da **tu**
+      > mago de allí, nunca el de nadie. El invariante 13 sigue en pie.
+      >
+      > **La protección baja a 60 turnos en el rápido.** Va en turnos
+      > gastados, y quien juega al doble los gasta al doble: dejarla en
+      > 120 daría el doble de tiempo real de escudo en el servidor pensado
+      > para ir deprisa.
+      >
+      > Criterios 11, 12 y 13 en verde, y el del riesgo 1 también: **el
+      > ranking y los objetivos no mezclan los dos mundos**.
+
+- [x] **2. Enchufar la pre-batalla en un ataque de verdad.** `war.ts`
       llama a `resolveBattle()` **sin pasar por `prepareBattle()`**: la
       capa de la fase 4 está escrita, probada y **desconectada**, así que
       hoy un ataque real no aplica los items. *Test: un ataque con
       Tambores de Guerra baja el ataque enemigo; **y sin items el
       resultado es idéntico al de la fase 3**, que es el canario.*
       *Toca `packages/core/src/war.ts`.*
+
+      > **HECHO (2026-09-22).** Era deuda de la fase 4 y estaba callada:
+      > `war.ts` llamaba a `resolveBattle()` y **nunca** a
+      > `prepareBattle()`. La capa estaba escrita, probada con 21 tests y
+      > **desconectada** — un ataque real no aplicaba ni un item.
+      >
+      > **El canario funcionó**: al enchufarla, los 568 tests de las fases
+      > 1-4 siguieron en verde, que es exactamente lo que había que
+      > comprobar. Sin items, el resultado es el mismo.
+      >
+      > Y de paso entra **la resurrección de post-batalla**, que era el
+      > otro hueco declarado de §9.4: la tercera fase de una batalla
+      > existía en el papel y no en el código.
+      >
+      > **Un test mío pasaba por el motivo equivocado**: comparaba bajas
+      > del defensor con 5.000 contra 50.000, y moría entero en los dos
+      > casos. Con un defensor que sobrevive, la diferencia se ve.
 
 **Gremios**
 

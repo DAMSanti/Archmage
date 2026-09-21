@@ -907,3 +907,111 @@ describe('el ranking', () => {
     expect(rows[0]).not.toHaveProperty('geld');
   });
 });
+
+
+// --- Dos servidores. Fase 5 ----------------------------------------------
+
+describe('el invariante 16 — un mago solo ve su servidor', () => {
+  const CORREO = 'dos@ejemplo.com';
+  const CLAVE = 'contraseña-larga';
+
+  async function cuentaConDosMagos() {
+    await app.inject({ method: 'POST', url: '/api/auth/register', payload: { email: CORREO, password: CLAVE } });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: CORREO, password: CLAVE },
+    });
+    const sid = login.cookies.find((c) => c.name === 'archmage_sid')!.value;
+    const crear = (serverId: string, name: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/mage',
+        cookies: { archmage_sid: sid },
+        payload: { name, specialty: 'verdant', serverId },
+      });
+    return { sid, crear };
+  }
+
+  test('CRITERIO 11 — un mago en cada servidor, y no dos en el mismo', async () => {
+    const { crear } = await cuentaConDosMagos();
+    expect((await crear('terra', 'EnTerra')).statusCode).toBe(200);
+    // En el otro servidor **sí** puede tener otro.
+    expect((await crear('veloz', 'EnVeloz')).statusCode).toBe(200);
+    // Pero un segundo en el mismo, no.
+    const tercero = await crear('terra', 'OtroEnTerra');
+    expect(tercero.statusCode).toBe(422);
+    expect((tercero.json() as { error: { code: string } }).error.code).toBe('ya_tienes_mago');
+  });
+
+  test('cada servidor devuelve SU mago, no el del otro', async () => {
+    const { sid, crear } = await cuentaConDosMagos();
+    await crear('terra', 'EnTerra');
+    await crear('veloz', 'EnVeloz');
+
+    const enTerra = await app.inject({
+      method: 'GET',
+      url: '/api/mage/me?server=terra',
+      cookies: { archmage_sid: sid },
+    });
+    const enVeloz = await app.inject({
+      method: 'GET',
+      url: '/api/mage/me?server=veloz',
+      cookies: { archmage_sid: sid },
+    });
+    expect((enTerra.json() as { mage: { name: string } }).mage.name).toBe('EnTerra');
+    expect((enVeloz.json() as { mage: { name: string } }).mage.name).toBe('EnVeloz');
+  });
+
+  test('CRITERIO 12 — el servidor rápido va al doble y acumula 200', async () => {
+    const { sid, crear } = await cuentaConDosMagos();
+    await crear('veloz', 'EnVeloz');
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/mage/me?server=veloz',
+      cookies: { archmage_sid: sid },
+    });
+    const body = res.json() as { server: { turnMinutes: number; turnCap: number } };
+    expect(body.server.turnMinutes).toBe(5);
+    expect(body.server.turnCap).toBe(200);
+  });
+
+  test('CRITERIO 13 — el ranking NO mezcla los dos mundos', async () => {
+    // **Éste es el riesgo 1 del plan.** Una consulta sin `serverId`
+    // devuelve magos del otro mundo **y la pantalla los pinta igual**: no
+    // da ningún error, solo miente.
+    const { crear } = await cuentaConDosMagos();
+    await crear('terra', 'EnTerra');
+    await crear('veloz', 'EnVeloz');
+
+    const terra = await app.inject({ method: 'GET', url: '/api/ranking?server=terra' });
+    const veloz = await app.inject({ method: 'GET', url: '/api/ranking?server=veloz' });
+    const nombres = (r: { json: () => unknown }) =>
+      (r.json() as { rows: { name: string }[] }).rows.map((x) => x.name);
+
+    expect(nombres(terra)).toContain('EnTerra');
+    expect(nombres(terra)).not.toContain('EnVeloz');
+    expect(nombres(veloz)).toContain('EnVeloz');
+    expect(nombres(veloz)).not.toContain('EnTerra');
+  });
+
+  test('y los objetivos de guerra tampoco', async () => {
+    const { sid, crear } = await cuentaConDosMagos();
+    await crear('terra', 'EnTerra');
+    await crear('veloz', 'EnVeloz');
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/war/targets?server=terra',
+      cookies: { archmage_sid: sid },
+    });
+    const ids = (res.json() as { targets: { name: string }[] }).targets.map((t) => t.name);
+    expect(ids).not.toContain('EnVeloz');
+  });
+
+  test('un servidor que no existe cae al de por defecto, no da error', async () => {
+    // Un enlace viejo con un servidor retirado tiene que llevar a algún
+    // sitio, no a un 400.
+    const res = await app.inject({ method: 'GET', url: '/api/ranking?server=inventado' });
+    expect(res.statusCode).toBe(200);
+  });
+});

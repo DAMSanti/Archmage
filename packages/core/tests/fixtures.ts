@@ -134,10 +134,28 @@ export const CATALOG: Catalog = {
     },
   },
   spells: SPELLS_TEST,
-  // Fase 4. Vacíos en las fixtures: los tests de las fases 1-3 no llevan
-  // items ni habilidades, y **es justo lo que tienen que comprobar** —que
-  // con los diez multiplicadores a 1 nada de lo calibrado se mueve.
-  items: {},
+  // Fase 4. **Dos items de batalla y nada más.** Los tests de las fases
+  // 1-3 no llevan ninguno puesto, que es justo lo que tienen que
+  // comprobar: sin items, nada de lo calibrado se mueve. Estos dos están
+  // para los tests que sí quieren comprobar que se aplican.
+  items: {
+    potion_of_valor: {
+      id: 'potion_of_valor',
+      name: 'Poción de Valor',
+      rarity: 'lesser',
+      use: 'battle',
+      effect: { kind: 'ap', side: 'friendly', multiplier: 1.2 },
+      source: 'test [orig]',
+    },
+    strange_metallic_can: {
+      id: 'strange_metallic_can',
+      name: 'Extraña Lata Metálica',
+      rarity: 'lesser',
+      use: 'battle',
+      effect: { kind: 'resurrect', share: 0.25 },
+      source: 'test [orig]',
+    },
+  },
   skills: [],
   maxSpellLevel: 31,
 };
