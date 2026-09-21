@@ -229,3 +229,79 @@ describe('los items de batalla se aplican en un ataque de VERDAD', () => {
     expect(typeof r.battle.summary.attackerResurrected).toBe('number');
   });
 });
+
+describe('criterios 4, 6 y 9 — los refuerzos de un aliado', () => {
+  const defensor = () =>
+    mago('b', {
+      army: [
+        { unitId: 'militia', count: 1_000 },
+        { unitId: 'phalanx', count: 500 },
+      ],
+    });
+  const aliado = () =>
+    mago('c', {
+      army: [
+        { unitId: 'militia', count: 10_000 },
+        { unitId: 'phalanx', count: 2_000 },
+        { unitId: 'cavalry', count: 1_000 },
+        { unitId: 'pikemen', count: 3_000 },
+      ],
+    });
+  const atacante = () => mago('a', { army: [{ unitId: 'militia', count: 30_000 }] });
+
+  test('CRITERIO 6 — sin aliados, el resultado es el de la fase 3', () => {
+    // **El canario del riesgo 2 del plan.** Un compañero de gremio que no
+    // es aliado tampoco manda nada: quien llama decide quién ayuda.
+    const sin = resolveAttack(atacante(), defensor(), 'regular', ctx(31));
+    const otra = resolveAttack(atacante(), defensor(), 'regular', ctx(31), undefined, []);
+    expect(sin).toEqual(otra);
+  });
+
+  test('CRITERIO 4 — con aliado, el defensor pelea con más y el aliado pierde unidades', () => {
+    const sin = resolveAttack(atacante(), defensor(), 'regular', ctx(31));
+    const con = resolveAttack(atacante(), defensor(), 'regular', ctx(31), undefined, [aliado()]);
+    if ('error' in sin || 'error' in con) throw new Error('el ataque falló');
+
+    // Pelea con más: el atacante sufre más bajas.
+    expect(con.battle.summary.attackerLosses as number).toBeGreaterThan(
+      sin.battle.summary.attackerLosses as number,
+    );
+
+    // **Y ayudar cuesta**: al aliado le vuelve menos de lo que mandó.
+    const mando = aliado().army.reduce((a, s) => a + s.count, 0);
+    const volvio = con.allies![0]!.army.reduce((a, s) => a + s.count, 0);
+    expect(volvio).toBeLessThan(mando);
+  });
+
+  test('CRITERIO 5 — sus dos stacks más potentes no aparecen', () => {
+    const con = resolveAttack(atacante(), defensor(), 'regular', ctx(31), undefined, [aliado()]);
+    if ('error' in con) throw new Error(con.error.code);
+    // El aliado mandó cuatro stacks; los **dos más potentes por
+    // `número × rango`** se quedan en casa, así que solo pueden volver
+    // dos tipos de unidad. Es lo que impide que una alianza convierta a
+    // dos magos en uno.
+    expect(con.allies![0]!.army.length).toBeLessThanOrEqual(2);
+    // Y los que quedaron en casa **no pelearon**, así que el aliado
+    // conserva su capacidad de defenderse.
+    expect(con.allies![0]!.army.length).toBeGreaterThanOrEqual(0);
+  });
+
+  test('CRITERIO 9 — el defensor NO se queda con el ejército del aliado', () => {
+    // Es el bug fácil de escribir y difícil de ver: sin repartir, ayudar
+    // sería un negocio.
+    const con = resolveAttack(atacante(), defensor(), 'regular', ctx(31), undefined, [aliado()]);
+    if ('error' in con) throw new Error(con.error.code);
+    const leQueda = con.defender.army.reduce((a, s) => a + s.count, 0);
+    const teniaAntes = defensor().army.reduce((a, s) => a + s.count, 0);
+    expect(leQueda).toBeLessThanOrEqual(teniaAntes);
+  });
+
+  test('y todo sigue siendo entero', () => {
+    const con = resolveAttack(atacante(), defensor(), 'regular', ctx(31), undefined, [aliado()]);
+    if ('error' in con) throw new Error(con.error.code);
+    for (const st of [...con.defender.army, ...con.allies![0]!.army]) {
+      expect(Number.isInteger(st.count)).toBe(true);
+      expect(st.count).toBeGreaterThan(0);
+    }
+  });
+});

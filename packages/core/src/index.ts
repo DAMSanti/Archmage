@@ -1,5 +1,7 @@
 export * from './types.js';
+export * from './alliance.js';
 export * from './battle.js';
+export * from './guild.js';
 export * from './heroes.js';
 export * from './items.js';
 export * from './war.js';

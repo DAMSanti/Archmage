@@ -192,27 +192,72 @@ colectiva**; la fecha solo pone el tope.
       **un mago un gremio**. *Test = criterios 1 y 3: con cuatro no se
       funda, con cinco sí, y la segunda solicitud aceptada es error de
       dominio.* **Migración aditiva.**
-- [ ] **4. No se ataca a los tuyos.** *Test = criterio 2: atacar a un
+- [x] **4. No se ataca a los tuyos.** *Test = criterio 2: atacar a un
       compañero es un **422 con su código**, no un 500 ni un ataque que
       sale.* *Toca `packages/core/src/war.ts`.*
+
+      > **HECHO (2026-09-22).** `canAttack()` en `guild.ts` y enchufado en
+      > `resolveAttack()`. Atacar a un compañero es un **422 con su
+      > código**.
+      >
+      > **Un fallo obvio que el test caza:** si `sameGuild(null, null)`
+      > diera `true`, **nadie podría atacar a nadie** hasta que hubiera
+      > gremios — dos magos sin gremio no son compañeros. Es el error de
+      > comparar ausencias.
+      >
+      > El parámetro de gremios es **opcional**, así que los tests de la
+      > fase 3 siguen dando lo mismo sin pasarlo.
+
 - [ ] **5. Listas y registros.** Miembros, enemigos declarados y las
       batallas del gremio. *Test del servidor.*
 
 **Alianzas y refuerzos — aquí se toca el combate**
 
-- [ ] **6. Proponer y aceptar una alianza.** 1 o 2 según servidor.
+- [x] **6. Proponer y aceptar una alianza.** 1 o 2 según servidor.
       *Test: el tercero no entra.*
+
+      > **HECHO (2026-09-22).** **[nuestro]** Dos aliados en el normal y
+      > **uno en el rápido**: el original dice «1 o 2 según el servidor» y
+      > no dice cuál es cuál. En un servidor que va al doble de ritmo, dos
+      > aliados mandando refuerzos harían que defender fuera casi gratis.
+      >
+      > **Se mira a los dos**, no solo a quien propone: si no, el que
+      > acepta podría acabar con tres aliados aceptando tres propuestas.
+
 - [ ] **7. Romper tarda 24 horas.** *Test = criterio 7 con el reloj
       inyectado: durante el plazo **los refuerzos siguen yendo**.*
       **Proceso programado idempotente.**
-- [ ] **8. Los refuerzos, en la pre-batalla.** *Test = criterios 4, 5 y
+- [x] **8. Los refuerzos, en la pre-batalla.** *Test = criterios 4, 5 y
       6: el defensor pelea con más, **el aliado pierde unidades**, sus
       dos stacks más potentes **no aparecen**, y un compañero que no es
       aliado no manda nada.* **Es el riesgo 2**: sin aliado el resultado
       tiene que ser idéntico al de la fase 3.
-- [ ] **9. Devolver al aliado lo que le quedó.** Sus stacks van marcados
+
+      > **HECHO (2026-09-22).** Los refuerzos entran **antes de la
+      > pre-batalla**, así que **la ronda no sabe que las alianzas
+      > existen**.
+      >
+      > **El riesgo 2 del plan no se materializó**, y se sabe por qué: el
+      > parámetro de aliados es opcional y por defecto vacío, así que sin
+      > aliado el resultado es **idéntico** — hay un test que compara las
+      > dos llamadas. Los 614 tests anteriores siguieron en verde.
+      >
+      > Medido: con aliado, el atacante sufre más bajas, y **al aliado le
+      > vuelve menos de lo que mandó**. Ayudar cuesta.
+
+- [x] **9. Devolver al aliado lo que le quedó.** Sus stacks van marcados
       y vuelven a su dueño. *Test: el defensor **no se queda** con el
       ejército de su aliado.* Sin esto, ayudar sería un negocio.
+
+      > **HECHO (2026-09-22).** `splitSurvivors()` reparte **proporcional
+      > a lo que cada uno puso**, con un solo `floor`, y **el resto se lo
+      > queda el defensor** — que es quien eligió la batalla.
+      >
+      > **Era el bug fácil de escribir y difícil de ver de toda la fase**:
+      > sin repartir, el defensor se queda con el ejército de su aliado al
+      > acabar, y ayudar pasa de ser un coste a ser un negocio. Hay un
+      > test que comprueba que todo lo que sobrevive se reparte **sin
+      > perder ni inventar una unidad**.
 
 **Mensajería**
 

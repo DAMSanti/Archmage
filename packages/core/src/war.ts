@@ -20,6 +20,8 @@ import { itemsPillaged } from './items.js';
 import type { ItemSpec } from './items.js';
 import { prepareBattle, resurrected } from './prebattle.js';
 import { landTaken, pillageTaken } from './land.js';
+import { reinforcements, splitSurvivors } from './alliance.js';
+import { canAttack } from './guild.js';
 import { isProtected } from './mage.js';
 import { netPower } from './netpower.js';
 import { BUILDINGS } from './types.js';
@@ -40,6 +42,7 @@ export const PILLAGE_MIN_POWER_SHARE = 0.5;
 
 export type AttackError =
   | { code: 'sin_turnos'; message: string }
+  | { code: 'es_de_tu_gremio'; message: string }
   | { code: 'sin_ejercito'; message: string }
   | { code: 'objetivo_protegido'; message: string }
   | { code: 'objetivo_debil'; message: string }
@@ -49,6 +52,8 @@ export type AttackError =
 export interface AttackOutcome {
   attacker: MageState;
   defender: MageState;
+  /** Los aliados que ayudaron, con su ejército ya devuelto. */
+  allies?: MageState[];
   battle: {
     seed: number;
     attackType: AttackType;
@@ -62,7 +67,7 @@ export interface AttackOutcome {
   events: { mageId: string; event: GameEvent }[];
 }
 
-function ejercito(state: MageState, catalog: Catalog): Army {
+function ejercito(state: MageState, catalog: Catalog): { stacks: BattleStack[] } {
   const stacks: BattleStack[] = [];
   for (const s of state.army) {
     const unit = catalog.units[s.unitId];
@@ -94,6 +99,23 @@ export function resolveAttack(
   defender: MageState,
   attackType: AttackType,
   ctx: Ctx,
+  /**
+   * Los gremios de los dos, si los tienen. **Opcional a propósito**: los
+   * tests de la fase 3 no los pasan, y sin gremio el comportamiento es el
+   * de antes — que es lo que protege lo ya calibrado.
+   */
+  guilds: { attacker: string | null; defender: string | null } = {
+    attacker: null,
+    defender: null,
+  },
+  /**
+   * Los aliados **activos** del defensor. Quien llama ya ha comprobado el
+   * plazo de ruptura: aquí llegan los que de verdad ayudan.
+   *
+   * **Opcional a propósito**, como los gremios: sin aliados el resultado es
+   * idéntico al de la fase 3, y eso es lo que protege lo ya calibrado.
+   */
+  defenderAllies: readonly MageState[] = [],
 ): AttackOutcome | { error: AttackError } {
   if (attacker.id === defender.id) {
     return { error: { code: 'objetivo_invalido', message: 'No puedes atacarte a ti mismo.' } };
@@ -101,6 +123,17 @@ export function resolveAttack(
   if (attacker.turns.current < TURNS_PER_ATTACK) {
     return {
       error: { code: 'sin_turnos', message: `Atacar cuesta ${TURNS_PER_ATTACK} turnos.` },
+    };
+  }
+  // **A un compañero de gremio no se le ataca**, y es regla del código, no
+  // norma de foro: si el juego lo permitiera, alguien lo usaría y el gremio
+  // dejaría de significar nada (docs/SISTEMAS.md §14.1).
+  if (!canAttack(guilds.attacker, guilds.defender)) {
+    return {
+      error: {
+        code: 'es_de_tu_gremio',
+        message: 'No puedes atacar a alguien de tu propio gremio.',
+      },
     };
   }
   if (isProtected(defender, ctx.server)) {
@@ -138,6 +171,19 @@ export function resolveAttack(
         message: `Atacar cuesta el upkeep de todo tu ejército: ${coste} de geld.`,
       },
     };
+  }
+
+  // **Los refuerzos de los aliados**, antes de la pre-batalla.
+  //
+  // Entran como stacks más del defensor, así que **la ronda no sabe que
+  // las alianzas existen**. Y como van al montón, el aliado **pierde
+  // unidades de verdad**: ayudar cuesta (docs/SISTEMAS.md §14.1).
+  const puestoPorDefensor = contar(armDef.stacks);
+  const puestoPorAliados: Record<string, Record<string, number>> = {};
+  for (const aliado of defenderAllies) {
+    const suyo = reinforcements(ejercito(aliado, ctx.catalog).stacks);
+    puestoPorAliados[aliado.id] = contar(suyo);
+    armDef.stacks.push(...suyo);
   }
 
   // 2. **La pre-batalla**, y luego la batalla.
@@ -181,9 +227,24 @@ export function resolveAttack(
     army: aStacks(r.attacker.survivors),
     land: { ...attacker.land, total: attacker.land.total + tierra.taken, free: attacker.land.free + tierra.taken },
   };
+  // **Repartir los supervivientes antes de guardar nada.** Sin esto el
+  // defensor se quedaría con el ejército de su aliado, y ayudar sería un
+  // negocio en vez de un coste.
+  let quedanDelDefensor = r.defender.survivors;
+  const aliadosDevueltos: MageState[] = [];
+  for (const aliado of defenderAllies) {
+    const reparto = splitSurvivors(
+      quedanDelDefensor,
+      puestoPorDefensor,
+      puestoPorAliados[aliado.id] ?? {},
+    );
+    quedanDelDefensor = reparto.defender;
+    aliadosDevueltos.push({ ...aliado, army: aStacks(reparto.ally) });
+  }
+
   let nuevoDefensor: MageState = {
     ...defender,
-    army: aStacks(r.defender.survivors),
+    army: aStacks(quedanDelDefensor),
     land: quitarTierra(defender, tierra.lost),
   };
 
@@ -255,6 +316,7 @@ export function resolveAttack(
   return {
     attacker: nuevoAtacante,
     defender: nuevoDefensor,
+    ...(aliadosDevueltos.length > 0 ? { allies: aliadosDevueltos } : {}),
     battle: {
       seed,
       attackType,
@@ -269,6 +331,13 @@ export function resolveAttack(
     // le han atacado sin tener que deducirlo de que le falta tierra.
     events: [evento(attacker.id), evento(defender.id)],
   };
+}
+
+/** Cuántas unidades de cada tipo hay en una lista de stacks. */
+function contar(stacks: readonly { unit: { id: string }; count: number }[]) {
+  const r: Record<string, number> = {};
+  for (const s of stacks) r[s.unit.id] = (r[s.unit.id] ?? 0) + s.count;
+  return r;
 }
 
 function aStacks(survivors: Record<string, number>) {
