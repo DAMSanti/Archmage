@@ -38,7 +38,21 @@ pagina.on('console', (m) => {
 });
 pagina.on('pageerror', (e) => erroresConsola.push(String(e)));
 
+/**
+ * Ir a una pantalla.
+ *
+ * **Cinco rutas viven detras de «Mas»** desde el 2026-09-22
+ * (docs/INTERFAZ.md §6.9): mercado, ranking, habilidades, gremio y
+ * temporada. Hay que abrir el menu antes de pulsar, o el boton no existe
+ * todavia en el DOM.
+ */
+const EN_MENU = ['Mercado', 'Ranking', 'Habilidades', 'Gremio', 'Temporada'];
+
 const ir = async (nombre) => {
+  if (EN_MENU.includes(nombre)) {
+    await pagina.getByRole('button', { name: 'Más', exact: true }).click();
+    await pagina.waitForTimeout(150);
+  }
   await pagina.getByRole('button', { name: nombre, exact: true }).click();
   await pagina.waitForTimeout(800);
   return pagina.locator('main').innerText();
@@ -49,10 +63,11 @@ try {
   await pagina.waitForTimeout(600);
 
   const nav = await pagina.locator('nav').innerText();
-  comprobar(
-    'la navegación lleva Gremio, Mensajes y Temporada',
-    /gremio/i.test(nav) && /mensajes/i.test(nav) && /temporada/i.test(nav),
-  );
+  // **Mensajes va suelta; Gremio y Temporada viven detrás de «Más»**
+  // (docs/INTERFAZ.md §6.9). Que Mensajes esté a la vista no es un detalle:
+  // es lo único del menú que otra persona puede hacerte llegar.
+  comprobar('Mensajes está suelta en la barra', /mensajes/i.test(nav));
+  comprobar('y hay un «Más» para el resto', /más/i.test(nav));
 
   // --- Gremio ---
   const gre = await ir('Gremio');

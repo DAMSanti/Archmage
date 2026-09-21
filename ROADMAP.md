@@ -47,7 +47,7 @@ corregidos con el principio nuevo: **la interfaz informa, no optimiza**.
 
 ---
 
-### Estilo visual — spec escrita, sin implementar
+### Estilo visual — cerrada el 2026-09-22, menos el arte
 
 **Spec y criterios de aceptación:
 [docs/INTERFAZ.md §6](docs/INTERFAZ.md)**, y el inventario de arte que se
@@ -134,6 +134,263 @@ Assets que añade: **el fondo de `/reino` se rehace** —era un interior de
 torre y la escena pide exterior sin edificios pintados—, se revisan los
 ocho iconos de edificio **a dos tamaños**, y hacen falta los iconos de
 la barra que no existan ya.
+
+---
+
+**Plan técnico del 2026-09-22 con `/plan-tarea`:
+[docs/INTERFAZ.md §6.10](docs/INTERFAZ.md).**
+
+**Antes de nada, una corrección: la cabecera de este bloque mentía.**
+Decía «spec escrita, sin implementar», y al planear resultó que
+`apps/web/src/tokens.ts` ya tiene la paleta, los colores de escuela y el
+formato de números, con los **criterios 1, 2 y 3 en verde** desde la fase
+1. Lo que queda es lo que la ampliación añadió: **el marco y la escena**.
+
+**Toca un solo paquete: `apps/web`.** Ni `core`, ni `content`, ni
+`contract`, ni el servidor, ni la base de datos. Y el contrato **no
+cambia**: `derivedSchema` ya trae todo lo que la barra de recursos
+necesita.
+
+**Lo puro primero**
+
+- [x] **1. Qué piezas se pintan.** `escena.ts`: estado → los tipos de
+      edificio de los que hay al menos uno. *Test primero (criterio 11):
+      un estado con `barracks: 0` no produce pieza de barracks, y uno con
+      los ocho produce ocho.* **No va al núcleo, y el plan dice por qué.**
+      *Toca `apps/web/src/escena.ts` y `apps/web/tests/escena.test.ts`.*
+
+      > **HECHO (2026-09-22).** `escena.ts`, puro y con siete tests. El que
+      > más vale es el que fija la decisión: **uno y cuatro mil dan la misma
+      > escena**. Si algún día alguien la hace crecer, ese test lo dice.
+      >
+      > Y el orden sale de `BUILDINGS` del núcleo, no de las llaves del
+      > objeto: si dependiera del orden de inserción, la escena se
+      > recompondría sola el día que el servidor mandara las llaves en otro
+      > orden.
+
+- [x] **2. El reloj no miente.** `reloj.ts`: la cadencia y la cuenta
+      atrás salen del **servidor del mago**, no de una constante. *Test
+      primero (criterio 15): el mismo estado en Terra dice 10 minutos y
+      en Veloz dice 5.* *Toca `apps/web/src/reloj.ts` y su test.*
+
+      > **HECHO (2026-09-22).** `reloj.ts`, con seis tests. La cadencia entra
+      > por parámetro y el test la mide en los dos servidores.
+      >
+      > **Y no toca el contrato**, que es lo que podía costar: `contract` no
+      > exporta un tipo para `serverConfigSchema`, así que la función pide
+      > solo `{ turnMinutes }`. Pedir lo que se usa deja además el test sin
+      > tener que construir un servidor entero.
+
+
+**El marco (§6.9)**
+
+- [x] **3. La barra de recursos.** Geld, maná, población sobre su tope y
+      net power arriba; los turnos con su cuenta atrás justo debajo.
+      *Comprobable con `tsc` y en la pasada final.* *Toca
+      `components/Marco.tsx`, `App.tsx`, `styles.css`.*
+
+      > **HECHO (2026-09-22).** `Marco.tsx`. Geld, maná, población sobre su
+      > tope y net power, cada uno con su neto **y su signo** — el color
+      > nunca es la única señal (criterio 10).
+      >
+      > **Los turnos no comparten fila con nada** y van en oro: son la
+      > moneda del juego. Con el almacén lleno, la cuenta atrás **deja de
+      > contar y avisa**: seguir contando hacia un turno que no va a llegar
+      > diría lo contrario de lo que pasa.
+      >
+      > Ni un número se calcula aquí. Todo sale de `derived`.
+
+- [x] **4. La barra de navegación, y cerrar el `[abierto]`.** **Siete**
+      entradas, elegidas por el usuario sobre las seis que proponía el
+      plan: Reino · Ejército · Magia · Guerra · Crónica · **Mensajes** ·
+      Más. Iconos **con etiqueta de texto**. *Cierra la marca `[abierto]`
+      de §6.9 con la cuenta que la justifica: once entradas son 484px, la
+      pantalla de referencia tiene 360, y siete son 308.* *Toca
+      `components/Marco.tsx`, `App.tsx`, `styles.css`.*
+
+      > **HECHO (2026-09-22).** Las siete: Reino · Ejército · Magia · Guerra
+      > · Crónica · Mensajes · Más. **Cierra la marca `[abierto]` de §6.9**,
+      > y la regla vive allí, no aquí.
+      >
+      > **Un fallo que se veía perfecto y rompía la navegación.** El menú de
+      > «Más» se escribió con `role="menu"` y `role="menuitem"`, y ese rol
+      > **sustituye el rol implícito de los botones de dentro**: dejan de
+      > ser `button` en el árbol de accesibilidad. La pantalla se veía bien
+      > y las pasadas se quedaban esperando un botón que ya no existía.
+      > `role="menu"` es para menús de aplicación; esto es navegación.
+
+- [x] **5. Arreglar las pasadas que la agrupación rompe.** Las de
+      **mundo** (mercado, ranking, habilidades) y **temporada** (gremio y
+      temporada; mensajes se salva por quedar suelta) navegan por nombre
+      de botón, y esas rutas pasan a estar detrás de «Más». *No es
+      opcional ni es después: sin esto, 29 comprobaciones dejan de
+      encontrar su botón.* *Toca `navegador-mundo.mjs` y
+      `navegador-temporada.mjs`.*
+
+      > **HECHO (2026-09-22).** Las dos arregladas, y **la de la temporada
+      > se salvó a medias**: Mensajes quedó suelta, así que solo hubo que
+      > tocar Gremio y Temporada.
+      >
+      > Y aparecieron **dos comprobaciones que ya no preguntaban lo que
+      > creían**: las dos miraban que la barra *contuviera* el nombre de
+      > rutas que ahora viven en el menú. No se borraron — se cambió lo que
+      > preguntan: que el menú las lleve, y que Mensajes esté a la vista.
+
+- [x] **6. Que el marco no robe la pantalla.** *Criterio 16: las dos
+      barras ≤ **20%** del alto a 360×640, y el área de datos sigue
+      cumpliendo el criterio 8 (≥85% del ancho).* *Toca `styles.css`.*
+
+      > **HECHO (2026-09-22).** **18,8%** del alto a 360×640, con el tope en
+      > 20%.
+      >
+      > **Y la primera versión lo cumplía clavado.** 76 + 52 = 128px son el
+      > **20,0%** exacto: pasaba sin un píxel de margen, que es una forma
+      > elegante de no proteger nada — el siguiente que añadiera una línea a
+      > la barra lo habría roto sin saber por qué. Bajado a 72 + 48 = 120.
+      >
+      > Las alturas son **variables CSS** y no rellenos repartidos por el
+      > fichero, para que el criterio se compruebe leyendo dos líneas.
+
+
+**La escena (§6.5)**
+
+- [x] **7. La escena en `/reino`, con placas opacas.** Las piezas de la
+      tarea 1 colocadas sobre el fondo, y los nombres **en placas**,
+      nunca como texto sobre la imagen. *Criterios 8 y 5.* *Toca
+      `components/Escena.tsx`, `routes/Reino.tsx`, `styles.css`.*
+
+      > **HECHO (2026-09-22).** `Escena.tsx`, con las piezas de la tarea 1 y
+      > los nombres **en placas opacas**. Es donde la referencia visual del
+      > usuario se separa de lo que hacemos: un rótulo sobre un cielo
+      > pintado se lee en el mock y deja de leerse en cuanto la imagen
+      > cambia.
+      >
+      > Un reino sin nada construido **no tiene escena**: un marco vacío
+      > diciendo «aquí no hay nada» ocuparía sitio para no decir nada.
+
+- [x] **8. Las piezas son controles de verdad.** *Criterio 14: zona de
+      toque ≥44px, foco visible, nombre accesible, y se llega a todas con
+      el tabulador.* Es la tarea que separa «ornamento» de «control»
+      (§6.6). *Toca `components/Escena.tsx`, `styles.css`.*
+
+      > **HECHO (2026-09-22).** Medido en la pasada: **86px** de alto, con
+      > el mínimo en 44. Foco visible y nombre accesible en la placa, que es
+      > texto de verdad — la figura va `aria-hidden`.
+      >
+      > Es la tarea que obligó a separar **ornamento** de **control** en
+      > §6.6: la regla decía que el ornamento no lleva información, y las
+      > piezas sí. No es una excepción — es que una pieza **no es
+      > ornamento**.
+
+- [x] **9. Ningún dato vive solo en la escena.** *Criterio 13: con la
+      escena oculta no falta ni un número.* Y **criterio 12**: para cada
+      pieza, la misma acción existe en la barra o dentro de la pantalla a
+      la que lleva. *Toca `routes/Reino.tsx`.*
+
+      > **HECHO (2026-09-22).** Comprobado ocultando la escena en el
+      > navegador: no falta ni un número.
+      >
+      > **Y aquí se cayó una premisa del plan.** Decía que `/reino`
+      > «soltaría lo que sube al marco». Al verlo de cerca, el panel **no
+      > duplica: detalla** — el marco da el vistazo desde cualquier
+      > pantalla, el panel da el desglose. Quitarlo habría dejado el
+      > desglose sin su sujeto, y en móvil, donde el marco esconde el net
+      > power, habría dejado datos sin ningún sitio donde vivir.
+
+- [x] **10. En móvil, la escena no aparece.** §5, decidido con el
+      usuario. *Comprobable a 360px en la pasada final.* *Toca
+      `styles.css`.*
+
+      > **HECHO (2026-09-22).** `display: none` por debajo de 640px, y
+      > comprobado en la pasada.
+      >
+      > Se puede **porque el mapa no manda**: todo lo que alcanza está
+      > también en la barra, que sí está en las dos. Si el mapa fuera la
+      > única puerta a construir, esta decisión habría dejado el juego sin
+      > construir en móvil.
+      >
+      > De paso cae el net power de la barra en móvil: es una consulta, no
+      > una decisión de cada turno, y está entero en `/ranking`.
+
+
+**Comprobación**
+
+- [x] **11. Una sola pasada de navegador, con las cuatro juntas.** La
+      general, la de guerra, la del mundo y la de la temporada —**58
+      comprobaciones**, que son la superficie de regresión de un marco
+      que toca las trece pantallas— más las nuevas de la escena y del
+      marco. *Lo caro es arrancar la sesión, no lo que comprueba.*
+
+      > **HECHO (2026-09-22).** Una sola sesión, **70 comprobaciones en
+      > verde**: 22 la general —con las ocho nuevas del marco y la escena—,
+      > 18 la de guerra, 15 la del mundo y 15 la de la temporada.
+      >
+      > **Y un susto que no era mío.** La de guerra falló tres
+      > comprobaciones de la repetición de batalla. Antes de tocar nada
+      > miré la base de datos: **Malakar se había quedado sin ejército** de
+      > tanto atacarle en las pasadas de hoy, así que la batalla acababa en
+      > cero rondas por la regla de la fase 3 —un defensor sin ejército
+      > pierde— y no había rondas que enseñar. Devuelto el ejército, 18/18.
+      >
+      > **Lo que enseña, y no es del cambio:** las pasadas comparten la base
+      > de datos de desarrollo y **arrastran estado entre ellas**. Hoy se ha
+      > resuelto a mano; el día que moleste de verdad, lo que falta es
+      > sembrar el mago de desarrollo antes de cada pasada.
+
+- [x] **12. Llevar lo aprendido a los documentos.** El recuento de tests
+      y el tamaño del bundle a [docs/ESTADO.md](docs/ESTADO.md); los
+      huecos de arte que queden declarados, a
+      [docs/ASSETS.md](docs/ASSETS.md).
+
+      > **HECHO (2026-09-22).** Recuento y tamaño del bundle a
+      > `docs/ESTADO.md`; los tres huecos de arte, nombrados uno a uno con
+      > dónde se usan hoy, a `docs/ASSETS.md §8.2`; y las tres premisas que
+      > se cayeron, a `docs/INTERFAZ.md §6.10`.
+      >
+      > **Los criterios 6 y 17 no se marcan.** Son de peso de imagen y no
+      > hay imágenes: darlos por buenos sería darlos por comprobados.
+
+
+**Lo que este bloque NO hace, y hay que decirlo antes de empezar:
+generar el arte.** Es la tarea 23 de la fase 1 y necesita una sesión con
+el usuario. Se construye todo con los huecos declarados, que es
+exactamente lo que obliga la regla 3 de §6.5 —«la interfaz funciona
+entera sin ninguna ilustración»—, así que **los criterios 6 y 17, que son
+de peso de imagen, quedan pendientes de esa tanda y no se marcan
+hechos**.
+
+---
+
+**Las doce hechas el 2026-09-22.** 687 tests en verde, `tsc -b` a cero, y
+**70 comprobaciones de navegador** repartidas en las cuatro pasadas.
+
+**Lo que de verdad pasó:**
+
+- **El bloque empezaba con una mentira suya.** Decía «sin implementar», y
+  la paleta, los colores de escuela y el formato de números llevaban
+  hechos desde la fase 1, con los criterios 1, 2 y 3 en verde. Se
+  implementó de pasada y nadie tocó la línea. **Es el mismo fallo que
+  este ROADMAP existe para evitar**, y solo se vio al ir a planear.
+- **Tres premisas del plan se cayeron al implementarlas**, y están
+  contadas en [docs/INTERFAZ.md §6.10](docs/INTERFAZ.md): que `/reino`
+  soltaría sus números al marco (no duplica, **detalla**); que el menú
+  podía llevar roles ARIA de menú (`role="menu"` **sustituye** el rol de
+  los botones de dentro y los saca del árbol de accesibilidad); y que
+  cumplir el criterio 16 bastaba (se cumplía **clavado en el 20,0%**, que
+  es no proteger nada).
+- **Un fallo de la pasada de guerra que no era del cambio.** Tres
+  comprobaciones de la repetición de batalla fallaron; mirando la base de
+  datos antes de tocar nada, **el defensor se había quedado sin
+  ejército** de tanto atacarle en las pasadas de hoy, y la batalla acababa
+  en cero rondas por la regla de la fase 3. Las pasadas **comparten la
+  base de datos de desarrollo y arrastran estado entre ellas**: el día
+  que moleste, lo que falta es sembrar el mago antes de cada una.
+
+**Lo que queda, y es lo único: el arte.** La tarea 23 de la fase 1, que
+necesita una sesión con el usuario. Los tres huecos están nombrados uno a
+uno en [docs/ASSETS.md §8.2](docs/ASSETS.md) con dónde se usan hoy, y los
+**criterios 6 y 17 —peso de imagen— no se marcan hechos**, porque darlos
+por buenos sin imágenes sería darlos por comprobados.
 
 ---
 

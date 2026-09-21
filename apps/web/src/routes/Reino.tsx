@@ -12,6 +12,7 @@
  */
 
 import { useState } from 'react';
+import { Escena } from '../components/Escena.js';
 import { BUILDINGS } from '@archmage/core';
 import type { Building } from '@archmage/core';
 import type { ActionInput, CatalogResponse, MageResponse } from '@archmage/contract';
@@ -45,9 +46,11 @@ export interface ReinoProps {
   catalog: CatalogResponse;
   onAction: (a: ActionInput) => void | Promise<void>;
   ocupado: boolean;
+  /** Adonde lleva tocar una pieza de la escena. Atajo, nunca unica puerta. */
+  onIr: (pantalla: string) => void;
 }
 
-export function Reino({ data, catalog, onAction, ocupado }: ReinoProps) {
+export function Reino({ data, catalog, onAction, ocupado, onIr }: ReinoProps) {
   const { mage, derived, server } = data;
   const [edificio, setEdificio] = useState<Building>('farms');
   const [turnosConstruir, setTurnosConstruir] = useState(1);
@@ -80,6 +83,11 @@ export function Reino({ data, catalog, onAction, ocupado }: ReinoProps) {
           cero, se disuelven stacks y se deshacen las barriers.
         </p>
       )}
+
+      {/* **La escena va antes de los numeros, no en su lugar** (§6.5): dice
+          QUE has construido de un vistazo, y el desglose sigue debajo. En
+          movil no aparece, y lo decide el CSS (§5). */}
+      <Escena buildings={mage.buildings} onIr={onIr} />
 
       <section className="panel">
         <h2 className="panel__titulo">Recursos</h2>

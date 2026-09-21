@@ -33,6 +33,22 @@
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --gutter: 16px;
+
+  /*
+   * El marco persistente (docs/INTERFAZ.md §6.9).
+   *
+   * **Criterio 16: las dos barras juntas ≤ 20% del alto a 360×640**, que son
+   * 128px. Están escritas como variables y no repartidas en paddings porque
+   * así el criterio se comprueba leyendo dos líneas; sumando rellenos por el
+   * fichero, nadie lo comprueba nunca.
+   *
+   * **72 + 48 = 120, el 18,75%.** La primera versión eran 76 + 52 = 128, que
+   * es el 20,0% **clavado**: pasaba el criterio sin un píxel de margen, y el
+   * siguiente que añadiera una línea a la barra lo habría roto sin saber por
+   * qué. Un criterio que se cumple justo en su tope no protege nada.
+   */
+  --marco-arriba: 72px;
+  --marco-abajo: 48px;
   --radio: 3px;
 }
 
@@ -513,5 +529,302 @@ input[type='number'] {
      dice nada. Descubierto mirando la captura de móvil el 2026-09-21. */
   .reparto__vacio {
     display: none;
+  }
+}
+
+
+/* --- El marco persistente ----------------------------------------------
+ *
+ * docs/INTERFAZ.md §6.9. Recursos arriba, navegación abajo, en las trece
+ * pantallas.
+ */
+
+.marco {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  /* **Opaco, no translúcido.** El contraste se mide contra el panel y una
+     ilustración tiene mil colores, ninguno de los cuales es una garantía
+     (§6.5, regla 2). */
+  background: var(--panel);
+}
+
+.marco--arriba {
+  top: 0;
+  height: var(--marco-arriba);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gutter);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid var(--marco);
+  overflow: hidden;
+}
+
+.marco__recursos {
+  display: flex;
+  gap: 18px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.marco__recurso,
+.marco__turnos {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.marco__etiqueta {
+  color: var(--texto-apagado);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.marco__cifra {
+  color: var(--texto);
+  font-size: 1rem;
+  /* §6.4: la regla que no se negocia. Seis y siete dígitos que cambian cada
+     turno bailan si no ocupan lo mismo. */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* **Los turnos son la moneda del juego** (SISTEMAS §2): se ven más. */
+.marco__cifra--turnos {
+  color: var(--acento);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.marco__neto,
+.marco__nota {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-tenue);
+  white-space: nowrap;
+}
+
+.marco__turnos {
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.marco__aviso {
+  color: var(--aviso);
+  font-size: 0.72rem;
+}
+
+/* --- La barra de abajo -------------------------------------------------- */
+
+.marco--abajo {
+  bottom: 0;
+  height: var(--marco-abajo);
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--marco);
+}
+
+.marco__enlace {
+  flex: 1 1 0;
+  /* **44px de zona de toque** (§6.7, criterio 14). Son de dedo, no de ratón
+     (§5). */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  color: var(--texto-tenue);
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+}
+
+.marco__enlace-nombre {
+  /* **Etiqueta de texto siempre**, no solo icono: un icono solo se adivina
+     mal (§6.9). Cuando existan los iconos (ASSETS §8.3) van encima de esto,
+     no en su lugar. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marco__enlace:hover {
+  color: var(--texto);
+}
+
+.marco__enlace[aria-current='page'] {
+  color: var(--acento);
+  border-top-color: var(--acento);
+}
+
+/* El foco tiene que verse: son controles (§6.7, criterio 14). */
+.marco__enlace:focus-visible,
+.marco__menu-enlace:focus-visible,
+.escena__pieza:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: -2px;
+}
+
+.marco__mas {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+}
+
+.marco__menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-alto);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio) var(--radio) 0 0;
+  overflow: hidden;
+}
+
+.marco__menu-enlace {
+  min-height: 44px;
+  background: none;
+  border: none;
+  color: var(--texto-tenue);
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 0.9rem;
+  padding: 0 14px;
+  text-align: left;
+}
+
+.marco__menu-enlace:hover {
+  background: var(--panel);
+  color: var(--texto);
+}
+
+.marco__menu-enlace[aria-current='page'] {
+  color: var(--acento);
+}
+
+/* El contenido deja sitio a las dos barras. */
+.envoltorio--marco {
+  padding-top: calc(var(--marco-arriba) + var(--gutter));
+  padding-bottom: calc(var(--marco-abajo) + var(--gutter));
+}
+
+/* --- La escena del reino ------------------------------------------------
+ *
+ * docs/INTERFAZ.md §6.5. **Emblemática**: una pieza por tipo de edificio del
+ * que haya al menos uno.
+ */
+
+.escena-reino {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: var(--gutter);
+  padding: var(--gutter);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  /* Mientras no haya arte, el degradado hace de paisaje. La interfaz tiene
+     que funcionar entera sin ninguna ilustración (§6.5, regla 3), así que
+     esto es el estado normal, no una degradación. */
+  background: radial-gradient(ellipse at 50% 90%, #241c14 0%, #191310 70%, var(--fondo) 100%);
+}
+
+.escena__pieza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  /* Controles de verdad (§6.7, criterio 14). */
+  min-height: 44px;
+  background: none;
+  border: none;
+  border-radius: var(--radio);
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.escena__figura {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  background: var(--panel-alto);
+  color: var(--texto-tenue);
+  font-family: var(--display);
+  font-size: 1.1rem;
+}
+
+.escena__pieza:hover .escena__figura {
+  border-color: var(--marco-luz);
+  color: var(--texto);
+}
+
+/*
+ * **La placa.** §6.5, regla 8: los rótulos van en placas opacas, nunca como
+ * texto sobre la imagen. Es donde la referencia visual del usuario se separa
+ * de lo que hacemos — un rótulo sobre un cielo pintado se lee en el mock y
+ * deja de leerse en cuanto la imagen cambia.
+ */
+.escena__placa {
+  background: var(--panel);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  color: var(--texto);
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.escena__nota {
+  grid-column: 1 / -1;
+  color: var(--texto-apagado);
+  font-size: 0.75rem;
+  margin: 0;
+  text-align: center;
+}
+
+/* --- Móvil --------------------------------------------------------------
+ *
+ * docs/INTERFAZ.md §5: **no es una adaptación, es el caso principal.**
+ */
+
+@media (max-width: 640px) {
+  /*
+   * **La escena no aparece.** Decidido con el usuario el 2026-09-22: un mapa
+   * interactivo y «en móvil la ilustración desaparece» no caben a la vez, y
+   * cede el mapa. Se puede porque el mapa **no manda** — todo lo que alcanza
+   * está también en la barra de abajo, que sí está en las dos.
+   */
+  .escena-reino {
+    display: none;
+  }
+
+  /* El net power es lo primero que sobra de la barra: es una consulta, no
+     una decisión de cada turno, y está entero en /ranking. */
+  .marco__recurso:last-child {
+    display: none;
+  }
+
+  .marco__recursos {
+    gap: 12px;
+  }
+
+  .marco__enlace {
+    font-size: 0.68rem;
   }
 }

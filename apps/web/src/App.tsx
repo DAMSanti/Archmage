@@ -27,6 +27,7 @@ import { Portal } from './routes/Portal.js';
 import { Gremio } from './routes/Gremio.js';
 import { Mensajes } from './routes/Mensajes.js';
 import { Temporada } from './routes/Temporada.js';
+import { Marco, type Entrada } from './components/Marco.js';
 
 type Pantalla =
   | 'reino'
@@ -41,18 +42,36 @@ type Pantalla =
   | 'temporada'
   | 'cronica';
 
-const PANTALLAS: { id: Pantalla; nombre: string }[] = [
+/**
+ * **Las seis sueltas de la barra.** docs/INTERFAZ.md §6.9, cerrado el
+ * 2026-09-22.
+ *
+ * La cuenta manda: descontando el portal y `/batalla/:id`, quedan once
+ * entradas posibles, y a 44px de zona de toque son 484px contra los 360 de
+ * la pantalla de referencia. No caben. Siete son 308: caben, y son el tope.
+ *
+ * `/reino` porque es donde se pasa el tiempo; `/cronica` porque es donde uno
+ * se entera de que le han atacado, y esconder las malas noticias detrás de
+ * un menú sería justo lo contrario de lo que hace falta; `/mensajes` porque
+ * **es lo único del menú que otra persona puede hacerte llegar** — el resto
+ * se consulta cuando uno quiere, y un mensaje te espera.
+ */
+const SUELTAS: readonly Entrada[] = [
   { id: 'reino', nombre: 'Reino' },
   { id: 'ejercito', nombre: 'Ejército' },
   { id: 'magia', nombre: 'Magia' },
   { id: 'guerra', nombre: 'Guerra' },
-  { id: 'mercado', nombre: 'Mercado' },
-  { id: 'habilidades', nombre: 'Habilidades' },
-  { id: 'ranking', nombre: 'Ranking' },
-  { id: 'gremio', nombre: 'Gremio' },
-  { id: 'mensajes', nombre: 'Mensajes' },
-  { id: 'temporada', nombre: 'Temporada' },
   { id: 'cronica', nombre: 'Crónica' },
+  { id: 'mensajes', nombre: 'Mensajes' },
+];
+
+/** Las cinco de «Más»: las que se miran cuando uno quiere. */
+const AGRUPADAS: readonly Entrada[] = [
+  { id: 'mercado', nombre: 'Mercado' },
+  { id: 'ranking', nombre: 'Ranking' },
+  { id: 'habilidades', nombre: 'Habilidades' },
+  { id: 'gremio', nombre: 'Gremio' },
+  { id: 'temporada', nombre: 'Temporada' },
 ];
 
 export function App() {
@@ -121,32 +140,23 @@ export function App() {
           interfaz tiene que funcionar entera sin ninguno (INTERFAZ §6.7). */}
       <div className="escena escena--marcador" aria-hidden="true" />
 
-      <div className="envoltorio">
-        <header className="cabecera">
-          <h1 className="cabecera__titulo">Archmage</h1>
-          {data && (
-            <div className="cifra" style={{ color: 'var(--texto-tenue)' }}>
-              {data.mage.name} · {data.mage.land.total} acres
-            </div>
-          )}
-        </header>
+      {/* **El marco solo existe si hay mago.** Sin sesión se está en el
+          portal, y una barra de recursos vacía sobre un formulario de
+          entrada no informa de nada. */}
+      {data && (
+        <Marco
+          data={data}
+          sueltas={SUELTAS}
+          agrupadas={AGRUPADAS}
+          pantalla={pantalla}
+          onIr={(id) => {
+            setPantalla(id as Pantalla);
+            setBatalla(null);
+          }}
+        />
+      )}
 
-        <nav className="nav">
-          {PANTALLAS.map((p) => (
-            <button
-              key={p.id}
-              className="nav__enlace"
-              aria-current={pantalla === p.id ? 'page' : undefined}
-              onClick={() => {
-                setPantalla(p.id);
-                setBatalla(null);
-              }}
-            >
-              {p.nombre}
-            </button>
-          ))}
-        </nav>
-
+      <div className={data ? 'envoltorio envoltorio--marco' : 'envoltorio'}>
         <main>
           {error && <p className="error">{error}</p>}
 
@@ -155,7 +165,13 @@ export function App() {
           ) : !data || !catalog ? (
             <p className="recurso__nota">Cargando el reino…</p>
           ) : pantalla === 'reino' ? (
-            <Reino data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
+            <Reino
+              data={data}
+              catalog={catalog}
+              onAction={onAction}
+              ocupado={ocupado}
+              onIr={(id) => setPantalla(id as Pantalla)}
+            />
           ) : pantalla === 'ejercito' ? (
             <Ejercito data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
           ) : pantalla === 'magia' ? (

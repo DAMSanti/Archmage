@@ -244,6 +244,27 @@ emblemática: la cuantitativa habría pedido variantes y agrupaciones.
 tamaños**: pequeños en una tabla y grandes sobre el paisaje. Si alguno
 solo lee bien en uno de los dos, se regenera ése, no los ocho.
 
+**Estado el 2026-09-22: la escena está construida y el arte no.** Las
+piezas se pintan hoy como una inicial sobre un recuadro de bronce, y el
+paisaje es un degradado. **No es un apaño provisional mal puesto: es lo
+que obliga la regla 3 de [INTERFAZ.md §6.5](INTERFAZ.md)** —la interfaz
+tiene que funcionar entera sin ninguna ilustración—, así que este es el
+estado normal con las imágenes bloqueadas, y se comprueba en la pasada de
+navegador.
+
+**Los huecos concretos que espera esta tanda**, para que nadie tenga que
+deducirlos:
+
+| Hueco | Dónde se usa hoy |
+|---|---|
+| El fondo exterior de `/reino` | `.escena-reino`, hoy un degradado radial |
+| Los ocho iconos de edificio **en grande** | `.escena__figura`, hoy una inicial |
+| Los siete iconos de la barra | `.marco__enlace`, hoy solo la etiqueta de texto |
+
+Y el peso: los **criterios 6 y 17** de §6.7 (≤ 250 KB por pantalla,
+piezas incluidas) **no se pueden comprobar todavía** y quedan pendientes
+de esta tanda. No están marcados como hechos.
+
 ---
 
 ## 8.3. Los iconos de la barra de navegación

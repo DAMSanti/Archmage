@@ -40,7 +40,21 @@ pagina.on('console', (m) => {
 });
 pagina.on('pageerror', (e) => erroresConsola.push(String(e)));
 
+/**
+ * Ir a una pantalla.
+ *
+ * **Cinco rutas viven detras de «Mas»** desde el 2026-09-22
+ * (docs/INTERFAZ.md §6.9): mercado, ranking, habilidades, gremio y
+ * temporada. Hay que abrir el menu antes de pulsar, o el boton no existe
+ * todavia en el DOM.
+ */
+const EN_MENU = ['Mercado', 'Ranking', 'Habilidades', 'Gremio', 'Temporada'];
+
 const ir = async (nombre) => {
+  if (EN_MENU.includes(nombre)) {
+    await pagina.getByRole('button', { name: 'Más', exact: true }).click();
+    await pagina.waitForTimeout(150);
+  }
   await pagina.getByRole('button', { name: nombre, exact: true }).click();
   await pagina.waitForTimeout(800);
   return pagina.locator('main').innerText();
@@ -50,12 +64,17 @@ try {
   await pagina.goto(URL, { waitUntil: 'networkidle' });
   await pagina.waitForTimeout(600);
 
-  // 1. La navegación tiene las pantallas nuevas.
-  const nav = await pagina.locator('nav').innerText();
+  // 1. Las tres viven detrás de «Más» desde el 2026-09-22
+  //    (docs/INTERFAZ.md §6.9): once entradas sueltas no caben a 360px.
+  //    Se comprueba que el menú **las lleve**, no que estén en la barra.
+  await pagina.getByRole('button', { name: 'Más', exact: true }).click();
+  await pagina.waitForTimeout(200);
+  const menu = await pagina.locator('.marco__menu').innerText();
   comprobar(
-    'la navegación lleva Mercado, Habilidades y Ranking',
-    /mercado/i.test(nav) && /habilidades/i.test(nav) && /ranking/i.test(nav),
+    'el menú «Más» lleva Mercado, Habilidades y Ranking',
+    /mercado/i.test(menu) && /habilidades/i.test(menu) && /ranking/i.test(menu),
   );
+  await pagina.keyboard.press('Escape');
 
   // 2. Habilidades: qué cambian EN NÚMEROS.
   const hab = await ir('Habilidades');

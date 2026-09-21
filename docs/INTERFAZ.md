@@ -591,13 +591,42 @@ turnos puede gastar sin buscarlo.
 > (§3): estar al tope es estar desperdiciando.
 
 **Abajo, la navegación.** Iconos grandes, de dedo, con etiqueta de texto
-—no solo icono, que se adivina mal—. Las trece rutas no caben en una
-barra, así que se agrupan; **cuál va suelta y cuál agrupada es
-`[abierto]`** y lo cierra `/plan-tarea` con la lista delante.
+—no solo icono, que se adivina mal—.
 
-Lo que sí está decidido de la agrupación: **`/reino` siempre suelta**,
-porque es donde se pasa el tiempo; y **nada de esconder `/cronica`**,
-porque es donde el jugador se entera de que le han atacado.
+**[nuestro]** **Siete entradas**, cerrado el 2026-09-22 con
+`/plan-tarea`. La marca `[abierto]` que había aquí queda resuelta:
+
+| Entrada | Qué lleva |
+|---|---|
+| **Reino** | `/reino` |
+| **Ejército** | `/ejercito` |
+| **Magia** | `/magia` |
+| **Guerra** | `/guerra` |
+| **Crónica** | `/cronica` |
+| **Mensajes** | `/mensajes` |
+| **Más** | `/mercado`, `/ranking`, `/habilidades`, `/gremio`, `/temporada` |
+
+**La cuenta es la que decide, y conviene dejarla escrita.** Descontando
+`/` —el portal, que no se navega estando dentro— y `/batalla/:id` —al que
+se llega desde guerra y desde la crónica—, quedan **once** entradas
+posibles. A **44px** de zona de toque mínima (§6.7, criterio 14), once
+son **484px** y la pantalla de referencia tiene **360**: no caben. Y una
+barra con desplazamiento lateral esconde igual que un menú, pero sin
+avisar de que hay más.
+
+Siete son **308px**. Caben, y ajustadas: es el tope, no un punto cómodo.
+
+**Por qué estas siete y no otras:**
+
+- **`/reino` suelta**, porque es donde se pasa el tiempo.
+- **`/cronica` suelta**, porque es donde el jugador se entera de que le
+  han atacado. Esconderla detrás de un menú sería esconder las malas
+  noticias.
+- **`/mensajes` suelta**, y ésta se decidió sobre la marcha al ver la
+  lista: es **lo único del menú que otra persona puede hacerte llegar**.
+  Todo lo demás lo consultas cuando te apetece; un mensaje te espera.
+- **Detrás de «Más» van las cinco que se miran cuando uno quiere**:
+  mercado, ranking, habilidades, gremio y temporada.
 
 ### 6.7. Criterios de aceptación
 
@@ -692,6 +721,136 @@ navegador:
 - **Escena en móvil.** Decidido en §5, y con su porqué.
 - **Animar la escena**: humo, agua, gente andando. Ya estaba fuera por
   §6.6 y §7; la escena no lo reabre.
+
+### 6.10. Plan técnico
+
+**Escrito el 2026-09-22 con `/plan-tarea`.** Cubre §6.5, §6.6 y §6.9.
+
+#### Lo primero: el ROADMAP mentía, y media spec ya estaba hecha
+
+El bloque de «En curso» decía **«spec escrita, sin implementar»**. Al ir
+a planear resultó falso: `apps/web/src/tokens.ts` existe con la paleta de
+§6.2, los colores de escuela de §6.3 y el formato de números de §4, y
+`apps/web/tests/tokens.test.ts` **ya comprueba los criterios 1, 2 y 3**.
+`styles.css` tiene paneles, marco de bronce y `tabular-nums`.
+
+Se implementó de pasada durante la fase 1 y nadie actualizó la línea. Lo
+que queda de verdad es **lo que la ampliación del 2026-09-22 añadió**:
+el marco persistente y la escena.
+
+#### Qué paquetes toca, y cuáles no
+
+**Solo `apps/web`.** Ni `packages/core`, ni `content`, ni `contract`, ni
+`apps/server`, ni el esquema de base de datos.
+
+Eso no es casualidad ni suerte: **es la prueba de que la spec no se metió
+donde no debía**. Una pantalla no es una regla, y si esta lista hubiera
+incluido `core`, habría que haber parado a preguntar qué regla de juego
+estábamos cambiando para pintar un dibujo.
+
+**Y el contrato tampoco cambia**, que es lo que más podía costar. La
+barra de recursos necesita geld, maná, población sobre su tope, net power
+y la cuenta atrás del turno, y `derivedSchema` **ya los trae todos**:
+`net`, `populationCapacity.capacity`, `netPower`, `msToNextTurn` y
+`turnsAtCap`. Se comprobó en el código antes de planear, no se supuso.
+
+| Fichero | Qué le pasa |
+|---|---|
+| `apps/web/src/escena.ts` | **Nuevo.** Puro: estado → qué piezas se pintan. |
+| `apps/web/src/reloj.ts` | **Nuevo.** Puro: cadencia y cuenta atrás del servidor. |
+| `apps/web/src/components/Marco.tsx` | **Nuevo.** Barra de recursos y barra de navegación. |
+| `apps/web/src/components/Escena.tsx` | **Nuevo.** La escena del reino. |
+| `apps/web/src/App.tsx` | El armazón: deja de llevar cabecera y navegación propias. |
+| `apps/web/src/routes/Reino.tsx` | Suelta lo que sube al marco, y recibe la escena. |
+| `apps/web/src/styles.css` | Marco, barra inferior, escena, placas, y el móvil. |
+| `apps/web/tests/escena.test.ts` | **Nuevo.** Criterio 11. |
+| `apps/web/tests/reloj.test.ts` | **Nuevo.** Criterio 15. |
+| `apps/web/tests/navegador*.mjs` | Las **cuatro** pasadas, por lo de abajo. |
+
+#### Dónde va cada cosa, y por qué no en el núcleo
+
+«Una pieza por cada tipo de edificio del que tengas al menos uno» **no es
+una regla del juego**: no cambia el estado, no decide nada, y dos magos
+con el mismo reino ven lo mismo lo pinte quien lo pinte. Es una
+derivación de presentación, así que **vive en `apps/web` como función
+pura** y se comprueba con `vitest` en milisegundos.
+
+Meterla en `packages/core` habría sido cómodo y habría estado mal: el
+núcleo es donde viven las reglas, y llenarlo de cosas que solo le
+importan a una pantalla es cómo un núcleo puro deja de serlo sin que
+nadie lo decida.
+
+#### El `[abierto]` que hay que cerrar: la agrupación de las trece rutas
+
+§6.9 lo dejó abierto. **Las cuentas lo cierran casi solas.** Descontando
+`/` (el portal, que no se navega estando dentro) y `/batalla/:id` (se
+llega desde guerra y crónica), quedan **once** entradas. A **44px** de
+zona de toque mínima (criterio 14), once son **484px** y la pantalla de
+referencia tiene **360**. No caben, y una barra con desplazamiento
+esconde igual que un menú pero sin avisar.
+
+La propuesta del plan fueron **seis**. **El usuario eligió siete**, y la
+séptima es `/mensajes`: es lo único del menú que otra persona puede
+hacerte llegar, y eso lo separa de mercado o ranking, que se consultan
+cuando uno quiere. Siete son **308px** — caben, y son el tope.
+
+La agrupación cerrada está en §6.9, que es donde vive la regla. Aquí solo
+queda dicho de dónde salió.
+
+#### El riesgo técnico, que es concreto y medible
+
+**Cambiar la navegación rompe las pasadas de navegador que ya existen.**
+Las cuatro navegan con `getByRole('button', { name })`, y son **58
+comprobaciones**: 11 la general, 18 la de guerra, 15 la del mundo y 14 la
+de la temporada.
+
+En cuanto seis rutas se metan detrás de «Más», las pasadas del **mundo**
+(mercado, ranking, habilidades) y de la **temporada** (gremio, mensajes,
+temporada) dejan de encontrar sus botones. No es un riesgo difuso: son
+dos ficheros concretos y hay que abrir el menú antes de pulsar.
+
+**Y el marco toca las trece pantallas**, así que las 58 comprobaciones
+son superficie de regresión de este bloque entero, no solo de la tarea
+que las rompa.
+
+#### La deuda que se hereda, dicha antes de empezar
+
+**No hay arte.** La tanda de assets es la tarea 23 de la fase 1 y sigue
+esperando una sesión con el usuario. Este bloque **no la hace**.
+
+Se puede construir todo igualmente, y es exactamente lo que la regla 3 de
+§6.5 obliga: **la interfaz tiene que funcionar entera sin ninguna
+ilustración**. Así que se implementan el marco y la escena con los huecos
+de arte declarados, y el criterio 12 —«sin imágenes se juega»— pasa a ser
+el estado normal en vez de una degradación hipotética.
+
+Lo que **no** se podrá comprobar hasta que haya arte: el criterio 6 y el
+17, que son de peso de imagen. Quedan declarados como pendientes de la
+tanda de assets, no marcados como hechos.
+
+#### Lo que se cayó del plan al implementarlo
+
+Tres cosas, y conviene que estén aquí y no solo en la cita de HECHO:
+
+1. **`/reino` no «suelta lo que sube al marco», y hace bien.** El plan
+   decía que el panel de recursos de la pantalla del reino cedería sus
+   números al marco. Al verlo de cerca, **no duplica: detalla**. El marco
+   da el vistazo desde cualquier pantalla —cifra y neto—; el panel da el
+   desglose —tope, ingreso, upkeep, almacén—. Quitarlo habría dejado el
+   desglose sin su sujeto, y en móvil, donde el marco esconde el net
+   power, habría dejado datos sin ningún sitio donde vivir.
+2. **`role="menu"` rompió la navegación sin romper nada visible.** El
+   menú de «Más» se escribió con los roles ARIA de menú, y ese rol
+   **sustituye el rol implícito de los botones de dentro**: pasan a ser
+   `menuitem` y dejan de encontrarse como botones. La pantalla se veía
+   perfecta y las pasadas de navegador se quedaban esperando un botón que
+   en el árbol de accesibilidad ya no existía. `role="menu"` es para
+   menús de aplicación; esto es navegación, y son botones.
+3. **El criterio 16 se cumplía clavado en su tope.** 76 + 52 = 128px son
+   el **20,0%** de 640, y el criterio pide ≤ 20%. Pasaba sin un píxel de
+   margen, que es una forma elegante de no proteger nada: el siguiente
+   que añadiera una línea a la barra lo habría roto sin saber por qué.
+   Bajado a 72 + 48 = 120px, el **18,8%**.
 
 ---
 
