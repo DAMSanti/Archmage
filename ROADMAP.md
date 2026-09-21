@@ -218,72 +218,136 @@ fase 1.
       >
       > Suite: **233 tests en verde** (eran 212), `tsc -b` en 0.
 
+- [x] **4. Bajar el ingreso a los valores del original.** *Decidido por
+      el usuario tras ver la recalibración de la tarea 3: «todo tiene que
+      ser como el original».*
+
+      > **HECHO (2026-09-21).** Y salió otra cosa de la que se pedía.
+      >
+      > **Fui a buscar los valores del original para bajarlos y resultó
+      > que estaban publicados.** La economía estaba en
+      > docs/ORIGINAL.md §11 como «sin verificar» —«cuánto geld da un
+      > town, cuánta comida una farm, cuánta población cabe en un
+      > town»— y la wiki la documenta entera. Está ahora en **§4.2**,
+      > confianza alta, y sale de §11.
+      >
+      > **Lo adoptado**, todo `[orig]`:
+      >
+      > - Geld por turno: `Pob × √((100 + 10×towns) / tierra) + 1.000`.
+      >   Con **rendimiento decreciente** en los towns, con el geld por
+      >   cabeza pudiendo **bajar de 1** si creces en tierra sin
+      >   construir towns, y con **suelo de 1.000**. Nuestra recta
+      >   `Pob × (0,75 + 2×%towns)` no tenía ninguna de las tres.
+      > - Espacio y comida son **dos topes separados**: espacio =
+      >   `towns×1.000 + farms×100` (se **suman**), comida =
+      >   `farms×500`. Teníamos `min(towns×300, farms×100)` — mal de
+      >   escala **y de forma**.
+      > - Crecimiento 50 + 1,5%: **ya lo teníamos bien**.
+      >
+      > **El encargo era bajar el ingreso y los números publicados lo
+      > suben.** Los topes reales alojan **4,3 veces más gente en la
+      > misma tierra**, y el ingreso *es* la población. Aun así el
+      > criterio 11 encaja, porque el problema no era que el mago fuera
+      > rico: **se estaba midiendo en el turno 600 un ancla que el
+      > original da para el turno 120**, y en el turno 120 nuestro mago
+      > estaba artificialmente pobre.
+      >
+      > **Tres criterios se arreglaron:**
+      >
+      > - **11 de §17.2** ✅ vuelve a cumplirse. En el turno 120 el
+      >   reparto de ejército sostiene **19.242** unidades, dentro de la
+      >   banda 10.000-20.000; los otros tres la bracketean (9.592,
+      >   9.725, 22.937).
+      > - **10 de §7.1** ✅ **cumple por primera vez.** El reparto
+      >   volcado a maná acaba en 3.301.483 de net power contra
+      >   2.526.383 del económico: gana por un 31%. Sin magia pierde,
+      >   así que es la magia la que le da la vuelta.
+      > - **13 de §17.2** ✅ la tierra baja del 98% al **37-55%** del net
+      >   power, y el orden de los repartos cambia: los dos que compran
+      >   ejército se ponen delante.
+      >
+      > **Dos consecuencias que no se buscaban:**
+      >
+      > - **Del geld solo ya no se muere.** Con el suelo de 1.000, un
+      >   mago con un fort se recupera (43.541 de geld a los 40 turnos) y
+      >   uno con 40 forts **se estabiliza en 10**, donde el
+      >   mantenimiento iguala al suelo. Perder el último fort pide
+      >   guerra. Es del original, no decisión nuestra.
+      > - **La proporción de equilibrio es 2,5 farms por town, no 3** — y
+      >   eso **explica** el 3:1 de las guías: a 3:1 sobran 200 de comida
+      >   por town, que es lo que se come el ejército. Las dos cifras de
+      >   las fuentes dejan de contradecirse.
+      >
+      > *Toca `packages/core` (`economy.ts`, `EconomyTuning`) y
+      > `packages/content`.* Suite: **248 tests en verde** (eran 233),
+      > `tsc -b` en 0.
+
 **El combate, pieza a pieza**
 
-- [ ] **4. La fórmula de daño.** *Test = criterio 1 de §9.1, con el
+- [ ] **5. La fórmula de daño.** *Test = criterio 1 de §9.1, con el
       número exacto: 1.000 Treants contra Dríades matan **9.000**.*
-- [ ] **5. El acierto.** Base 30, **20 en asedio**, y la fórmula a tramos
+- [ ] **6. El acierto.** Base 30, **20 en asedio**, y la fórmula a tramos
       para los modificadores. *Test = criterio 2: el asedio hace
       exactamente dos tercios del daño.*
-- [ ] **6. Resistencias por tipo de daño.** Media con varios tipos, y la
+- [ ] **7. Resistencias por tipo de daño.** Media con varios tipos, y la
       debilidad metiendo −50%. *Test = criterio 4: el Treant recibe tres
       veces más daño de fuego que de melee.*
-- [ ] **7. Habilidades defensivas.** Healing 0,7, scales 0,75,
+- [ ] **8. Habilidades defensivas.** Healing 0,7, scales 0,75,
       regeneration 0,8, charm 0,5, large shield 0,5, weakness 2,0,
       multiplicándose. *Test: cada una por separado y dos combinadas.*
-- [ ] **8. Orden de stacks y emparejamiento.** Multiplicadores
+- [ ] **9. Orden de stacks y emparejamiento.** Multiplicadores
       1,0/1,5/2,25; voladores y distancia pegan a todo, melee solo a
       tierra; objetivo solo si vale ≥10%. *Test = criterio 5: melee puro
       contra voladores puros **no hace daño**.*
-- [ ] **9. Fatiga.** −15 por primario o contraataque, −10 con
+- [ ] **10. Fatiga.** −15 por primario o contraataque, −10 con
       *Endurance*, los secundarios no. *Test = criterio 3, incluido que
       **un stack de 1 fatiga igual que uno de 20.000**.*
-- [ ] **10. La ronda.** Orden de iniciativa, ataques extra con la suya,
+- [ ] **11. La ronda.** Orden de iniciativa, ataques extra con la suya,
       y contraataques. *Test: el orden sale reproducible con la semilla.*
-- [ ] **11. La batalla entera.** Pre-batalla, batalla y post-batalla, con
+- [ ] **12. La batalla entera.** Pre-batalla, batalla y post-batalla, con
       **semilla guardada y log ronda a ronda**. *Test = criterio 6: misma
       semilla, log idéntico.*
-- [ ] **12. Quién gana, y el bonus de batalla.** *Test = criterio 7: con
+- [ ] **13. Quién gana, y el bonus de batalla.** *Test = criterio 7: con
       9% de bajas el defensor no pierde tierra; con 11%, sí.*
-- [ ] **13. La tierra y los tres ataques.** Regular 5%, asedio 10%, un
+- [ ] **14. La tierra y los tres ataques.** Regular 5%, asedio 10%, un
       tercio para el atacante, 50 supervivientes por acre, y el saqueo.
       *Test = criterio 8, con el ejemplo trabajado del original.*
 
 **Héroes e items**
 
-- [ ] **14. Héroes en batalla.** El de mayor nivel lidera el stack más
+- [ ] **15. Héroes en batalla.** El de mayor nivel lidera el stack más
       potente; bonus de eficiencia igual a su nivel; mueren con su stack.
       *Test: el reparto de héroes es determinista, y el bonus se aplica
       solo con su raza y color.*
-- [ ] **15. Items de batalla y assignment.** Usarlos en combate, y que se
+- [ ] **16. Items de batalla y assignment.** Usarlos en combate, y que se
       disparen solos al defenderse según el porcentaje de ejército
       enemigo. *Test: en defensa **no se pueden bloquear**.*
 
 **Varios magos, y la persistencia**
 
-- [ ] **16. Que exista contra quién luchar.** Hoy solo hay un mago.
+- [ ] **17. Que exista contra quién luchar.** Hoy solo hay un mago.
       *Test: hay objetivos, y el límite del 50% de net power para el
       saqueo se aplica.*
-- [ ] **17. La tabla de batallas y el bloqueo de dos filas.** Siempre
+- [ ] **18. La tabla de batallas y el bloqueo de dos filas.** Siempre
       **por id ascendente**. *Test contra Postgres: dos ataques mutuos
       simultáneos **no se bloquean entre sí**, y la batalla queda
       guardada con su semilla.*
-- [ ] **18. La acción y las rutas.** `attack` en el contrato, el
+- [ ] **19. La acción y las rutas.** `attack` en el contrato, el
       resultado con su log, y la ruta de la batalla.
       *Toca `packages/contract` y `apps/server`.*
 
 **Cliente**
 
-- [ ] **19. `/guerra`.** Lista de objetivos, los tres ataques como tres
+- [ ] **20. `/guerra`.** Lista de objetivos, los tres ataques como tres
       decisiones, el coste del upkeep dicho antes, y la previsión **con
       un rango, no con un número**.
-- [ ] **20. `/batalla/:id`.** La repetición ronda a ronda, con el acierto,
+- [ ] **21. `/batalla/:id`.** La repetición ronda a ronda, con el acierto,
       la resistencia y la eficiencia que se aplicaron. *Las tareas 19 y 20
       se verifican en **una sola pasada de navegador**.*
 
 **Calibración**
 
-- [ ] **21. ¿Compite ya el maná?** *Criterio 11 de §9.1, y **el que cierra
+- [ ] **22. ¿Compite ya el maná?** *Criterio 11 de §9.1, y **el que cierra
       los criterios 9 y 13 de §17.2**, aplazados desde la fase 1.* Y el
       criterio 10: ningún ejército de una sola unidad domina.
 

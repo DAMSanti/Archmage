@@ -20,13 +20,17 @@ const nuevo = (): MageState =>
   });
 
 describe('población y comida', () => {
-  test('criterio 5 — con 3 farms por town los dos topes se igualan', () => {
-    // docs/SISTEMAS.md §17.1, criterio 5.
-    const m = mageWith({ towns: 100, farms: 300 }, 1_000);
+  test('criterio 5 — con 2,5 farms por town los dos topes se igualan', () => {
+    // docs/SISTEMAS.md §17.1, criterio 5. **Decía 3 farms por town** hasta
+    // el 2026-09-21, porque nuestros coeficientes inventados (300 por town,
+    // la farm como tope de comida) lo hacían salir en 3. Con los publicados
+    // (docs/ORIGINAL.md §4.2) el punto de equilibrio es **2,5**, y el 3:1
+    // que aconsejan las guías es eso más el margen que se come el ejército.
+    const m = mageWith({ towns: 100, farms: 250 }, 1_000);
     const cap = populationCapacity(m, TUNING);
-    expect(cap.space).toBe(30_000);
-    expect(cap.food).toBe(30_000);
-    expect(cap.capacity).toBe(30_000);
+    expect(cap.space).toBe(125_000);
+    expect(cap.food).toBe(125_000);
+    expect(cap.capacity).toBe(125_000);
   });
 
   test('con 2 farms por town manda la comida', () => {
@@ -42,9 +46,12 @@ describe('población y comida', () => {
   });
 
   test('el mago de partida arranca justo lleno', () => {
+    // 19.500 desde el 2026-09-21: eran 4.500 con los coeficientes
+    // inventados. Los publicados alojan 4,3 veces más gente en la misma
+    // tierra (docs/ORIGINAL.md §4.2).
     const m = nuevo();
-    expect(populationCapacity(m, TUNING).capacity).toBe(4_500);
-    expect(m.resources.population).toBe(4_500);
+    expect(populationCapacity(m, TUNING).capacity).toBe(19_500);
+    expect(m.resources.population).toBe(19_500);
     // Y por tanto no crece: está en el tope.
     expect(income(m, CATALOG, TUNING).population).toBe(0);
   });
@@ -56,18 +63,23 @@ describe('población y comida', () => {
   });
 
   test('el crecimiento se frena al llegar al tope, nunca lo pasa', () => {
-    const m = mageWith({ towns: 100, farms: 300 }, 1_000, { population: 29_900 });
+    // Tope con 100 towns y 300 farms: espacio 130.000, comida 150.000.
+    const m = mageWith({ towns: 100, farms: 300 }, 1_000, { population: 129_900 });
     expect(income(m, CATALOG, TUNING).population).toBe(100);
   });
 });
 
 describe('geld', () => {
-  test('el mago de partida produce 4.050 brutos y 3.355 netos', () => {
-    // Las cifras de docs/SISTEMAS.md §15.
+  test('el mago de partida produce 22.801 brutos y 22.106 netos', () => {
+    // **Los números de partida cambiaron el 2026-09-21** al adoptar la
+    // economía publicada (docs/ORIGINAL.md §4.2). Eran 4.500 de población y
+    // 4.050 de geld; son 19.500 y 22.801, porque los coeficientes reales
+    // alojan 4,3 veces más gente en la misma tierra y el ingreso **es** la
+    // población. docs/SISTEMAS.md §15.
     const m = nuevo();
-    expect(income(m, CATALOG, TUNING).geld).toBe(4_050);
+    expect(income(m, CATALOG, TUNING).geld).toBe(22_801);
     expect(upkeep(m, CATALOG).geld).toBe(695);
-    expect(netIncome(m, CATALOG, TUNING).geld).toBe(3_355);
+    expect(netIncome(m, CATALOG, TUNING).geld).toBe(22_106);
   });
 
   test('más porcentaje de towns da más geld por habitante', () => {
@@ -78,9 +90,13 @@ describe('geld', () => {
     );
   });
 
-  test('sin población no hay geld, por muchas towns que tengas', () => {
+  test('sin población solo queda el suelo de 1.000', () => {
+    // **Decía que sin población no había geld.** El original publica un
+    // suelo de 1.000 por turno aunque no quede nadie (docs/ORIGINAL.md
+    // §4.2), y ése es el que impide que un mago arruinado quede muerto sin
+    // poder reaccionar.
     const m = mageWith({ towns: 300, farms: 300 }, 1_000, { population: 0 });
-    expect(income(m, CATALOG, TUNING).geld).toBe(0);
+    expect(income(m, CATALOG, TUNING).geld).toBe(1_000);
   });
 });
 

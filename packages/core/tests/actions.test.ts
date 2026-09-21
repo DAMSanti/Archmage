@@ -106,14 +106,16 @@ describe('construir', () => {
   });
 
   test('no se construye si el geld no llega al coste', () => {
-    // Con 900 de geld no se paga una farm (1.000), pero sí el mantenimiento
-    // (75/turno), así que NO colapsa: simplemente no construye.
-    const m = mageWith({ farms: 10, workshops: 5 }, 1_000, { geld: 900, population: 0 });
+    // Sin población entran **1.000** de suelo (docs/ORIGINAL.md §4.2) y se
+    // van 75 de mantenimiento, así que quedan 925: no llegan a la farm de
+    // 1.000 y NO colapsa, simplemente no construye. Arrancaba con 900 de
+    // geld hasta el 2026-09-21, cuando el suelo no existía.
+    const m = mageWith({ farms: 10, workshops: 5 }, 1_000, { geld: 0, population: 0 });
     const r = run(m, { type: 'build', building: 'farms', turns: 1 });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.state.buildings.farms).toBe(10);
-      expect(r.state.resources.geld).toBe(825);
+      expect(r.state.resources.geld).toBe(925);
     }
   });
 

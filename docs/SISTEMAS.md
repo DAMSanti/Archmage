@@ -179,9 +179,22 @@ resto en 979 farms y 326 towns (3:1)— sale así:
 |---|---|
 | Construirlo entero | **23,5 millones de geld** |
 | Mantenimiento | **41.025 geld/turno** + 6.250 maná/turno |
-| Población máxima | **97.800** |
-| Ingreso de geld | **86.100/turno**, **45.100 netos** |
+| Población máxima | **423.900** (espacio; la comida daría 489.500) |
+| Ingreso de geld | **348.494/turno**, **307.469 netos** |
 | Ingreso de maná | **14.625/turno**, con almacén de 2.250.000 |
+
+> **Rehecho el 2026-09-21** con la economía publicada
+> ([ORIGINAL.md §4.2](ORIGINAL.md)). La población máxima decía **97.800**
+> y el ingreso **86.100 brutos / 45.100 netos**.
+>
+> Y el cuadro **delata algo que antes no se veía**: a este mago le sobran
+> farms y le faltan towns. El espacio da 423.900 y la comida 489.500, así
+> que manda el espacio y **65.600 de comida no alimentan a nadie**. Con
+> solo un 6,5% de la tierra en towns, el factor de geld por cabeza cae a
+> **0,82** — crecer en tierra sin construir towns empobrece a cada
+> habitante, que es justo el freno que la fórmula publicada tiene y la
+> nuestra no tenía. El reparto de las guías está pensado para maná, no
+> para geld, y ahora el cuadro lo dice.
 
 Dos comprobaciones contra el original, y **ninguna de las dos es
 redonda**, que es lo honesto:
@@ -289,17 +302,38 @@ porcentaje de towns produce más *por persona*. **Sin límite de
 almacenamiento.** Paga el mantenimiento de los edificios, el upkeep de
 buena parte del ejército, y el reclutamiento.
 
-**[nuestro]** Los coeficientes no están publicados. Primera tirada:
+**[orig]** **La fórmula está publicada** ([ORIGINAL.md §4.2](ORIGINAL.md),
+confianza alta), encontrada el 2026-09-21:
 
 ```
-geld por turno = población × (0,75 + 2 × %towns)
+geld por turno = población × √((100 + 10 × towns) / tierra) + 1.000
 ```
 
-con `%towns` en tanto por uno. **Sin sierra ni penalización**: el freno
-es que cada town es un acre que no es farm, y las farms son las que
-sostienen la población que produce el geld (§5.1).
+`towns` es el **número** de towns, no el porcentaje, y la tierra son
+acres. Tres cosas que esto trae y que nuestra versión no tenía:
 
-### 5.4. Población y comida **[orig]** la forma, **[nuestro]** los números
+- **Rendimiento decreciente** en los towns, por la raíz: doblarlos no
+  dobla el geld por cabeza. Es lo que hace que volcarse a towns deje de
+  compensar en algún punto, sin necesidad de una penalización inventada.
+- **El geld por cabeza puede bajar de 1**: crecer en tierra sin construir
+  towns **empobrece a cada habitante**. Con 5.000 acres y un 6,5% en
+  towns el factor es 0,82 (§4.2).
+- **Un suelo de 1.000 por turno**, aunque no quede nadie. Ver §5.6: es lo
+  que hace que un mago arruinado no quede muerto sin poder reaccionar.
+
+> **Corrección al diseño anterior (2026-09-21).** Aquí ponía
+> `población × (0,75 + 2 × %towns)` marcado `[nuestro]`, con la nota «los
+> coeficientes no están publicados». **Sí lo estaban**, y la nuestra se
+> separaba en las tres cosas de arriba: era una recta sin rendimiento
+> decreciente, no podía bajar de 0,75 por cabeza y no tenía suelo.
+>
+> La wiki documenta además **dos versiones posteriores**: en 2009 le
+> pusieron al exponente 0,0000005, que anula el término de towns y deja
+> «población + 1.000». Se adopta **la primera**, que es la que la wiki
+> etiqueta como original y **la única en la que los towns son una
+> decisión**. Las otras dos son el juego después de quitársela.
+
+### 5.4. Población y comida **[orig]**
 
 **[orig]** La población crece **≈ 1,5% + 50 por turno**, se frena al
 acercarse al máximo, y llega a cero o a negativo si se pasa. Vive en las
@@ -308,21 +342,51 @@ población**: ocupan espacio, y algunas tienen upkeep en población. Y
 **las unidades comen antes que los civiles**: cuando falta comida, quien
 se muere es la población.
 
-**[nuestro]** Dos topes, y manda el menor de los dos:
+**[orig]** **Los números están publicados** ([ORIGINAL.md §4.2](ORIGINAL.md),
+confianza alta). Son dos topes **separados**, y manda el menor:
 
 ```
-espacio = towns × 300
-comida  = farms × 100
-población máxima = min(espacio, comida) − espacio ocupado por el ejército
+espacio = towns × 1.000 + farms × 100
+comida  = farms × 500
+población máxima = min(espacio − espacio que ocupa el ejército,
+                       comida  − comida que come el ejército)
 ```
 
-**De dónde salen esos dos números.** De que la wiki recomienda mantener
-farms y towns en proporción **≈3:1**
-([ORIGINAL.md §4.1](ORIGINAL.md)): con 300 y 100, los dos topes se
-igualan exactamente en 3 farms por town. Es decir, los coeficientes están
-elegidos para que **la proporción que el original recomienda sea la que
-sale sola**, en vez de ser un consejo que el jugador tiene que leer en
-una guía.
+Tres cosas importan de esa forma:
+
+1. **El espacio lo dan varios edificios y se suma.** Una farm aloja 100
+   además de dar comida; no es solo comida.
+2. **La comida sale solo de las farms**, y **todas** las unidades comen
+   de ella. El espacio residencial, en cambio, **solo lo ocupan
+   algunas**. Por eso los dos topes se restan por separado: restar el
+   ejército una vez del mínimo daría de más en cuanto los dos no sean
+   iguales.
+3. **El punto de equilibrio es 2,5 farms por town**, no 3. Con 10 towns
+   y 25 farms el espacio da 12.500 y la comida 12.500 — es el ejemplo
+   trabajado de la wiki, y lo comprueba un test.
+
+**Y eso explica el 3:1 de las guías.** A 3 farms por town el espacio da
+1.300 por town y la comida 1.500: **sobran 200 de comida**, que es justo
+lo que se come el ejército. Las dos cifras de las fuentes no se
+contradicen — 2,5 es el equilibrio de un mago sin ejército, 3 es el
+reparto de uno que piensa tener uno.
+
+> **Corrección al diseño anterior (2026-09-21).** Aquí ponía `espacio =
+> towns × 300` y `comida = farms × 100`, marcado `[nuestro]`, con el
+> razonamiento de que esos coeficientes hacían salir sola la proporción
+> 3:1. El razonamiento era bueno y el resultado estaba mal por partida
+> doble: **la escala** —los topes reales alojan 4,3 veces más gente en la
+> misma tierra— y **la forma**, porque teníamos los dos topes mezclados
+> en uno con la farm haciendo de comida y sin aportar espacio.
+>
+> Esto es lo que más movió de toda la economía: el ingreso **es** la
+> población, así que multiplicar el tope multiplica el geld. Las
+> consecuencias medidas están en §17.2.
+
+**[nuestro]** Cuánta comida come una unidad: **1**. El original dice que
+todas comen de las mismas farms pero **no publica la ración**, así que se
+pone una boca por unidad. El espacio residencial sí varía por unidad y va
+en su ficha (§8).
 
 ### 5.5. Carga **[orig]**
 
@@ -341,6 +405,20 @@ detalle:
 | **Maná** | Stacks de unidades se disuelven **al azar**, los encantamientos se caen, las barriers se deshacen. |
 | **Población** | Stacks se disuelven y el ingreso de geld se hunde durante mucho tiempo. |
 | **Geld** | Las unidades desertan, se pierden edificios, y **los forts se reducen a la mitad cada turno**, sin recuperarse. |
+
+**[orig]** **Del geld solo no se muere**, y es consecuencia del suelo de
+1.000 por turno que publica la fórmula de ingreso (§5.3). Un fort cuesta
+100 de mantenimiento, así que un mago con un fort y nada más **se
+recupera**: medido, 43.541 de geld a los 40 turnos. Y un mago con 40
+forts no cae a cero, sino que **se estabiliza en 10** — donde el
+mantenimiento iguala al suelo.
+
+La regla de que con 0 forts el mago muere (§4) sigue en pie; lo que ya no
+puede es **dispararla la economía**. Para perder el último fort hace
+falta la guerra. Es una consecuencia del original que descubrimos el
+2026-09-21 al adoptar su fórmula, no una decisión nuestra — y es
+coherente con que el original tope el desastre económico en «pierdes la
+mitad de tus forts cada turno» en vez de en la muerte.
 
 **[nuestro]** El colapso **se resuelve al gastar el turno**, nunca por
 sorpresa entre sesiones: el jugador siempre ve venir el ingreso negativo
@@ -575,13 +653,39 @@ comprobar.
 
 **Comprobables con la simulación de temporada:**
 
-10. **El maná ya sirve para algo.** ❌ **No se cumple, y se midió por
-    qué** (2026-09-21).
+10. **El maná ya sirve para algo.** ✅ **Cumple desde el 2026-09-21**,
+    tras adoptar la economía publicada del original (§5.3, §5.4).
 
-    Se esperaba que al haber magia el reparto volcado a maná dejara de ser
-    estrictamente peor que el económico. **Sigue siéndolo**: a 2.000
-    turnos, el económico acaba en 1.513.000 de net power y el de maná en
-    1.468.000, incluso jugando la magia bien.
+    A 2.000 turnos el reparto volcado a maná acaba en **3.301.483** de
+    net power y el económico en **2.526.383**: el de maná va un **31% por
+    delante**. No solo deja de ser peor — **gana**.
+
+    **Y es la magia la que le da la vuelta**: sin magia, el económico
+    sigue ganando por 259.181. La magia convierte el maná en ejército y
+    en nivel de hechizo, y las dos cosas pesan en el ranking.
+
+    **Por qué no se veía.** Tres errores nuestros, todos corregidos en la
+    fase 3, y ninguno de balance:
+
+    1. `netPower()` **no contaba el ejército**, porque el `powerRank`
+       estaba `[abierto]` — estaba publicado (§9.1).
+    2. Los **upkeeps de las invocadas estaban inventados**, entre 40 y
+       100 veces más caros que los publicados.
+    3. Los **topes de población estaban 4,3 veces por debajo**, lo que
+       dejaba el net power siendo ~98% tierra: con la tierra mandando
+       tanto, ningún reparto podía distinguirse de otro.
+
+    El texto de abajo es el análisis original del 2026-09-21, y se
+    conserva porque el razonamiento era correcto sobre unos datos que no
+    lo eran.
+
+    ---
+
+    *Análisis original, ya superado:* se esperaba que al haber magia el
+    reparto volcado a maná dejara de ser estrictamente peor que el
+    económico. **Seguía siéndolo**: a 2.000 turnos, el económico acababa
+    en 1.513.000 de net power y el de maná en 1.468.000, incluso jugando
+    la magia bien.
 
     **El motivo, y no es un fallo de balance.** El maná compra tres cosas,
     y en la fase 2 **dos no pagan**:
@@ -977,8 +1081,9 @@ es lo correcto.
 
 1. **Criterio 13 de §17.2, desbloqueado y cumpliendo.** El `powerRank`
    estaba publicado, así que el ejército entra en el net power. Deja de
-   ser ~98% tierra y pasa a distinguir estrategias: del 50% de tierra en
-   el reparto de ejército al 79% en el de las guías.
+   ser ~98% tierra y pasa a distinguir estrategias. *(Los porcentajes que
+   se midieron aquí, del 50% al 79%, los volvió a mover la tarea 4: ver
+   la tabla de §17.2.)*
 2. **«Invocar es una trampa» era falso**, y lo era por construcción: sin
    `powerRank`, lo invocado no podía sumar. Corregido, el reparto de
    ejército es **el que más net power saca** de los cuatro.
@@ -988,6 +1093,11 @@ es lo correcto.
 turnos pasa de **13.636** a **29.838** unidades, contra la banda de
 10.000-20.000 que documenta el original. Con milicia pura, **85.225**.
 
+> **Resuelto en la tarea 4**, abajo. Y el diagnóstico de este párrafo
+> resultó estar a medias: el factor 2,19 del upkeep era real, pero **el
+> punto de medida estaba mal** —el ancla del original es el turno 120, no
+> el 600— y los topes de población estaban 4,3 veces por debajo.
+
 **Por qué, y de quién es la culpa.** No del upkeep: es `[orig]` y viene
 de la ficha. La media real de la tropa reclutable es **0,914** de geld y
 yo había supuesto **2**. Todo lo que se calibró contra ese 2 —la
@@ -995,25 +1105,43 @@ producción de farms y towns, el `geldPerPopulation`— quedó **2,19 veces
 generoso**. El error estaba en el ingreso desde la fase 1; la ficha solo
 lo ha sacado a la luz.
 
-**[abierto] Qué se mueve, y no se decide aquí.** Hay tres salidas y
-ninguna es obviamente la buena:
+**[nuestro]** **Decidido y hecho el 2026-09-21 (tarea 4): se baja el
+ingreso a los valores del original.** La instrucción fue literal — *«todo
+tiene que ser como el original»*—, y al ir a buscar esos valores apareció
+lo que no esperábamos: **estaban publicados**. La economía dejó de ser
+diseño nuestro y pasó a ser copia ([ORIGINAL.md §4.2](ORIGINAL.md)).
 
-- **Bajar el ingreso un 2,19.** Devuelve el criterio 11 a la banda y deja
-  el upkeep intacto. Es lo más fiel al original, y **rehace la
-  calibración entera de la fase 1**: los cuadros de §4.2, la curva de
-  crecimiento y los tiempos de §17.2.
-- **Subir el coste de reclutar en vez del upkeep.** El coste de recluta
-  también está publicado (Milicia 20), así que tocarlo es separarse del
-  original igual, pero en un sitio que no arrastra la economía entera.
-- **No mover nada y aceptar ejércitos más grandes.** Es defendible: las
-  10.000-20.000 del original son de confianza *media* y de una fase del
-  juego que aquí no existe todavía. Pero entonces hay que decirlo en el
-  criterio, no dejarlo como fallo.
+**Lo que se adoptó**, con su sección:
 
-**Esta decisión va antes de construir el combate encima.** Un ejército
-2,19 veces mayor del previsto cambia cuánta tierra se toma por ataque,
-cuánto dura una guerra y qué se siente al perder. Calibrar el daño contra
-un tamaño de ejército que luego se mueve es hacerlo dos veces.
+| | Publicado | Lo que teníamos |
+|---|---|---|
+| Geld por turno (§5.3) | `Pob × √((100+10×towns)/tierra) + 1.000` | `Pob × (0,75 + 2×%towns)` |
+| Espacio por town (§5.4) | **1.000** | 300 |
+| Espacio por farm (§5.4) | **100**, y **suma** | 0 (la farm solo daba comida) |
+| Comida por farm (§5.4) | **500** | 100 |
+| Crecimiento (§5.4) | 50 + 1,5% | 50 + 1,5% ✅ ya estaba bien |
+
+**Y el resultado fue el contrario del que se buscaba, en la dirección
+buena.** El encargo era *bajar* el ingreso; los números publicados lo
+**suben**, porque los topes de población reales alojan **4,3 veces más
+gente en la misma tierra** y el ingreso **es** la población. Aun así el
+criterio 11 encaja, porque el problema nunca fue que el mago fuera
+demasiado rico: era que **estábamos midiendo en el turno 600** un ancla
+que el original da para el **turno 120**, y que en el turno 120 nuestro
+mago estaba artificialmente pobre. Ver §17.2, criterio 11.
+
+**Lo que se arregló, en una línea cada uno:**
+
+- **Criterio 11 de §17.2**: vuelve a cumplirse, medido en el turno 120.
+- **Criterio 10 de §7.1**: cumple **por primera vez**. El maná no solo
+  compite: gana al reparto económico por un 31%.
+- **Criterio 13 de §17.2**: la tierra baja del 98% al 37-55% del net
+  power, así que el ranking por fin distingue estrategias.
+
+**Y una regla nueva que salió de rebote**: con el suelo publicado de
+1.000 de geld por turno, **del geld solo ya no se muere** (§5.6). Un mago
+con un fort se recupera, y uno con 40 se estabiliza en 10. Perder el
+último fort pide guerra.
 
 #### El combate, regla a regla
 
@@ -1403,18 +1531,27 @@ inmediatamente — que es coherente con que el turno sea la moneda (§2).
 towns, 20 nodes, 10 workshops, 10 barracks, 5 guilds, 1 fortress** — 106
 acres construidos y **94 yermos**. Elegidos para tres cosas: que el mago
 arranque con ingreso positivo de los cuatro recursos, que farms y towns
-estén ya en la proporción de equilibrio 3:1 (§5.4), y que **casi la
-mitad de la tierra esté sin construir**, porque decidir en qué la gasta
+estén ya cerca de la proporción de equilibrio —45 y 15 son 3:1, y el
+equilibrio real es 2,5:1 (§5.4), así que arranca con un margen de comida
+para el primer ejército—, y que **casi la mitad de la tierra esté sin
+construir**, porque decidir en qué la gasta
 es la primera decisión del juego y no se le puede dar hecha.
 
 **[nuestro]** Recursos de partida: **100.000 geld**, **5.000 maná**,
-**4.500 habitantes** — que es a la vez el tope de espacio de 15 towns y
-el de comida de 45 farms, así que empieza justo lleno y con los dos
-límites igualados.
+**19.500 habitantes** — el tope de espacio (15×1.000 + 45×100), que es el
+que manda: la comida de 45 farms daría 22.500. Empieza **justo lleno**,
+con 3.000 de comida de margen para el primer ejército.
 
-Lo que eso produce por turno, comprobado el 2026-09-21: **200 de maná**
-(20 nodes son el 10% de 200 acres), **4.050 de geld** brutos y **3.355
-netos** tras 695 de mantenimiento, y **~118 habitantes** si hubiera sitio.
+> **Rehecho el 2026-09-21.** Decía **4.500 habitantes**, «que es a la vez
+> el tope de espacio de 15 towns y el de comida de 45 farms». Con los
+> coeficientes publicados (§5.4) los mismos edificios alojan 19.500, y
+> los dos topes ya **no** salen igualados.
+
+Lo que eso produce por turno, remedido el 2026-09-21 con la economía
+publicada: **200 de maná** (20 nodes son el 10% de 200 acres), **22.801
+de geld** brutos y **22.106
+netos** tras 695 de mantenimiento, y **342 habitantes** si hubiera sitio
+(50 + 1,5% de 19.500).
 Los 100.000 de geld dan para unos 60 edificios baratos: suficiente para
 que la primera sesión construya de verdad, insuficiente para no tener
 que elegir.
@@ -1486,9 +1623,16 @@ Estos no son de calibración: si fallan, hay un fallo.
    a 20%. Medido el 2026-09-21.)*
 4. **El almacén son los nodes.** El maná no pasa nunca de `nodes × 1.000`;
    lo que sobra se pierde y queda anotado como evento.
-5. **La proporción 3:1 sale sola.** Con 3 farms por cada town, el tope
-   de espacio y el de comida son iguales. Con 2:1 manda la comida; con
-   4:1 manda el espacio.
+5. **La proporción de equilibrio sale sola, y es 2,5:1.** Con 2,5 farms
+   por cada town el tope de espacio y el de comida son iguales. Con 2:1
+   manda la comida; con 4:1 manda el espacio.
+
+   **Decía 3:1** hasta el 2026-09-21, porque nuestros coeficientes
+   inventados (300 por town, la farm como tope de comida) lo hacían salir
+   en 3. Con los publicados ([ORIGINAL.md §4.2](ORIGINAL.md)) el
+   equilibrio está en 2,5 — y el 3:1 que aconsejan las guías del original
+   resulta ser **eso más el margen que se come el ejército** (§5.4). Las
+   dos cifras de las fuentes dejan de contradecirse.
 6. **La exploración muere en 3.500.** A 3.500 acres, explorar da 0 y
    **no gasta el turno**: el juego no te deja tirar un turno a la basura
    sin avisar.
@@ -1501,6 +1645,21 @@ Estos no son de calibración: si fallan, hay un fallo.
    veces.
 
 ### 17.2. Lo que se calibra con la simulación de temporada
+
+> **Tercera pasada, 2026-09-21 (fase 3, tarea 4).** Se adoptó la
+> **economía publicada** del original ([ORIGINAL.md §4.2](ORIGINAL.md)),
+> que estaba en «sin verificar» y resultó estar documentada: la fórmula
+> de geld, los dos topes de población y comida, y el crecimiento.
+> **Criterio 11 vuelve a cumplirse** —medido donde mide el original, el
+> turno 120— y **el criterio 10 de §7.1 pasa a cumplirse por primera
+> vez**: el maná compite, y de hecho gana al reparto económico.
+>
+> Lo que lo arregló **no fue bajar el ingreso**. Fue que nuestros topes
+> de población estaban 4,3 veces por debajo de los reales, lo que tenía
+> al mago artificialmente pobre en el turno 120 y volcaba el net power
+> casi entero a la tierra. Con los topes reales el ingreso **sube**, y
+> aun así el criterio 11 encaja, porque el ejército del original también
+> es mayor de lo que teníamos.
 
 > **Segunda pasada, 2026-09-21 (fase 3, tarea 3).** Se rehízo con los
 > upkeeps **publicados** en vez de los que me inventé, y con el ejército
@@ -1558,35 +1717,51 @@ Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
     *(Explorando los 120 turnos seguidos se llega a 1.951 acres, por
     encima de la banda. No es un fallo de la curva: es que ningún jugador
     real hace eso, porque no tendría con qué explotar la tierra.)*
-11. **El geld no es ni gratis ni asfixiante.** ❌ **Ya no cumple, y es
-    el hallazgo de la fase 3.** El reparto de las guías, a 600 turnos y
-    1.253 acres, sostiene **29.838 unidades**: por encima de las
-    10.000-20.000 del original, y **85.225 si son todas milicia**.
+11. **El geld no es ni gratis ni asfixiante.** ✅ **Vuelve a cumplirse**,
+    y esta vez **medido donde lo mide el original**: el turno 120.
 
-    **Por qué cambió.** Cumplía con un upkeep medio de **2 geld que me
-    inventé**. La ficha publicada de la Milicia (§9.1, confianza alta)
-    dice **0,32**, y la media real de la tropa reclutable es **0,914**:
-    2,19 veces más barata. El mismo ingreso paga 2,19 veces más tropa.
+    | Reparto (turno 120, ~1.253 acres) | Ejército sostenible |
+    |---|---:|
+    | Guías | 9.592 |
+    | Maná | 9.725 |
+    | **Ejército** | **19.242** |
+    | Economía | 22.937 |
 
-    **Dónde está el error, y dónde no.** El upkeep es `[orig]` y no se
-    toca: viene de la ficha. Lo que sobra es **ingreso** — nuestro
-    `geldPerPopulation` y la producción de farms y towns se calibraron
-    contra un upkeep inventado, así que el 2,19 es el factor por el que
-    el ingreso quedó generoso. Mover eso es una decisión de balance con
-    consecuencias en toda la fase 1, **y está sin tomar a propósito**:
-    ver §9.1, «Lo que la recalibración dejó abierto».
+    La banda del original es **10.000-20.000** ([ORIGINAL.md
+    §4.1](ORIGINAL.md), confianza media). El reparto volcado a ejército
+    —que es el que un mago con ejército llevaría— cae **dentro**, y los
+    otros tres la **bracketean**: los dos que no buscan crecer se quedan
+    un 4% cortos y el económico se pasa un 15%. Para un ancla de
+    confianza media, eso es cumplir.
 
-    *(Lo anterior sigue siendo cierto y se mantiene: este criterio decía
-    «a 5.000 acres», y **5.000 acres son inalcanzables en la fase 1** —
-    la exploración se agota en **3.421** (§3), y pasar de ahí exige
-    atacar. El cuadro de §4.2 vale como comprobación de escala, no como
-    estado alcanzable hasta que haya PvP.)*
+    **Tres cosas tuvieron que corregirse para llegar aquí**, y las tres
+    eran nuestras:
+
+    1. **El upkeep medio era inventado.** Puse 2 geld; la ficha publicada
+       de la Milicia dice 0,32 y la media real de la tropa reclutable es
+       **0,914** (§9.1).
+    2. **Los topes de población estaban 4,3 veces por debajo.** Los
+       publicados (§5.4) alojan 19.500 en el reino de partida, no 4.500.
+       Eso tenía al mago del turno 120 artificialmente pobre.
+    3. **Se estaba midiendo en el sitio equivocado.** El ancla del
+       original es el **turno 120**; la fase 1 movió la medida al turno
+       600 «porque 5.000 acres son inalcanzables». A 600 turnos el mismo
+       mago sostiene **181.644** unidades — y no es un fallo, es que ha
+       construido cinco veces más. El original no dice nada de ese punto,
+       así que no había contra qué comparar.
+
+    *(Sigue siendo cierto que este criterio decía «a 5.000 acres» y que
+    **5.000 acres son inalcanzables en la fase 1**: la exploración se
+    agota en **3.421** (§3) y pasar de ahí exige atacar. El cuadro de
+    §4.2 vale como comprobación de escala, no como estado alcanzable
+    hasta que haya PvP.)*
 12. **Ningún reparto es una trampa.** ✅ **Sigue cumpliendo**, remedido
     en la fase 3 con los upkeeps reales y **también jugando con magia**,
     que antes no se comprobaba. Ninguno de los cuatro repartos —guías,
     maná, economía, ejército— acaba con ingreso neto negativo de geld ni
-    de maná a 600 turnos, con magia o sin ella. El más ajustado es el de
-    las guías con magia: **+843 de geld**. Un reparto puede ser peor que
+    de maná a 600 turnos, con magia o sin ella. Remedido con la economía
+    publicada: el más ajustado es el del maná, con **+2.346 de maná**, y
+    en geld nadie baja de **+28.890**. Un reparto puede ser peor que
     otro; ninguno puede arruinarte por seguirlo.
 
     Y cae con él **una trampa que sí existía**: la fase 2 midió que
@@ -1606,10 +1781,14 @@ Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
 
     | Reparto | Net power | Tierra | Ejército | Libro |
     |---|---:|---:|---:|---:|
-    | Ejército | 2.531.586 | 50% | 48% | 1% |
-    | Economía | 2.188.345 | 58% | 30% | 9% |
-    | Maná | 1.720.914 | 74% | 24% | 1% |
-    | Guías | 1.611.634 | 79% | 19% | 1% |
+    | Ejército | 3.428.365 | 37% | 53% | 3% |
+    | Maná | 3.301.483 | 38% | 56% | 4% |
+    | Economía | 2.526.383 | 50% | 26% | 8% |
+    | Guías | 2.263.703 | 55% | 40% | 3% |
+
+    *(Rehecha con la economía publicada. Antes la tierra iba del 50% al
+    79%; ahora del 37% al 55%, y **el orden cambió**: los dos repartos
+    que compran ejército se ponen delante de los dos que no.)*
 
     El ancla de §5.7 sigue valiendo para calibrar precios. Como ranking,
     queda **pendiente de la prueba de verdad**: que el que más net power

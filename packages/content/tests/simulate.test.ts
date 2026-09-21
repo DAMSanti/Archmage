@@ -45,29 +45,58 @@ describe('criterio 10 — la curva de crecimiento se parece a la del original', 
 
 describe('criterio 11 — el geld sostiene un ejército del orden del original', () => {
   /**
-   * **Este criterio dejó de cumplirse en la fase 3, y el test lo dice.**
+   * **Vuelve a cumplirse**, y con dos correcciones encima, las dos del
+   * 2026-09-21:
    *
-   * Cumplía con un upkeep medio de 2 geld **que me inventé**. La ficha
-   * publicada de la Milicia (docs/ORIGINAL.md §9.5) dice 0,32, y la media
-   * real de la tropa reclutable es 0,914: 2,19 veces más barata. El mismo
-   * ingreso sostiene ahora 29.838 unidades en vez de 13.636.
+   *  1. El upkeep medio real es **0,914**, no los 2 geld que me inventé
+   *     (docs/ORIGINAL.md §9.5).
+   *  2. La economía entera pasó a ser la **publicada** (§4.2), que aloja
+   *     4,3 veces más población en la misma tierra.
    *
-   * No se arregla aquí. El upkeep es `[orig]` y no se toca; lo que sobra es
-   * ingreso, y moverlo es una decisión del usuario (docs/SISTEMAS.md §17.2).
+   * Y con una tercera corrección que no es de número sino **de dónde se
+   * mide**: el ancla del original es **el turno 120**, y este criterio se
+   * había movido al 600 en la fase 1. Medir un mago en un punto que no es
+   * el suyo es comparar dos cosas distintas.
    */
   test('la media de upkeep sale del catálogo, no de una constante inventada', () => {
     expect(AVG_UPKEEP_CENT).toBeCloseTo(91.4, 1);
   });
 
-  test('con los upkeeps reales el ejército sostenible SE SALE de la banda', () => {
-    const r = simulateSeason(mixStrategy(MIXES.guia!, 1_250), 600);
-    expect(r.sustainableArmy).toBe(29_838);
-    expect(r.sustainableArmy).toBeGreaterThan(20_000); // la banda del original
+  test('en el turno 120 —donde mide el original— la banda se cumple', () => {
+    // docs/ORIGINAL.md §4.1: «ejército esperable al turno 120:
+    // 10.000-20.000 unidades», con ~1.250 acres.
+    const r = simulateSeason(mixStrategy(MIXES.ejercito!, 1_250), 120);
+    expect(r.land).toBeGreaterThanOrEqual(1_200);
+    expect(r.land).toBeLessThanOrEqual(1_300);
+    expect(r.sustainableArmy).toBe(19_242);
+    expect(r.sustainableArmy).toBeGreaterThanOrEqual(10_000);
+    expect(r.sustainableArmy).toBeLessThanOrEqual(20_000);
   });
 
-  test('y con milicia pura se dispara a 85.225', () => {
+  test('los cuatro repartos caen alrededor de la banda, no lejos de ella', () => {
+    // guías 9.592 · maná 9.725 · economía 22.937 · ejército 19.242.
+    // Los dos volcados a crecer se pasan poco y los otros dos se quedan
+    // poco cortos: la banda queda **bracketeada**, que es lo que se le
+    // puede pedir a un ancla de confianza media.
+    const v = Object.fromEntries(
+      Object.entries(MIXES).map(([n, mix]) => [
+        n,
+        simulateSeason(mixStrategy(mix, 1_250), 120).sustainableArmy,
+      ]),
+    );
+    expect(v).toEqual({ guia: 9_592, mana: 9_725, economia: 22_937, ejercito: 19_242 });
+    for (const [n, x] of Object.entries(v)) {
+      expect(x, n).toBeGreaterThan(8_000);
+      expect(x, n).toBeLessThan(25_000);
+    }
+  });
+
+  test('a 600 turnos se dispara, y por eso el punto es el turno 120', () => {
+    // 181.644 con el reparto de las guías. No es un fallo: es que a 600
+    // turnos un mago ha construido cinco veces más. El original no dice
+    // nada de ese punto, así que no se puede comparar contra nada.
     const r = simulateSeason(mixStrategy(MIXES.guia!, 1_250), 600);
-    expect(Math.floor(r.netGeld / 0.32)).toBe(85_225);
+    expect(r.sustainableArmy).toBe(181_644);
   });
 });
 

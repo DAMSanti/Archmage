@@ -274,10 +274,13 @@ misma tabla dicha al revés.
 Corolario confirmado por la segunda fuente: con **599 workshops** se
 reconstruye un fort en un solo turno.
 
-**Parcial.** La wiki describe qué hace cada edificio pero **no publica el
-coste en geld ni las fórmulas exactas de ingreso** de towns, farms y
-nodes. Sabemos la forma (porcentaje de tierra, con decrecimiento a partir
-de un umbral) pero no los coeficientes.
+**Parcial, y menos de lo que parecía.** Esta nota decía que la wiki «no
+publica el coste en geld ni las fórmulas exactas de ingreso» de towns,
+farms y nodes. **De las tres cosas, dos sí están publicadas** y se
+encontraron el 2026-09-21: el ingreso de geld y los topes de población y
+comida están en **§4.2**, y la fórmula del maná en §3.1. Lo único que
+sigue sin publicarse es el **coste en geld** de cada edificio y su
+**mantenimiento**.
 
 > **Corrección al PDF.** El PDF §7 inventa «Torre del mago, Biblioteca,
 > Cuartel, Defensas» y los marca como *supuesto de diseño*. No hacía
@@ -323,6 +326,83 @@ comprobación de que una economía nuestra no es absurda:
 > del rango de las dos.
 
 ---
+
+### 4.2. La economía, publicada
+
+**Encontrado el 2026-09-21.** Esto estaba en §11 como «sin verificar» —
+«cuánto geld da exactamente un town, cuánta comida una farm, cuánta
+población cabe en un town»— y **sí está publicado**, en las páginas de
+`Geld`, `Population` y `Farms` de la wiki. Se sale de §11.
+
+#### El ingreso de geld **(confianza alta)**
+
+La wiki da la fórmula y **su historia**, que importa:
+
+| Versión | Fórmula |
+|---|---|
+| Original | `Pob × ((100 + 10×Towns) / Tierra) ^ 0,5 + 1000` |
+| Blitz, feb. 2009 | `Pob × ((100 + 10×Towns) / Tierra) ^ 0,0000005 + 1000` |
+| Actual | *«parece ser simplemente»* `Pob + 1000` |
+
+El cambio de 2009 pone el exponente en 0,0000005, que hace el paréntesis
+≈ 1 para cualquier valor: **anula el término de towns**. Por eso la
+tercera fila es la segunda vista de lejos, no un cambio aparte.
+
+> **Cuál es «el original».** La primera. Es la que la wiki etiqueta como
+> tal, la única en la que **los towns hacen algo por el geld**, y la que
+> describe la guía para principiantes («el ingreso de geld depende de la
+> población y del porcentaje de tierra en towns»). Las otras dos son el
+> juego después de que le quitaran esa decisión.
+
+Sin tope máximo de geld acumulado, y **con suelo de 1.000 por turno**
+aunque la población sea cero.
+
+#### Población: espacio y comida son **dos topes separados** **(confianza alta)**
+
+Ésta es la parte que nuestro diseño tenía con la forma equivocada:
+
+- **Espacio residencial** — lo dan **todos** los edificios y **se suman**:
+  un town da **1.000**, una farm **100**. Forts y towns son los que más
+  alojan por acre.
+- **Producción de comida** — la dan **solo las farms**: **500** cada una.
+
+La población sostenible es **el menor de los dos**, y el ejército
+**compite por los dos**: todas las unidades comen de las mismas farms, y
+algunas ocupan además espacio residencial.
+
+**El ejemplo trabajado de la wiki**, que confirma los tres números:
+
+> «10 towns = 10k de población máxima» · «25 farms = 2,5k de población
+> máxima + 12,5k de comida»
+
+10 towns × 1.000 = 10.000 de espacio; 25 farms × 100 = 2.500 más, total
+**12.500**. Y 25 farms × 500 = **12.500** de comida. Los dos topes salen
+**iguales**, y por eso la wiki aconseja **2,5 farms por town**: es el
+reparto que hace que ninguno de los dos sobre. *(La página de
+`Population` dice «3:1» y la de `Farms` «2,5»; la de 2,5 trae el ejemplo
+numérico, así que es la que se adopta.)*
+
+#### Crecimiento de población **(confianza alta)**
+
+> «El crecimiento típico es **50 de población por turno + 1,5%** de la
+> población actual.»
+
+Decrece al acercarse al máximo (entre el 90% y el 100%), llega a cero en
+el máximo y **se vuelve negativo si se pasa**. Si las unidades que comen
+población superan al crecimiento, entra en **espiral de población**: cada
+turno se pierde más, y se puede llegar a cero.
+
+#### Velocidad de construcción **(confianza media)**
+
+> «Farms y Barracks: `((Workshops / 10) + 0,1) × 2`»
+
+Encaja con el coste relativo de §4 —la farm cuesta 1 y el barracks
+también— y con el corolario de los 599 workshops.
+
+#### Lo que sigue sin publicarse
+
+El **coste en geld** de cada edificio y su **mantenimiento**, y cuánto
+espacio residencial da un **fort**.
 
 ## 5. Escuelas de magia
 
@@ -803,10 +883,12 @@ Los agremiados solo se alían con agremiados; los sin gremio, entre ellos.
 Si algo de esto aparece en [SISTEMAS.md](SISTEMAS.md), es **diseño
 nuestro** y allí se dice:
 
-- **Coeficientes de economía**: cuánto geld da exactamente un town,
-  cuánta comida una farm, cuánta población cabe en un town, el coste en
-  geld de cada edificio y su mantenimiento. *(El maná dejó de estar en
-  esta lista el 2026-09-21: su fórmula está publicada, §3.1.)*
+- **Coeficientes de economía**: el **coste en geld** de cada edificio y
+  su **mantenimiento**, y el espacio residencial de un **fort**. *(El
+  maná salió de esta lista el 2026-09-21: su fórmula está publicada,
+  §3.1. Y el mismo día salieron **el ingreso de geld, la comida, el
+  espacio por edificio y el crecimiento de población**: están publicados
+  en §4.2. Lo que queda es solo lo de arriba.)*
 - **La curva exacta de exploración**. Tenemos los extremos medidos
   (§4.1), no la función.
 - **La curva del bonus de fort.** La fórmula de daño, la de acierto y la

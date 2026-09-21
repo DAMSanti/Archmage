@@ -16,15 +16,36 @@ import { BUILDINGS } from './types.js';
 import type { Catalog, MageState } from './types.js';
 
 /**
- * Los coeficientes que el original no publica. **No son constantes del
- * núcleo**: entran como parámetro porque son justo lo que el simulador de
- * temporada puede querer mover (docs/ARQUITECTURA.md §9.7).
+ * Los coeficientes de la economía. **No son constantes del núcleo**: entran
+ * como parámetro porque son justo lo que el simulador de temporada puede
+ * querer mover (docs/ARQUITECTURA.md §9.7).
+ *
+ * **Casi todos están publicados** desde el 2026-09-21 (docs/ORIGINAL.md
+ * §4.2, confianza alta). Antes de esa fecha eran invención nuestra, y la
+ * forma que les habíamos dado estaba mal: teníamos un solo tope de población
+ * con la farm haciendo de comida, cuando el original tiene **dos topes
+ * separados**.
  */
 export interface EconomyTuning {
-  geldBase: number;
-  geldPerTownRatio: number;
-  populationPerTown: number;
-  populationPerFarm: number;
+  /** **[orig]** Suelo de geld por turno, aunque la población sea cero. */
+  geldFlat: number;
+  /** **[orig]** Espacio residencial por town: 1.000. */
+  spacePerTown: number;
+  /** **[orig]** Espacio residencial por farm: 100. */
+  spacePerFarm: number;
+  /** **[orig]** Comida por farm: 500. La comida **solo** sale de farms. */
+  foodPerFarm: number;
+  /**
+   * **[nuestro]** Comida que consume una unidad del ejército.
+   *
+   * El original dice que **todas** las unidades comen de las mismas farms
+   * («your army units are also part of your population and have to be fed
+   * using the same farms») pero **no publica la ración**. Se pone 1: una
+   * unidad es una boca. El espacio residencial va aparte y sí varía por
+   * unidad —`populationSpace`—, porque el original dice que solo *algunas*
+   * tropas lo ocupan.
+   */
+  foodPerUnit: number;
   populationGrowthFlat: number;
   populationGrowthRate: number;
   manaStoragePerNode: number;
@@ -87,10 +108,15 @@ export function populationCapacity(
   tuning: EconomyTuning,
 ): { space: number; food: number; capacity: number } {
   const mods = activeModifiers(state);
-  const space = state.buildings.towns * tuning.populationPerTown;
-  // Los encantamientos de farms suben la comida, que es el tope que más
-  // duele en Verdant (docs/SISTEMAS.md §5.4).
-  const food = conModificador(state.buildings.farms * tuning.populationPerFarm, mods.farmOutput);
+  // **El espacio lo dan varios edificios y se SUMA** (docs/ORIGINAL.md §4.2):
+  // un town aloja 1.000 y una farm 100. Hasta el 2026-09-21 aquí solo
+  // contaban los towns, a 300, y la farm hacía de tope de comida — una
+  // mezcla de los dos topes en uno.
+  const space = state.buildings.towns * tuning.spacePerTown +
+    state.buildings.farms * tuning.spacePerFarm;
+  // La comida sale **solo** de las farms, a 500. Los encantamientos de farms
+  // la suben, que es el tope que más duele en Verdant (docs/SISTEMAS.md §5.4).
+  const food = conModificador(state.buildings.farms * tuning.foodPerFarm, mods.farmOutput);
   return { space, food, capacity: Math.min(space, food) };
 }
 
@@ -113,8 +139,25 @@ export function civilianRoom(
   catalog: Catalog,
   tuning: EconomyTuning,
 ): number {
-  const { capacity } = populationCapacity(state, tuning);
-  return Math.max(0, capacity - armyPopulationSpace(state, catalog));
+  const { space, food } = populationCapacity(state, tuning);
+  // **El ejército compite por los dos topes, y no por igual**
+  // (docs/ORIGINAL.md §4.2): todas las unidades comen, solo algunas ocupan
+  // espacio residencial. Se resta de cada tope lo suyo y se toma el menor —
+  // restar de `capacity` una sola vez daría de más en cuanto los dos topes
+  // no fueran iguales.
+  const ocupado = armyPopulationSpace(state, catalog);
+  const comido = armyFood(state, catalog, tuning);
+  return Math.max(0, Math.min(space - ocupado, food - comido));
+}
+
+/** Comida que se come el ejército. docs/ORIGINAL.md §4.2. */
+export function armyFood(state: MageState, catalog: Catalog, tuning: EconomyTuning): number {
+  let total = 0;
+  for (const stack of state.army) {
+    if (!catalog.units[stack.unitId]) continue;
+    total += stack.count * tuning.foodPerUnit;
+  }
+  return total;
 }
 
 /**
@@ -138,9 +181,23 @@ export function income(state: MageState, catalog: Catalog, tuning: EconomyTuning
     mods.nodeOutput,
   );
 
-  const townRatio = state.land.total > 0 ? state.buildings.towns / state.land.total : 0;
-  const perHead = tuning.geldBase + tuning.geldPerTownRatio * townRatio;
-  const geld = conModificador(Math.floor(state.resources.population * perHead), mods.townOutput);
+  // **La fórmula publicada** (docs/ORIGINAL.md §4.2, confianza alta):
+  //   Pob × ((100 + 10×towns) / tierra) ^ 0,5 + 1.000
+  // Es la primera de las tres versiones que documenta la wiki: la única en
+  // la que los towns hacen algo por el geld. En 2009 le pusieron al
+  // exponente 0,0000005, que anula el paréntesis y deja «Pob + 1.000» —
+  // el juego después de quitarle esa decisión.
+  //
+  // El exponente 0,5 es lo que da **rendimiento decreciente** a los towns:
+  // doblarlos no dobla el geld por cabeza.
+  const factor =
+    state.land.total > 0
+      ? Math.sqrt((100 + 10 * state.buildings.towns) / state.land.total)
+      : 1;
+  const geld = conModificador(
+    Math.floor(state.resources.population * factor + tuning.geldFlat),
+    mods.townOutput,
+  );
 
   const room = civilianRoom(state, catalog, tuning) - state.resources.population;
   const growthBase =

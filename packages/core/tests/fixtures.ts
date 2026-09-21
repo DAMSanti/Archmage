@@ -34,7 +34,8 @@ export const STARTING_KINGDOM: StartingKingdom = {
   },
   geld: 100_000,
   mana: 5_000,
-  population: 4_500,
+  // Espacio = 15×1.000 + 45×100 = 19.500; comida = 45×500 = 22.500.
+  population: 19_500,
 };
 
 /**
@@ -136,12 +137,13 @@ export const CATALOG: Catalog = {
   maxSpellLevel: 31,
 };
 
-/** docs/SISTEMAS.md §5.3 y §5.4. */
+/** docs/SISTEMAS.md §5.3 y §5.4. Los valores son los publicados: ORIGINAL.md §4.2. */
 export const TUNING: EconomyTuning = {
-  geldBase: 0.75,
-  geldPerTownRatio: 2,
-  populationPerTown: 300,
-  populationPerFarm: 100,
+  geldFlat: 1_000,
+  spacePerTown: 1_000,
+  spacePerFarm: 100,
+  foodPerFarm: 500,
+  foodPerUnit: 1,
   populationGrowthFlat: 50,
   populationGrowthRate: 0.015,
   manaStoragePerNode: 1_000,

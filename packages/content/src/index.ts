@@ -91,18 +91,28 @@ export const CATALOG: Catalog = {
  * número (docs/ORIGINAL.md §3.1).
  */
 export const ECONOMY = {
-  /** geld por habitante y turno = base + porTown × (towns / tierra). */
-  geldBase: 0.75,
-  geldPerTownRatio: 2,
-  /** Espacio de población por town. */
-  populationPerTown: 300,
   /**
-   * Habitantes que alimenta una farm.
+   * **[orig]** Suelo de geld por turno. docs/ORIGINAL.md §4.2.
    *
-   * 300 y 100 están elegidos para que **la proporción 3:1 que recomienda el
-   * original salga sola**: con 3 farms por town los dos topes se igualan.
+   * El resto del ingreso es una fórmula, no un número, y vive en
+   * `income()`: `Pob × √((100 + 10×towns) / tierra)`.
    */
-  populationPerFarm: 100,
+  geldFlat: 1_000,
+  /** **[orig]** Espacio residencial por town: 1.000. */
+  spacePerTown: 1_000,
+  /** **[orig]** Espacio residencial por farm: 100. */
+  spacePerFarm: 100,
+  /**
+   * **[orig]** Comida por farm: 500.
+   *
+   * Con estos tres números **la proporción que aconseja el original sale
+   * sola**, y es **2,5 farms por town**, no 3: con 10 towns y 25 farms el
+   * espacio da 12.500 y la comida 12.500. Es el ejemplo trabajado de la
+   * wiki (docs/ORIGINAL.md §4.2), y lo comprueba un test.
+   */
+  foodPerFarm: 500,
+  /** **[nuestro]** Una unidad es una boca. El porqué, en `EconomyTuning`. */
+  foodPerUnit: 1,
   /** Crecimiento por turno: base + porcentaje de la población actual. */
   populationGrowthFlat: 50,
   populationGrowthRate: 0.015,
@@ -155,7 +165,16 @@ export const STARTING_KINGDOM: StartingKingdom = {
   },
   geld: 100_000,
   mana: 5_000,
-  population: 4_500,
+  /**
+   * Arranca lleno: espacio = 15×1.000 + 45×100 = **19.500**, comida =
+   * 45×500 = 22.500, y manda el menor.
+   *
+   * Eran 4.500 hasta el 2026-09-21, con los coeficientes que nos habíamos
+   * inventado (300 por town, la farm como tope de comida). Los publicados
+   * (docs/ORIGINAL.md §4.2) alojan **4,3 veces más gente en la misma
+   * tierra**, y con ella viene el geld: el ingreso es la población.
+   */
+  population: 19_500,
 };
 export * from './spells.js';
 export * from './units.js';

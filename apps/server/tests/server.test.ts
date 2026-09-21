@@ -175,8 +175,9 @@ describe('las rutas', () => {
     expect(r.statusCode).toBe(200);
     const body = r.json();
     expect(body.mage.land.total).toBe(200);
-    expect(body.derived.net.geld).toBe(3_355);
-    expect(body.derived.populationCapacity.capacity).toBe(4_500);
+    // 22.106 desde el 2026-09-21: economía publicada (docs/ORIGINAL.md §4.2).
+    expect(body.derived.net.geld).toBe(22_106);
+    expect(body.derived.populationCapacity.capacity).toBe(19_500);
     expect(body.server.turnCap).toBe(180);
   });
 

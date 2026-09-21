@@ -36,7 +36,7 @@ describe('la forma del estado', () => {
     expect(mage.buildings.forts).toBe(1);
     expect(mage.resources.geld).toBe(100_000);
     expect(mage.resources.mana).toBe(5_000);
-    expect(mage.resources.population).toBe(4_500);
+    expect(mage.resources.population).toBe(19_500);
     // El almacén de turnos, lleno: la primera sesión es una sesión de verdad.
     expect(mage.turns.current).toBe(TERRA.turnCap);
     expect(mage.turnsSpent).toBe(0);

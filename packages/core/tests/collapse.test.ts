@@ -39,10 +39,30 @@ describe('colapso de geld', () => {
     expect(r.state.buildings.farms).toBe(200); // no hizo falta tocarlos
   });
 
-  test('un fort solo cae a cero: es la muerte del mago', () => {
-    // docs/SISTEMAS.md §4 [orig]: con 0 forts el mago muere.
-    const m = mageWith({ forts: 1, farms: 10 }, 1_000, { geld: 0, population: 0 });
-    expect(tick(m).state.buildings.forts).toBe(0);
+  test('por geld solo YA NO se muere: el suelo de 1.000 lo impide', () => {
+    // **Este test decía lo contrario**: «un fort solo cae a cero: es la
+    // muerte del mago». Dejó de ser cierto el 2026-09-21, al adoptar el
+    // ingreso publicado (docs/ORIGINAL.md §4.2), que tiene un **suelo de
+    // 1.000 de geld por turno aunque no quede nadie**.
+    //
+    // Un fort cuesta 100 de mantenimiento. Con 1.000 entrando siempre, un
+    // mago con un fort y nada más **se recupera**: 43.541 de geld a los 40
+    // turnos, medido. La regla `[orig]` de que con 0 forts el mago muere
+    // sigue en pie (docs/SISTEMAS.md §4); lo que ya no puede es
+    // **dispararla la economía**. Hace falta la guerra.
+    let m = mageWith({ forts: 1, farms: 10 }, 1_000, { geld: 0, population: 0 });
+    for (let i = 0; i < 40; i++) m = tick(m).state;
+    expect(m.buildings.forts).toBe(1);
+    expect(m.resources.geld).toBeGreaterThan(40_000);
+  });
+
+  test('el colapso se para donde el mantenimiento iguala al suelo', () => {
+    // 40 forts cuestan 4.000 y entran 1.000: la mitad cae cada turno hasta
+    // que el mantenimiento cabe en el suelo. **10 forts = 1.000**, y ahí se
+    // queda. Es el equilibrio que crea el suelo publicado.
+    let m = mageWith({ forts: 40, farms: 10 }, 1_000, { geld: 0, population: 0 });
+    for (let i = 0; i < 40; i++) m = tick(m).state;
+    expect(m.buildings.forts).toBe(10);
   });
 
   test('la tierra sigue cuadrando después del colapso', () => {

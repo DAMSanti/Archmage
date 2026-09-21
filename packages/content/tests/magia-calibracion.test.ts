@@ -60,26 +60,31 @@ describe('criterio 10 — ¿compite ya el maná? NO, y se midió por qué', () =
   const eco = () => simulateSeason(magicStrategy(MIXES.economia!, 1_250), 2_000);
   const man = () => simulateSeason(magicStrategy(MIXES.mana!, 1_250), 2_000);
 
-  test('el reparto volcado a maná sigue por debajo del económico', () => {
-    // Medido el 2026-09-21. Éste es el criterio que NO se cumple, y el test
-    // lo fija para que se note el día que cambie.
-    expect(man().netPower).toBeLessThan(eco().netPower);
+  test('el maná YA compite: le pasa por delante al económico', () => {
+    // **Este test decía lo contrario**, y decía además «éste es el criterio
+    // que NO se cumple, y el test lo fija para que se note el día que
+    // cambie». Cambió el 2026-09-21, al adoptar la economía publicada
+    // (docs/ORIGINAL.md §4.2).
+    //
+    // El motivo medido: con los topes de población reales **la tierra deja
+    // de ser el 98% del net power**, y los nodes pasan a comprar algo que
+    // pesa — maná guardado a 0,05, y sobre todo el ejército que ese maná
+    // invoca. El reparto de maná acaba con 3.301.483 contra 2.526.383 del
+    // económico: un 31% por delante.
+    expect(man().netPower).toBeGreaterThan(eco().netPower);
+    expect(man().netPower).toBe(3_301_483);
+    expect(eco().netPower).toBe(2_526_383);
   });
 
-  test('y la magia NO acorta distancias: las abre', () => {
-    // **Decía lo contrario hasta la fase 3**: «la magia le sirve más a él que
-    // al económico», con la brecha creciendo menos de 10 veces. Medido ahora:
-    // crece 35 veces, de 13.348 a 467.431. La causa no es el maná sino los
-    // turnos — el reparto económico llega al catálogo entero (nivel 207 de
-    // hechizo, 207.000 de net power) y el volcado a maná se queda en 20,
-    // porque gasta sus turnos manteniendo encantamientos e invocando.
+  test('y es la magia la que le da la vuelta: sin ella pierde', () => {
+    // Sin magia el económico gana por 259.181. Con magia, el de maná gana
+    // por 775.100. **La magia es lo que convierte el maná en algo**, que es
+    // exactamente lo que el criterio 10 pedía.
     const sinMagia =
       simulateSeason(mixStrategy(MIXES.economia!, 1_250), 2_000).netPower -
       simulateSeason(mixStrategy(MIXES.mana!, 1_250), 2_000).netPower;
-    const conMagia = eco().netPower - man().netPower;
-    expect(sinMagia).toBe(13_348);
-    expect(conMagia).toBe(467_431);
-    expect(conMagia).toBeGreaterThan(sinMagia * 30);
+    expect(sinMagia).toBe(259_181); // gana el económico
+    expect(man().netPower - eco().netPower).toBe(775_100); // gana el de maná
   });
 
   test('donde el maná SÍ gana es en maná guardado, que es net power', () => {
@@ -113,8 +118,16 @@ describe('invocar YA NO es una trampa: la fase 3 le dio la vuelta', () => {
     );
     const mejor = Object.entries(porMix).sort((a, b) => b[1] - a[1])[0]!;
     expect(mejor[0]).toBe('ejercito');
-    expect(porMix.ejercito).toBe(2_531_586);
-    expect(porMix.economia).toBe(2_188_345);
+    expect(porMix.ejercito).toBe(3_428_365);
+    expect(porMix.mana).toBe(3_301_483);
+    expect(porMix.economia).toBe(2_526_383);
+    // Y el orden entero: los dos repartos que compran ejército por delante
+    // de los dos que no. Es la primera vez que el ranking dice algo del
+    // juego en vez de medir cuánta tierra tienes.
+    const orden = Object.entries(porMix)
+      .sort((a, b) => b[1] - a[1])
+      .map(([n]) => n);
+    expect(orden).toEqual(['ejercito', 'mana', 'economia', 'guia']);
   });
 
   test('el ejército pasa a ser la mitad del net power del reparto que lo busca', () => {

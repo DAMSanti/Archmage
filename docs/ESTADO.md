@@ -19,15 +19,18 @@ El repositorio contiene, a día de hoy:
 | Documentos en `docs/` | 9 |
 | Comandos en `.claude/commands/` | 4 |
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
-| Tests | **233**, todos en verde |
+| Tests | **248**, todos en verde |
 | `tsc -b` | sale **0** |
 | Bundle del cliente | **225 KB**, **65 KB** comprimido |
 
 **La fase 1 está implementada: tareas 1 a 21 de 22.** Queda la **22**, la
 tanda de assets, que espera una sesión con el usuario. **La fase 2 está
-completa.** De la **fase 3** están hechas las tareas **1 a 3**; se paró
-ahí a propósito, porque la recalibración dejó una decisión de balance
-sobre la mesa ([SISTEMAS.md §9.1](SISTEMAS.md)). Ver
+completa.** De la **fase 3** están hechas las tareas **1 a 4** de 22. La 4
+cerró la decisión de balance que la 3 había dejado abierta, y lo hizo
+adoptando la **economía publicada** del original: la fórmula de geld, los
+topes de población y comida, y el crecimiento
+([ORIGINAL.md §4.2](ORIGINAL.md)). Con ella vuelven a cumplirse el
+criterio 11 de §17.2 y, **por primera vez**, el 10 de §7.1. Ver
 [ROADMAP.md](../ROADMAP.md).
 
 ---
@@ -39,8 +42,8 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-21) |
 |---|---|---|
-| La suite entera (233 tests) | — | **~2,7 s** |
-| `vitest packages/core` (126 tests) | milisegundos | **~380 ms** |
+| La suite entera (248 tests) | — | **~2,7 s** |
+| `vitest packages/core` (139 tests) | milisegundos | **~400 ms** |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (22 tests, hasta 2.000 turnos) | segundos | **~350 ms** |
 | `vitest apps/server` (20 tests, Postgres real) | segundos | **~0,7 s** |
