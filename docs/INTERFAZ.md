@@ -79,7 +79,9 @@ esa función falta en `packages/core`.
 | `/mercado` | Mercado negro: subasta de items, hechizos y unidades, y taberna de héroes. Ver §3.4. | 4 |
 | `/ranking` | Clasificación del servidor por net power. Ver §3.5. | 4 |
 | `/habilidades` | Las diez habilidades del mago y en qué gastar los puntos. Ver §3.6. | 4 |
-| `/gremio` | Gremio, aliados, diplomacia. | 5 |
+| `/gremio` | Gremio, aliados y diplomacia. Ver §3.7. | 5 |
+| `/mensajes` | Bandeja, directos y tablón de gremio. Ver §3.8. | 5 |
+| `/temporada` | Cuántos sellos van, cuánto falta, y los dos Halls. Ver §3.9. | 5 |
 
 ---
 
@@ -221,6 +223,49 @@ fórmula.
 
 Las cinco de especialidad dicen **cuánto cuestan fuera de tu color** —el
 doble— en la propia fila, no en una nota al pie.
+
+---
+
+### 3.7. El gremio **[F5]**
+
+Spec en [SISTEMAS.md §14.1](SISTEMAS.md). Miembros, solicitudes, enemigos
+declarados, registros de batalla, y los **aliados**.
+
+**Lo que esta pantalla tiene que dejar claro:**
+
+- **A un compañero de gremio no se le puede atacar**, y eso se dice aquí
+  y también en `/guerra`: un botón que no está sin explicación parece un
+  fallo.
+- **Un aliado manda refuerzos automáticos, salvo sus dos stacks más
+  potentes.** Va dicho **antes** de aliarse, porque el que acepta está
+  comprometiendo su ejército a batallas que no elige.
+- **Romper una alianza tarda 24 horas**, y durante ese plazo los
+  refuerzos siguen yendo. Se dice al pulsar, no después.
+
+### 3.8. Los mensajes **[F5]**
+
+Bandeja, directos y tablón de gremio. **Sin tiempo real**: se recarga al
+entrar, no hay aviso emergente y no hay indicador de «escribiendo». Es
+correo, no chat ([SISTEMAS.md §16](SISTEMAS.md)).
+
+**El bloqueo está en la conversación**, a un clic, y no escondido en una
+configuración: el canal que abre la diplomacia abre también el acoso, y
+en un juego de tres meses eso expulsa gente antes que cualquier
+desequilibrio. Quien bloquea **no ve** los intentos de escribirle.
+
+### 3.9. La temporada **[F5]**
+
+**Cuántos de los siete sellos van, y cuánto falta para la fecha tope.**
+Las dos cosas a la vez y desde el primer día, porque **la fecha garantiza
+que la temporada acaba y los sellos permiten acabarla antes** — y si solo
+se enseñara una, la otra parecería no existir.
+
+Y los dos Halls: **Hall of Fame** con los diez primeros por net power, y
+**Hall of Immortals** con los siete que rompieron sello.
+
+> **Esta pantalla es la que responde «¿para qué juego?»**, así que es la
+> única que puede permitirse ser un poco solemne. Lo que no puede es
+> mentir sobre cuánto falta.
 
 ---
 

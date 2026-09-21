@@ -80,7 +80,8 @@ Acciones de la fase 1: `Build`, `Demolish`, `Explore`, `SetRecruit`,
 Fase 2: `Research`, `CastSpell`, `DispelEnchantment`.
 Fase 3: `Attack` (regular / siege / pillage), `SetAssignment`.
 Fase 4: `UseItem`, `MarketList`, `MarketBid`, `TrainSkill`, `AssignHero`.
-Fase 5: gremios, aliados, diplomacia.
+Fase 5: `FoundGuild`, `JoinGuild`, `LeaveGuild`, `ProposeAlliance`,
+`BreakAlliance`, `SendMessage`, `BlockMage`, `CastArmageddon`.
 
 > **Dos acciones no caben por esta puerta, y se dice.** `apply()` está
 > escrito para **un** mago, y hay cosas que tocan dos o más:
@@ -118,6 +119,8 @@ Los **únicos** procesos programados del sistema, y todos **idempotentes**:
 | Cierre de temporada | fin de temporada **[F5]** | Armageddon, Hall of Fame, reset de magos. |
 | Subastas del mercado | cadencia del mercado **[F4]** | Resuelve pujas cerradas. |
 | Instantánea de ranking | diaria **[F4]** | Congela la clasificación del día. |
+| Ruptura de alianza | al vencer su plazo **[F5]** | Deshace las que pidieron romperse hace 24 h. |
+| Fin de temporada por fecha | al llegar el tope **[F5]** | Cierra la temporada que pasa de 90 días. |
 
 Añadir un proceso programado **es un cambio de contrato**: se discute
 aquí primero.
@@ -258,6 +261,38 @@ protege; solo las protege saberlas.
     vence no genera geld, ni maná, ni población. Si un día algo del
     mercado empieza a producir con el reloj, **está roto**, aunque los
     números cuadren.
+
+16. **Un mago solo ve y toca su servidor.** Añadido el 2026-09-22 con la
+    spec de la fase 5 ([SISTEMAS.md §14.1](SISTEMAS.md)). Hasta ahora
+    había **un servidor** y la constante `TERRA` estaba en todas las
+    consultas, así que la regla se cumplía sola. Con dos, deja de
+    cumplirse sola.
+
+    Es de los que se rompen sin error: una consulta a la que se le olvide
+    el `serverId` devuelve magos del otro mundo, **y la pantalla los
+    pinta igual**. El ranking mezcla dos temporadas, el mercado ofrece
+    lotes que no se pueden comprar, y la lista de objetivos enseña gente
+    a la que no se puede atacar. Ninguna de las tres da un error.
+
+    La forma de no romperlo: el `serverId` sale del **mago de la sesión**,
+    igual que su id (invariante 13), y toda consulta que devuelva magos o
+    cosas de magos lo lleva.
+
+17. **Una temporada cerrada es historia, no estado.** Añadido el
+    2026-09-22. Al acabar una temporada los magos **no se borran**: se
+    archivan y se marcan como cerrados. Lo que no puede pasar es que
+    sigan jugando — apareciendo en rankings, recibiendo ataques o
+    devengando turnos.
+
+    Se rompe en silencio de dos maneras opuestas y las dos son malas:
+    borrando de verdad, y entonces «qué pasó en la temporada 3» deja de
+    tener respuesta; o archivando a medias, y entonces un mago muerto
+    sigue saliendo en la lista de objetivos de gente que ya no puede
+    atacarle.
+
+    Y **lo que sobrevive no da ventaja**: nombre, escuela, puesto y net
+    power final. Nada que se pueda gastar. Un juego por temporadas donde
+    lo anterior te hace más fuerte no es un juego por temporadas.
 
 ---
 

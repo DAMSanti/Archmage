@@ -2109,10 +2109,277 @@ que este juego se pueda jugar más de una vez**, y es la respuesta a que
 un veterano no sea inalcanzable. Está en la fase 5 por coste, no por
 importancia.
 
-**[abierto]** Qué hace exactamente el hechizo **Armageddon** y cómo se
-resuelve el final. El original no lo documenta de forma accesible.
+**[orig]** **Cerrado el 2026-09-22.** Decía que el original no lo
+documentaba de forma accesible; **sí lo hace**, y resulta ser lo más
+interesante del diseño: Armageddon son **siete sellos** que rompen siete
+magos distintos, uno cada 24 horas
+([ORIGINAL.md §10.1](ORIGINAL.md), confianza alta). El final de la
+temporada **no es una fecha, es una decisión colectiva** — la fecha solo
+pone el tope. Todo el detalle, en §14.1.
 
 ---
+
+### 14.1. La temporada y el mundo de la fase 5 **[F5]**
+
+**Spec del 2026-09-22.** Cierra la marca `[abierto]` de qué hace
+Armageddon, y añade lo que convierte esto en un juego que se puede jugar
+**más de una vez**: gremios, alianzas, mensajería, dos servidores y un
+final de temporada.
+
+#### Qué problema resuelve
+
+Tres cosas, y la tercera es la que de verdad importa:
+
+1. **Nadie puede hablar con nadie.** Hay guerra desde la fase 3 y mercado
+   desde la 4, pero **coordinarse es imposible dentro del juego**. Un
+   pacto de no agresión no tiene dónde pactarse, y la subasta no tiene
+   dónde negociarse. El juego empuja a los jugadores fuera de él.
+2. **Atacar no tiene consecuencias sociales.** Sin gremios, todo el mundo
+   es enemigo de todo el mundo por igual, y la diplomacia —que en el
+   original es media partida— no existe.
+3. **La partida no acaba nunca.** Y eso no es un detalle: **es la
+   respuesta a que un veterano sea inalcanzable** (§14). Sin reset, el
+   que empezó primero gana para siempre y el que llega tarde no tiene
+   partida. La temporada es lo que hace que empezar de cero sea normal y
+   no un castigo.
+
+#### Alcance, decidido con el usuario
+
+**[nuestro]** Decidido el 2026-09-22, con las cuatro preguntas que
+cambiaban el trabajo:
+
+- **Dos servidores**, uno normal y uno rápido. Lo justo para que el
+  multiservidor exista y se pueda probar; añadir el tercero será dato y
+  no código.
+- **Armageddon con las dos vías**: los **siete sellos** y la **fecha
+  tope**. Fiel al original, con el riesgo declarado de que los sellos no
+  se usen al principio.
+- **Gremios y alianzas completos**, incluidos los **refuerzos
+  automáticos** — que tocan el combate ya calibrado de la fase 3.
+- **Mensajería** entre magos y de gremio. Sin tiempo real: eso sigue
+  fuera para siempre (§16).
+
+---
+
+#### Gremios
+
+**[orig]** Un gremio necesita **cinco fundadores**
+([ORIGINAL.md §10](ORIGINAL.md), confianza alta). Se entra por solicitud
+o por invitación. Da: **protección frente a los compañeros**, listas de
+miembros y de enemigos, registros de batalla, y permiso para hablar de
+táctica por la mensajería interna.
+
+**[nuestro]** «Protección frente a los compañeros» es **regla del
+código**, no norma de foro: atacar a alguien de tu gremio **no se puede**,
+y el intento es un error de dominio. Si el juego lo permite, alguien lo
+usa (§13).
+
+**[nuestro]** **Un mago, un gremio.** El original no lo dice
+explícitamente, pero la protección entre compañeros no tiene sentido si
+se puede estar en varios a la vez: sería inmunidad con pasos extra.
+
+> **Criterio 1.** Un gremio no se funda con cuatro. Al quinto, se funda.
+> *Test del servidor contra Postgres.*
+>
+> **Criterio 2.** Atacar a un compañero de gremio es un **422 con su
+> código**, no un 500 ni un ataque que sale. *Test del núcleo y del
+> servidor.*
+>
+> **Criterio 3.** Un mago no puede estar en dos gremios: la segunda
+> solicitud aceptada es un error de dominio. *Test del servidor.*
+
+---
+
+#### Aliados, y lo que le hacen al combate
+
+**[orig]** Se tienen **1 o 2 aliados** según el servidor. Los aliados
+**mandan refuerzos automáticamente** cuando te atacan —**salvo sus dos
+stacks más potentes**— y pueden lanzarte hechizos **sin que la barrier
+los frene**. Un compañero de gremio que no sea aliado **no manda
+refuerzos**.
+
+**[nuestro]** **Los refuerzos entran en la pre-batalla**, que es la capa
+que la fase 4 ya construyó (§9.1): se añaden al ejército del defensor
+antes de la primera ronda, y **sus bajas son suyas**. Hacerlo así tiene
+una consecuencia que conviene ver: **ayudar cuesta**, porque el aliado
+pierde unidades de verdad en una batalla que no eligió.
+
+**[nuestro]** **Los dos stacks más potentes se quedan en casa**, y eso es
+del original. El efecto es que una alianza **no convierte a dos magos en
+uno**: el que ayuda sigue pudiendo defenderse, y el que recibe ayuda no
+recibe el ejército entero de nadie.
+
+**[nuestro]** **Una alianza se rompe con aviso**, no al instante: **24
+horas** desde que se pide. Sin eso, aliarse sería gratis —te ayudo
+mientras me conviene y me borro justo antes de que me toque ayudar— y la
+alianza dejaría de ser un compromiso.
+
+> **Criterio 4.** Un defensor con aliado pelea con más unidades que uno
+> sin él, y **el aliado pierde unidades** en esa batalla. *Test del
+> núcleo con semilla fijada.*
+>
+> **Criterio 5.** Los **dos stacks más potentes del aliado no aparecen**
+> en la batalla. *Test del núcleo: el aliado manda cinco stacks y llegan
+> tres, y son los tres menos potentes.*
+>
+> **Criterio 6.** Un compañero de gremio que **no** es aliado no manda
+> nada. *Test del núcleo.*
+>
+> **Criterio 7.** Romper una alianza tarda 24 horas, y durante ese plazo
+> **los refuerzos siguen yendo**. *Test con el reloj inyectado.*
+
+---
+
+#### Mensajería
+
+**[nuestro]** Bandeja de entrada, **mensajes directos entre magos** y un
+**tablón de gremio**. Sin tiempo real, sin notificaciones push y sin
+adjuntos: es correo interno, no un chat (§16).
+
+**[nuestro]** **Un mago puede bloquear a otro.** Sin eso, el canal que
+abre la diplomacia abre también el acoso, y en un juego de tres meses eso
+expulsa gente antes que cualquier desequilibrio.
+
+**[nuestro]** Los mensajes **se borran con la temporada**, como el mago.
+Lo que sobrevive al reset es la cuenta, no lo que pasó en Terra.
+
+> **Criterio 8.** Un mensaje llega a su destinatario y **no a nadie
+> más**: pedir la bandeja de otro es un 403. *Test del servidor* — es el
+> invariante 13 otra vez.
+>
+> **Criterio 9.** Un mago bloqueado no puede escribir, y el que bloquea
+> **no recibe un aviso de que lo intentó**. *Test del servidor.*
+>
+> **Criterio 10.** El tablón de gremio solo lo leen sus miembros. *Test
+> del servidor.*
+
+---
+
+#### Dos servidores
+
+**[orig]** Varios servidores simultáneos, cada uno con su **cadencia de
+turno y su tope** ([ORIGINAL.md §2](ORIGINAL.md), confianza alta):
+Apprentice 15 min y tope 150; Blitz 5 min y tope 200.
+
+**[nuestro]** **Entran dos**: uno normal —el `TERRA` de ahora, 10 minutos
+y tope 180— y uno **rápido**, a 5 minutos y tope 200. Se elige al crear
+el mago, y **un mago por cuenta y servidor** sigue siendo la regla, que
+ya está implementada desde la fase 4.
+
+**[nuestro]** **Las temporadas son independientes.** Cada servidor tiene
+su fecha de final y sus siete sellos: que acabe uno no toca al otro. Es
+lo que permite que alguien esté empezando en uno mientras el otro termina.
+
+> **Criterio 11.** Una cuenta puede tener **un mago en cada servidor**, y
+> **no dos en el mismo**. *Test del servidor.*
+>
+> **Criterio 12.** El servidor rápido devenga turnos al doble de ritmo y
+> acumula hasta 200. *Test del núcleo.*
+>
+> **Criterio 13.** El ranking, el mercado y los objetivos de guerra
+> **solo enseñan magos del mismo servidor**. *Test del servidor* — es lo
+> que impide que dos mundos se toquen.
+
+---
+
+#### Armageddon: los siete sellos
+
+**[orig]** Cerrada la marca `[abierto]` que llevaba desde la fase 1. No
+es un hechizo que se lanza una vez, **es una carrera de siete**
+([ORIGINAL.md §10.1](ORIGINAL.md), confianza alta):
+
+- **Siete sellos.** Cada lanzamiento con éxito rompe uno; roto el
+  séptimo, la ronda acaba.
+- **Un sello cada 24 horas como mínimo.**
+- **Un mago solo puede romper un sello** por secuencia: hacen falta
+  **siete magos distintos**.
+- El hechizo **se investiga al final**, después de todos los demás, y
+  **no suma nivel de hechizo** — es el único del catálogo que no te hace
+  más fuerte.
+- **Los siete que rompieron sello entran en el Hall of Immortals.**
+- Además, **una fecha tope anunciada**: uno o dos meses desde el inicio.
+
+**[nuestro]** La fecha tope se fija en **90 días** desde que abre el
+servidor, que es lo que §14 ya decía («~3 meses»). Los sellos permiten
+acabar antes; la fecha garantiza que acaba.
+
+> **Riesgo declarado, y es el mismo que el del mercado.** Coordinar
+> **siete magos distintos** con un sello cada 24 horas pide una población
+> que al principio no habrá. La respuesta no es bajar el número —eso
+> sería dejar de copiar el original en lo que mejor tiene— sino que **la
+> pantalla enseñe cuántos sellos van y cuánto falta para la fecha tope**,
+> de modo que la vía automática sea visible y la de los sellos sea una
+> aspiración, no un misterio.
+
+**[nuestro]** **El coste del hechizo no está publicado.** Se fija en
+**el doble del Ultimate más caro del catálogo**, porque romper un sello
+tiene que ser un esfuerzo de mago grande y no un trámite. Se valida con
+la simulación: un mago que llega al final de la temporada **puede
+pagarlo, y no dos veces seguidas**.
+
+> **Criterio 14.** Hacen falta **siete magos distintos**: el mismo mago
+> no rompe dos sellos. *Test del núcleo.*
+>
+> **Criterio 15.** Dos sellos seguidos en menos de 24 horas **no**: el
+> segundo es un error de dominio. *Test con el reloj inyectado.*
+>
+> **Criterio 16.** El hechizo *Armageddon* **no se puede investigar**
+> hasta saber todos los demás, y **no sube el nivel de hechizo**. *Test
+> del núcleo* — y esto último es comprobable porque el nivel es un número
+> reproducible desde la fase 2.
+>
+> **Criterio 17.** Roto el séptimo sello, la temporada **acaba**, y
+> también acaba sola al llegar a los 90 días sin sellos. *Test con el
+> reloj inyectado, por las dos vías.*
+
+---
+
+#### El final, y lo que sobrevive
+
+**[orig]** Al acabar: **la cuenta persiste y el mago se borra**. Se gana
+acabando entre los diez primeros (*Hall of Fame*) o rompiendo un sello
+(*Hall of Immortals*).
+
+**[nuestro]** **Lo que sobrevive al reset es una lista, no un estado.**
+Nombre, escuela, net power final y puesto — nada que dé ventaja en la
+temporada siguiente. Un juego por temporadas donde lo anterior te hace
+más fuerte no es un juego por temporadas.
+
+**[nuestro]** **El reset no borra: archiva.** La temporada que termina
+queda guardada y legible, y la nueva empieza limpia. Borrar de verdad
+haría imposible responder «qué pasó en la temporada 3», que es
+exactamente lo que da ganas de jugar la cuarta.
+
+> **Criterio 18.** Tras el reset, la **cuenta sigue** y puede crear un
+> mago nuevo; el mago viejo **no se puede jugar**. *Test del servidor.*
+>
+> **Criterio 19.** El Hall of Fame guarda **los diez primeros por net
+> power** y el Hall of Immortals **a los siete de los sellos**. *Test del
+> servidor.*
+>
+> **Criterio 20.** Un mago de una temporada cerrada **no aparece** en el
+> ranking ni en los objetivos de la nueva. *Test del servidor.*
+>
+> **Criterio 21.** Lo que sobrevive **no da ventaja**: un mago nuevo de
+> una cuenta con Hall of Fame empieza exactamente igual que uno de una
+> cuenta nueva. *Test del núcleo comparando los dos estados iniciales.*
+
+---
+
+#### Fuera de alcance de la fase 5
+
+- **Chat en tiempo real.** Fuera para siempre (§16).
+- **Los dioses y el favor divino.** Siguen fuera (§16), y con ellos el
+  *Altar of Darkness* del mercado.
+- **Los ocho servidores del original.** Entran dos; los demás serían
+  dato, y algunos tienen reglas propias —en Arch y Solo no hay Armageddon
+  de jugador— que pedirían su propia spec.
+- **Los 46 unique items** y **las habilidades de héroe**: siguen
+  `[abierto]` desde la fase 4, y no es esta spec quien los cierra.
+- **Moderación y denuncias.** Hay bloqueo entre magos, que es lo que
+  protege a una persona; un sistema de denuncias necesita a alguien que
+  las lea, y eso no es código.
+- **Migrar un mago entre servidores.** Cada mundo es suyo.
 
 ## 15. Empezar a jugar **[F1]**
 

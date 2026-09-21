@@ -110,6 +110,28 @@ original en [docs/ORIGINAL.md §4.2 y §9.1](docs/ORIGINAL.md).
 Queda `[abierto]` el efecto numérico de las habilidades de héroe, y la
 lista completa de items es de la fase 4.
 
+### La temporada de la fase 5 — spec escrita, sin implementar
+
+**Spec**: [docs/SISTEMAS.md §14.1](docs/SISTEMAS.md), «La temporada y el
+mundo de la fase 5». Escrita el 2026-09-22. Toca además
+[docs/SPECS.md §5](docs/SPECS.md) —invariantes 16 y 17— y
+[docs/INTERFAZ.md §3.7-3.9](docs/INTERFAZ.md).
+
+Gremios, aliados con refuerzos automáticos, mensajería, dos servidores y
+el final de temporada. **Cuatro decisiones tomadas con el usuario**: dos
+servidores en vez de uno u ocho; Armageddon con **las dos vías**, sellos
+y fecha tope; gremios y alianzas **completos**, incluidos los refuerzos
+que tocan el combate ya calibrado; y mensajería con directos, tablón y
+bloqueo.
+
+**Lo que se encontró al especificar**: la marca `[abierto]` de qué hace
+Armageddon **estaba publicada**, y resulta ser lo más interesante del
+diseño — **siete sellos que rompen siete magos distintos**, uno cada 24
+horas. El final de la temporada **no es una fecha, es una decisión
+colectiva**; la fecha solo pone el tope.
+
+Sin tareas todavía: las saca `/plan-tarea`.
+
 ### El mundo de la fase 4 — cerrada el 2026-09-22
 
 **Las 25 tareas hechas.** La spec y el plan siguen en
@@ -1034,11 +1056,17 @@ cuatro items publicados.)*
 
 ## Fase 5 — Temporada
 
-- [ ] Gremios, aliados y refuerzos automáticos.
+**Spec escrita el 2026-09-22**, en
+[docs/SISTEMAS.md §14.1](docs/SISTEMAS.md). Ver «En curso».
+
+- [ ] Gremios: cinco fundadores, listas, y **no se ataca a los tuyos**.
+- [ ] Aliados: refuerzos automáticos **menos sus dos mejores stacks**.
 - [ ] NAP y diplomacia.
-- [ ] Varios servidores a velocidades distintas.
-- [ ] Armageddon, Hall of Fame y reset de temporada.
-- [ ] Cliente: `/gremio`.
+- [ ] Mensajería: directos, tablón de gremio y **bloqueo**.
+- [ ] **Dos servidores**: normal y rápido, con temporadas independientes.
+- [ ] **Armageddon: los siete sellos** y la fecha tope de 90 días.
+- [ ] Hall of Fame, Hall of Immortals y reset que **archiva, no borra**.
+- [ ] Cliente: `/gremio`, `/mensajes`, `/temporada`.
 
 ---
 

@@ -1029,6 +1029,39 @@ Los agremiados solo se alían con agremiados; los sin gremio, entre ellos.
 
 ---
 
+## 10.1. Armageddon: los siete sellos
+
+**Confirmado** (página *Armageddon*, ampliación del 2026-09-22). No es un
+hechizo que se lanza una vez: es **una carrera de siete**.
+
+- **Siete sellos.** Cada lanzamiento con éxito del hechizo *Armageddon*
+  **rompe uno**. Roto el séptimo, empieza el Armageddon y acaba la ronda.
+- **Un sello cada 24 horas como mínimo** (12 en el servidor Lightning).
+- **Un mago solo puede romper un sello** por secuencia. O sea que hacen
+  falta **siete magos distintos** coordinados — es una actividad de
+  gremio, no de uno.
+- **El hechizo se investiga al final**, después de todos los demás, y
+  **no suma nivel de hechizo**. Es el único del catálogo que no te hace
+  más fuerte.
+- **Los siete que rompieron sello entran en el Hall of Immortals.**
+- **Todos los servidores tienen además una versión automática**, con
+  fecha anunciada: *«marca la última fecha en que una ronda puede
+  acabar»*, típicamente **uno o dos meses después de empezar**.
+- La versión que lanzan los jugadores está activa en casi todos los
+  servidores, **menos en Arch y Solo**.
+- Tras el final, **el servidor se cierra unos días** para limpiarlo y
+  prepararlo, y luego vuelve a abrir.
+
+> **Lo que esto dice del diseño, y es lo que más importa de la fase 5:**
+> el final de la temporada **no es una fecha, es una decisión colectiva**.
+> Siete magos que se ponen de acuerdo pueden cerrar la ronda antes de
+> tiempo, y eso convierte «cuándo acaba» en una jugada más — la última.
+> El reloj solo pone el tope.
+
+**Parcial.** No se publica el **coste** de lanzar el hechizo ni qué
+destruye exactamente el evento. Tampoco aparece el término *Destroyer of
+Terra* en esa página, aunque sí en la descripción general del juego (§1).
+
 ## 11. Lo que sigue sin verificar
 
 Si algo de esto aparece en [SISTEMAS.md](SISTEMAS.md), es **diseño
