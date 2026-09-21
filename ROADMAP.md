@@ -200,26 +200,77 @@ fase 3, y se atacan **las 15 tareas seguidas**.
 
 **Las reglas**
 
-- [ ] **6. Investigar.** Progreso por turno según guilds, sin duplicados.
+- [x] **6. Investigar.** Progreso por turno según guilds, sin duplicados.
       *Test = criterio 5: investigar algo sabido es error de dominio y no
       gasta nada.* **Cambia el contrato**: `spellbook.researching` pasa a
       llevar progreso.
-- [ ] **7. El libro de hechizos.** Qué puede investigar este mago y a qué
+
+      > **HECHO (2026-09-21).** Progreso por turno = guilds x 2 dedicado, la
+      > mitad pasivo. *Calibrado contra el criterio 11: el catálogo son
+      > 117.100 puntos, y un mago del turno 120 (125 guilds) tarda **469
+      > turnos** — dentro de los 300-600 que le corresponden a una escuela
+      > según el original.* 7 tests.
+      >
+      > **Decisión que hubo que tomar**: cambiar de hechizo **tira el progreso
+      > del anterior**. Es lo que hace que elegir qué investigar importe.
+- [x] **7. El libro de hechizos.** Qué puede investigar este mago y a qué
       precio le saldría lanzarlo. Función de consulta pura, para que la
       pantalla no recalcule nada.
-- [ ] **8. Lanzar, con sus cast turns.** Maná cobrado **al iniciar**,
+
+      > **HECHO (2026-09-21).** `spellbookFor()`, consulta pura. *Verificado
+      > que enseña **el precio que pagaría él**: 3.000 en color, 35.000 el
+      > mismo rango en la opuesta.* Lo que no puede aprender no aparece.
+- [x] **8. Lanzar, con sus cast turns.** Maná cobrado **al iniciar**,
       turnos consumidos de verdad. *Test = criterio 7: un hechizo de 4
       turnos no surte efecto hasta el cuarto.* **Cambia el contrato**:
       columna `casting`.
-- [ ] **9. Fallar por concentración.** Nunca en color; fuera de color
+
+      > **HECHO (2026-09-21).** *Verificado el criterio 7 literal, y que **el
+      > maná se cobra al iniciar**: con 1 turno de 4 gastado ya está pagado.*
+      > La columna `casting` se añade con `ALTER TABLE ... IF NOT EXISTS`, así
+      > que una base de datos de la fase 1 sigue funcionando sin tocar nada.
+- [x] **9. Fallar por concentración.** Nunca en color; fuera de color
       según rango, distancia y nivel. *Test = criterio 3, con la semilla
       fijada en un fallo: el maná baja y el efecto no ocurre.*
-- [ ] **10. Invocar.** Cantidad escalada por nivel de hechizo, contra el
+
+      > **HECHO (2026-09-21).** En color **nunca falla**, que es lo que hace
+      > valiosa tu escuela; fuera de color la base va del 10% al 50% según
+      > rango y distancia, y el nivel de hechizo la baja hasta la mitad.
+      >
+      > **Y aquí saltó el fallo más serio de la fase.** El test de
+      > concentración fallaba «cinco de cinco» con un 30% de probabilidad.
+      > No era el test: **el generador de azar tenía un sesgo**. Era un
+      > xorshift32 sembrado directamente, con **tres copias** en el
+      > repositorio, y con semillas pequeñas las primeras tiradas salían casi
+      > cero — con semilla 1, 0,00006. Toda comprobación del tipo «¿sale menos
+      > que el umbral?» **se cumplía siempre**.
+      >
+      > Ninguno de los 186 tests de entonces estaba en rojo. Lo destapó
+      > implementar esta tarea. Ahora hay **una sola implementación**
+      > (`core/src/random.ts`, splitmix32) con **9 tests de distribución sobre
+      > 200 semillas**, y el invariante 3 de `SPECS.md` lo dice explícito:
+      > determinista no basta, tiene que estar bien distribuido desde la
+      > primera tirada.
+- [x] **10. Invocar.** Cantidad escalada por nivel de hechizo, contra el
       máximo de **nuestro** catálogo. *Test = criterio 8: si no cabe en la
       población, falla **sin cobrar** el maná.*
-- [ ] **11. Encantar.** Solo los económicos. Potencia **congelada al
+
+      > **HECHO (2026-09-21).** Escalado contra `MAX_SPELL_LEVEL` = 207, el de
+      > **nuestro** catálogo. *Verificado el criterio 8: sin sitio, error de
+      > dominio y el maná intacto.* A nivel cero se invoca el 25%; a nivel
+      > máximo, el rango entero.
+- [x] **11. Encantar.** Solo los económicos. Potencia **congelada al
       lanzar**, no recalculada. *Test = criterio 6: no se puede lanzar dos
       veces, y su upkeep aparece en el ingreso neto.*
+
+      > **HECHO (2026-09-21).** Solo los económicos, como decidiste. *Los
+      > modificadores se **congelan al lanzar**, no se recalculan* — [orig],
+      > y verificado con un test.
+      >
+      > Los modificadores se **multiplican** entre sí: +25% y +15% dan 143,75%,
+      > no 140%. Y los seis que existen —comida, geld, maná, población,
+      > construcción, investigación— son una lista cerrada: ampliarla es una
+      > decisión de diseño, no un detalle.
 
 **Servidor y cliente**
 

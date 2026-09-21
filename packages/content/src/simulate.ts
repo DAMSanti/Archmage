@@ -14,25 +14,17 @@
  * de combate es de la fase 3.
  */
 
-import { apply, createMage, exploreYield, netIncome, netPower, populationCapacity } from '@archmage/core';
-import type { Action, Ctx, MageState, RandomSource } from '@archmage/core';
+import { apply, createMage, exploreYield, makeRandom, netIncome, netPower, populationCapacity } from '@archmage/core';
+import type { Action, Ctx, MageState } from '@archmage/core';
 import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from './index.js';
 
 const TUNING = { ...ECONOMY };
 
-/** Azar reproducible. Sin semilla fija, una simulación no es una medida. */
-export function seededRandom(seed: number): RandomSource {
-  let s = seed >>> 0 || 1;
-  const next = (): number => {
-    s ^= s << 13;
-    s >>>= 0;
-    s ^= s >>> 17;
-    s ^= s << 5;
-    s >>>= 0;
-    return s / 0x1_0000_0000;
-  };
-  return { next, nextInt: (max: number) => Math.floor(next() * max) };
-}
+/**
+ * Azar reproducible. Sin semilla fija, una simulación no es una medida.
+ * Viene del núcleo: una sola implementación para todo el proyecto.
+ */
+export { makeRandom as seededRandom } from '@archmage/core';
 
 /**
  * Una estrategia decide **en qué gasta el turno**, que es la decisión central
@@ -102,7 +94,7 @@ export interface SeasonResult {
 export function simulateSeason(strategy: Strategy, turns: number, seed = 1): SeasonResult {
   const ctx: Ctx = {
     now: 0,
-    random: seededRandom(seed),
+    random: makeRandom(seed),
     server: TERRA,
     catalog: CATALOG,
   };

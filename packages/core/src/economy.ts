@@ -11,6 +11,7 @@
  */
 
 import { manaIncome } from './mana.js';
+import type { EconomyModifiers } from './spells.js';
 import { BUILDINGS } from './types.js';
 import type { Catalog, MageState } from './types.js';
 
@@ -42,6 +43,39 @@ export interface Upkeep {
 }
 
 /**
+ * Los modificadores activos, sumados.
+ *
+ * Están en centésimas y se **multiplican** entre sí: dos encantamientos que
+ * dan +25% y +15% dejan el total en 143,75%, no en 140%. La potencia de cada
+ * uno se congeló al lanzarlo ([orig], docs/ORIGINAL.md §6.2), así que aquí
+ * solo se combinan.
+ */
+export function activeModifiers(state: MageState): Required<EconomyModifiers> {
+  const total = {
+    farmOutput: 100,
+    townOutput: 100,
+    nodeOutput: 100,
+    populationGrowth: 100,
+    buildRate: 100,
+    researchRate: 100,
+  };
+  for (const ench of state.enchantments) {
+    for (const [k, v] of Object.entries(ench.modifiers)) {
+      if (k in total) {
+        const clave = k as keyof typeof total;
+        total[clave] = Math.floor((total[clave] * v) / 100);
+      }
+    }
+  }
+  return total;
+}
+
+/** Aplica un modificador en centésimas. Redondea **una sola vez**. */
+function conModificador(valor: number, mod: number): number {
+  return Math.floor((valor * mod) / 100);
+}
+
+/**
  * Espacio de población de las towns, y lo que alimentan las farms.
  *
  * docs/SISTEMAS.md §5.4: manda **el menor de los dos**. Los coeficientes (300
@@ -52,8 +86,11 @@ export function populationCapacity(
   state: MageState,
   tuning: EconomyTuning,
 ): { space: number; food: number; capacity: number } {
+  const mods = activeModifiers(state);
   const space = state.buildings.towns * tuning.populationPerTown;
-  const food = state.buildings.farms * tuning.populationPerFarm;
+  // Los encantamientos de farms suben la comida, que es el tope que más
+  // duele en Verdant (docs/SISTEMAS.md §5.4).
+  const food = conModificador(state.buildings.farms * tuning.populationPerFarm, mods.farmOutput);
   return { space, food, capacity: Math.min(space, food) };
 }
 
@@ -95,15 +132,20 @@ export function civilianRoom(
  * invariante 7).
  */
 export function income(state: MageState, catalog: Catalog, tuning: EconomyTuning): Income {
-  const mana = manaIncome(state.buildings.nodes, state.land.total);
+  const mods = activeModifiers(state);
+  const mana = conModificador(
+    manaIncome(state.buildings.nodes, state.land.total),
+    mods.nodeOutput,
+  );
 
   const townRatio = state.land.total > 0 ? state.buildings.towns / state.land.total : 0;
   const perHead = tuning.geldBase + tuning.geldPerTownRatio * townRatio;
-  const geld = Math.floor(state.resources.population * perHead);
+  const geld = conModificador(Math.floor(state.resources.population * perHead), mods.townOutput);
 
   const room = civilianRoom(state, catalog, tuning) - state.resources.population;
-  const growth =
+  const growthBase =
     tuning.populationGrowthFlat + Math.floor(state.resources.population * tuning.populationGrowthRate);
+  const growth = conModificador(growthBase, mods.populationGrowth);
   const population = Math.max(0, Math.min(growth, room));
 
   return { geld, mana, population };

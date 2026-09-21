@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { BUILDINGS, SPECIALTIES } from '@archmage/core';
 import type { Building, Catalog, ServerConfig } from '@archmage/core';
 import type { StartingKingdom } from '@archmage/core';
+import { MAX_SPELL_LEVEL, SPELLS_BY_ID, SUMMONED_UNITS } from './spells.js';
 
 // --- Esquemas -------------------------------------------------------------
 
@@ -155,7 +156,11 @@ export const UNIT_SPECS: Catalog['units'] = {
 
 export const CATALOG: Catalog = {
   buildings: BUILDING_SPECS,
-  units: UNIT_SPECS,
+  // La tropa de barracks y las unidades invocables, en el mismo sitio: para
+  // `upkeep()` una unidad es una unidad, venga de donde venga.
+  units: { ...UNIT_SPECS, ...SUMMONED_UNITS },
+  spells: SPELLS_BY_ID,
+  maxSpellLevel: MAX_SPELL_LEVEL,
 };
 
 // --- Números de la economía ----------------------------------------------

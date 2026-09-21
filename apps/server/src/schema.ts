@@ -16,7 +16,7 @@
  */
 
 import { bigint, index, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
-import type { Buildings, Enchantment, Hero, Recruiting, Spellbook, Stack } from '@archmage/core';
+import type { Buildings, Casting, Enchantment, Hero, Recruiting, Spellbook, Stack } from '@archmage/core';
 
 export const mages = pgTable(
   'mages',
@@ -44,6 +44,8 @@ export const mages = pgTable(
     construction: jsonb('construction').$type<Buildings>().notNull(),
     army: jsonb('army').$type<Stack[]>().notNull().default([]),
     recruiting: jsonb('recruiting').$type<Recruiting | null>(),
+    /** Fase 2. Migración aditiva y anulable. */
+    casting: jsonb('casting').$type<Casting | null>(),
     spellbook: jsonb('spellbook').$type<Spellbook>().notNull(),
     enchantments: jsonb('enchantments').$type<Enchantment[]>().notNull().default([]),
     heroes: jsonb('heroes').$type<Hero[]>().notNull().default([]),

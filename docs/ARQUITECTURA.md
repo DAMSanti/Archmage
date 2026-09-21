@@ -164,10 +164,14 @@ resultado.
   documentado** por fórmula. Un juego de ranking donde el mismo cálculo
   da dos resultados según el orden de las sumas no tiene ranking.
 - **Todo azar sale de un `RandomSource` con semilla**, nunca de
-  `Math.random()`. La semilla de cada batalla **se guarda con el
+  `Math.random()`, y **de la implementación de `core/src/random.ts`**, no
+  de una copia local. La semilla de cada batalla **se guarda con el
   resultado**, así que cualquier batalla se puede volver a jugar exacta.
   Es lo que hace depurable el combate y lo que permite enseñarle al
   jugador la repetición.
+
+  *(Hubo tres copias del generador hasta el 2026-09-21, y una tenía un
+  sesgo que no daba error: ver [SPECS.md §5](SPECS.md), invariante 3.)*
 - **Toda mutación produce eventos.** El estado nuevo y sus eventos se
   guardan juntos o no se guarda ninguno. La crónica, los avisos y la
   auditoría salen de ahí — no se reconstruyen mirando el estado.

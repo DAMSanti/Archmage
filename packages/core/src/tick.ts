@@ -10,7 +10,8 @@
  *  - El colapso de encantamientos solo los borra; sus efectos no existen aún.
  */
 
-import { income, upkeep, type EconomyTuning } from './economy.js';
+import { activeModifiers, income, upkeep, type EconomyTuning } from './economy.js';
+import { advanceResearch, resolveCast, spellLevelGain } from './casting.js';
 import { manaStorage } from './mana.js';
 import { BUILDINGS } from './types.js';
 import type { Building, Catalog, GameEvent, MageState, RandomSource, Stack } from './types.js';
@@ -52,12 +53,19 @@ export interface TurnResolution {
  * `manaMultiplier` y `geldMultiplier` valen 2 cuando el turno se gastó en
  * cargar (docs/SISTEMAS.md §5.5 [orig]).
  */
+/**
+ * En qué se está gastando el turno. Cambia qué avanza:
+ * `research` acelera la investigación, `cast` consume un *cast turn*.
+ */
+export type TurnFocus = 'research' | 'cast' | null;
+
 export function resolveTurn(
   state: MageState,
   catalog: Catalog,
   tuning: EconomyTuning,
   random: RandomSource,
   multipliers: { mana?: number; geld?: number } = {},
+  focus: TurnFocus = null,
 ): TurnResolution {
   const events: GameEvent[] = [];
   let next: MageState = { ...state, resources: { ...state.resources }, buildings: { ...state.buildings } };
@@ -109,7 +117,133 @@ export function resolveTurn(
     }
   }
 
+  // 5. La investigación avanza SIEMPRE, y más si le dedicas el turno
+  //    ([orig], docs/SISTEMAS.md §7).
+  next = advanceResearchStep(next, catalog, focus === 'research', events);
+
+  // 6. El lanzamiento en curso consume un turno, si le dedicas el turno.
+  if (focus === 'cast' && next.casting) {
+    next = resolveCastStep(next, catalog, random, events);
+  }
+
   return { state: next, events };
+}
+
+/** Un turno de investigación, con su evento y el aprendizaje si termina. */
+function advanceResearchStep(
+  state: MageState,
+  catalog: Catalog,
+  dedicated: boolean,
+  events: GameEvent[],
+): MageState {
+  const paso = advanceResearch(state, catalog, dedicated);
+  if (!paso || !state.spellbook.researching) return state;
+
+  const mods = activeModifiers(state);
+  const progreso = Math.floor((paso.progress * mods.researchRate) / 100);
+  const en = state.spellbook.researching;
+  const spell = catalog.spells[en.spellId];
+  if (!spell) return state;
+
+  const total = en.progress + progreso;
+  if (total < spell.researchCost) {
+    events.push({
+      type: 'research.advanced',
+      spellId: en.spellId,
+      progress: progreso,
+      total,
+      needed: spell.researchCost,
+    });
+    return { ...state, spellbook: { ...state.spellbook, researching: { spellId: en.spellId, progress: total } } };
+  }
+
+  const ganado = spellLevelGain(spell.rank);
+  events.push({ type: 'research.completed', spellId: spell.id, levelGained: ganado });
+  return {
+    ...state,
+    spellbook: {
+      known: [...state.spellbook.known, spell.id],
+      researching: null,
+      level: state.spellbook.level + ganado,
+    },
+  };
+}
+
+/** Un *cast turn*. Al llegar a cero, se resuelve el efecto. */
+function resolveCastStep(
+  state: MageState,
+  catalog: Catalog,
+  random: RandomSource,
+  events: GameEvent[],
+): MageState {
+  const casting = state.casting;
+  if (!casting) return state;
+  const spell = catalog.spells[casting.spellId];
+  if (!spell) return { ...state, casting: null };
+
+  const quedan = casting.turnsRemaining - 1;
+  if (quedan > 0) return { ...state, casting: { ...casting, turnsRemaining: quedan } };
+
+  // El maná ya se cobró al iniciar (docs/SISTEMAS.md §7.1): aquí solo se
+  // resuelve el efecto, salga bien o mal.
+  const out = resolveCast(state, spell, catalog.maxSpellLevel, random);
+  let next: MageState = { ...state, casting: null };
+
+  if (out.failed) {
+    events.push({ type: 'cast.failed', spellId: spell.id });
+    return next;
+  }
+
+  if (out.summoned) {
+    const army = next.army.map((s) => ({ ...s }));
+    const existente = army.find((s) => s.unitId === out.summoned!.unitId);
+    if (existente) existente.count += out.summoned.count;
+    else army.push({ unitId: out.summoned.unitId, count: out.summoned.count });
+    next = { ...next, army };
+    events.push({
+      type: 'spell.summoned',
+      spellId: spell.id,
+      unitId: out.summoned.unitId,
+      count: out.summoned.count,
+    });
+  }
+
+  if (out.kind === 'enchantment' && spell.effect.kind === 'enchantment') {
+    next = {
+      ...next,
+      enchantments: [
+        ...next.enchantments,
+        {
+          spellId: spell.id,
+          upkeepMana: spell.upkeepMana,
+          // Congelados al lanzar: no se recalculan si sube el nivel
+          // ([orig], docs/ORIGINAL.md §6.2).
+          modifiers: { ...spell.effect.modifiers },
+        },
+      ],
+    };
+    events.push({ type: 'spell.enchanted', spellId: spell.id, upkeepMana: spell.upkeepMana });
+  }
+
+  if (out.gained) {
+    next = {
+      ...next,
+      resources: {
+        geld: next.resources.geld + out.gained.geld,
+        mana: next.resources.mana + out.gained.mana,
+        population: next.resources.population + out.gained.population,
+      },
+    };
+    events.push({
+      type: 'spell.resources',
+      spellId: spell.id,
+      geld: out.gained.geld,
+      mana: out.gained.mana,
+      population: out.gained.population,
+    });
+  }
+
+  return next;
 }
 
 /**

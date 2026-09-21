@@ -73,6 +73,10 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
     );
 
     CREATE INDEX IF NOT EXISTS events_mage_idx ON events (mage_id, seq);
+
+    -- Fase 2, 2026-09-21. Aditiva y anulable: una base de datos de la fase 1
+    -- sigue funcionando sin tocar nada (docs/SPECS.md §4).
+    ALTER TABLE mages ADD COLUMN IF NOT EXISTS casting jsonb;
   `);
 }
 

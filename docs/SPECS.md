@@ -148,6 +148,20 @@ protege; solo las protege saberlas.
    pasar por ahí, la repetición que se le enseña al jugador **miente**, y
    miente en silencio.
 
+   **Y hay una sola implementación**, en `packages/core/src/random.ts`.
+   Añadido el 2026-09-21 tras un fallo real: había tres copias de un
+   xorshift32 sembrado directamente, y **con semillas pequeñas las
+   primeras tiradas salían casi cero**. Con semilla 1 la primera valía
+   0,00006, así que toda comprobación del tipo «¿sale menos que el
+   umbral?» —fallar un hechizo, acertar un golpe— **se cumplía siempre**.
+   Un hechizo con 30% de fallo fallaba cinco de cada cinco veces, y el
+   juego habría parecido amañado contra el jugador. Ningún test de
+   entonces se puso en rojo.
+
+   Que sea determinista **no basta**: tiene que estar bien distribuido
+   desde la primera tirada. `random.test.ts` lo comprueba con 200
+   semillas.
+
 4. **El estado y sus eventos se guardan en la misma transacción.** Si se
    guarda el estado sin los eventos, la crónica pierde un hecho y nadie
    se entera hasta que un jugador pregunta por qué perdió un ejército.

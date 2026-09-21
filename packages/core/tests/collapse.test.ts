@@ -80,7 +80,7 @@ describe('colapso de maná', () => {
 
   test('los encantamientos se caen', () => {
     const m = mageWith({ barriers: 10, farms: 100 }, 1_000, { mana: 0, geld: 1_000_000 });
-    const conEncantamientos = { ...m, enchantments: [{ spellId: 'x', upkeepMana: 10 }] };
+    const conEncantamientos = { ...m, enchantments: [{ spellId: 'x', upkeepMana: 10, modifiers: {} }] };
     const r = tick(conEncantamientos);
     expect(r.state.enchantments).toEqual([]);
     expect(r.events.find((e) => e.type === 'collapse.mana')).toMatchObject({ enchantmentsLost: 1 });

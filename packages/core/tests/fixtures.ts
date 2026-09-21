@@ -8,6 +8,7 @@
  */
 import { emptyBuildings, emptyConstruction, type StartingKingdom } from '../src/mage.js';
 import type { Buildings, Catalog, MageState, ServerConfig, Stack } from '../src/types.js';
+import type { SpellSpec } from '../src/spells.js';
 import type { EconomyTuning } from '../src/economy.js';
 
 /** El servidor de referencia. docs/SISTEMAS.md §2 [nuestro]. */
@@ -34,6 +35,53 @@ export const STARTING_KINGDOM: StartingKingdom = {
   geld: 100_000,
   mana: 5_000,
   population: 4_500,
+};
+
+/**
+ * Hechizos de prueba. **Copian la forma**, no el catálogo de verdad: aquí se
+ * prueban las reglas, y que los datos reales sean los que son lo comprueban
+ * los tests de `content`.
+ */
+export const SPELLS_TEST: Record<string, SpellSpec> = {
+  // Verdant, en color para un mago verde.
+  summon_dryad: {
+    id: 'summon_dryad', name: 'Summon Dryad', school: 'verdant', rank: 'simple',
+    castTurns: 1, castMana: 3_000, researchCost: 900, upkeepMana: 0,
+    effect: { kind: 'summon', unitId: 'dryad', min: 2_200, max: 3_000 },
+    source: 'test',
+  },
+  weather_summoning: {
+    id: 'weather_summoning', name: 'Weather Summoning', school: 'verdant', rank: 'average',
+    castTurns: 2, castMana: 7_900, researchCost: 1_400, upkeepMana: 60,
+    effect: { kind: 'enchantment', modifiers: { farmOutput: 125 } },
+    source: 'test',
+  },
+  slow_ritual: {
+    id: 'slow_ritual', name: 'Slow Ritual', school: 'verdant', rank: 'complex',
+    castTurns: 4, castMana: 30_000, researchCost: 2_500, upkeepMana: 0,
+    effect: { kind: 'resource', geld: 50_000 },
+    source: 'test',
+  },
+  plant_growth: {
+    id: 'plant_growth', name: 'Plant Growth', school: 'verdant', rank: 'ultimate',
+    castTurns: 8, castMana: 120_000, researchCost: 12_000, upkeepMana: 250,
+    effect: { kind: 'combat', note: 'fase 3' },
+    source: 'test',
+  },
+  // Plain: propio para todos.
+  mana_tap: {
+    id: 'mana_tap', name: 'Mana Tap', school: 'plain', rank: 'simple',
+    castTurns: 1, castMana: 0, researchCost: 900, upkeepMana: 0,
+    effect: { kind: 'resource', mana: 1_500 },
+    source: 'test',
+  },
+  // Nether: opuesta a Verdant.
+  dark_pact: {
+    id: 'dark_pact', name: 'Dark Pact', school: 'nether', rank: 'average',
+    castTurns: 1, castMana: 10_000, researchCost: 1_400, upkeepMana: 0,
+    effect: { kind: 'resource', geld: 30_000 },
+    source: 'test',
+  },
 };
 
 /** docs/SISTEMAS.md §4.2. */
@@ -82,7 +130,20 @@ export const CATALOG: Catalog = {
       populationSpace: 2,
       recruitPerBarracks: 1,
     },
+    dryad: {
+      id: 'dryad',
+      name: 'Dríade',
+      specialty: 'verdant',
+      cost: 0,
+      upkeepGeld: 0,
+      upkeepMana: 1,
+      upkeepPopulation: 0,
+      populationSpace: 1,
+      recruitPerBarracks: 1,
+    },
   },
+  spells: SPELLS_TEST,
+  maxSpellLevel: 31,
 };
 
 /** docs/SISTEMAS.md §5.3 y §5.4. */
@@ -97,24 +158,13 @@ export const TUNING: EconomyTuning = {
 };
 
 /**
- * Azar determinista para los tests. docs/SPECS.md §5, invariante 3: el azar
- * entra por `Ctx`, y con semilla fija un test nunca sale intermitente.
+ * Azar determinista para los tests.
  *
- * Generador xorshift32: pequeño, reproducible y suficiente para decidir qué
- * stack se disuelve.
+ * Reexporta el generador del núcleo: **una sola implementación** para el
+ * servidor, el simulador y los tests. Antes había tres copias de un xorshift32
+ * y una de ellas tenía un fallo que no daba error (ver `src/random.ts`).
  */
-export function seededRandom(seed: number) {
-  let s = seed >>> 0 || 1;
-  const next = (): number => {
-    s ^= s << 13;
-    s >>>= 0;
-    s ^= s >>> 17;
-    s ^= s << 5;
-    s >>>= 0;
-    return s / 0x1_0000_0000;
-  };
-  return { next, nextInt: (max: number) => Math.floor(next() * max) };
-}
+export { makeRandom as seededRandom } from '../src/random.js';
 
 /** Construye el estado que quieras directamente: nadie juega hasta llegar. */
 export function mageWith(
@@ -142,6 +192,7 @@ export function mageWith(
     army: extra.army ?? [],
     recruiting: null,
     spellbook: { known: [], researching: null, level: 0 },
+    casting: null,
     enchantments: [],
     heroes: [],
     items: {},

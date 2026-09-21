@@ -9,7 +9,9 @@
  * atacar, mercado, gremios. Cuando lleguen, se añaden aquí y solo aquí.
  */
 
-import { resolveTurn } from './tick.js';
+import { resolveTurn, type TurnFocus } from './tick.js';
+import { canStartResearch, checkCast } from './casting.js';
+import { armyPopulationSpace, populationCapacity } from './economy.js';
 import type { EconomyTuning } from './economy.js';
 import { CONSTRUCTION_SCALE } from './types.js';
 import type {
@@ -98,6 +100,12 @@ export function apply(state: MageState, action: Action, ctx: Ctx, tuning: ApplyT
       return charge(state, action.turns, ctx, tuning, 'geld');
     case 'setRecruit':
       return setRecruit(state, action.unitId, action.count, ctx);
+    case 'research':
+      return research(state, action.spellId, action.turns, ctx, tuning);
+    case 'cast':
+      return cast(state, action.spellId, action.turns, ctx, tuning);
+    case 'dispel':
+      return dispel(state, action.spellId);
     default:
       return fail('unknown_action', `Acción desconocida: ${(action as { type: string }).type}`);
   }
@@ -111,6 +119,7 @@ function spend(
   tuning: ApplyTuning,
   onTurn: (s: MageState, events: GameEvent[]) => MageState,
   multipliers: { mana?: number; geld?: number } = {},
+  focus: TurnFocus = null,
 ): { state: MageState; events: GameEvent[] } | null {
   if (turns <= 0 || !Number.isInteger(turns)) return null;
   if (state.turns.current < turns) return null;
@@ -121,7 +130,7 @@ function spend(
   for (let i = 0; i < turns; i++) {
     s = { ...s, turns: { ...s.turns, current: s.turns.current - 1 }, turnsSpent: s.turnsSpent + 1 };
     // Producir primero: lo que ganas este turno se puede gastar este turno.
-    const r = resolveTurn(s, ctx.catalog, tuning, ctx.random, multipliers);
+    const r = resolveTurn(s, ctx.catalog, tuning, ctx.random, multipliers, focus);
     s = r.state;
     events.push(...r.events);
     s = onTurn(s, events);
@@ -248,5 +257,124 @@ function setRecruit(state: MageState, unitId: string, count: number, ctx: Ctx): 
       recruiting: { unitId, remaining: count, perTurn },
     },
     events: [{ type: 'recruit.set', unitId, total: count }],
+  };
+}
+
+// --- Magia (fase 2) -------------------------------------------------------
+
+/**
+ * Investigar. docs/SISTEMAS.md §7 [orig].
+ *
+ * Fijar qué se investiga **no cuesta nada**; lo que cuesta son los turnos
+ * que le dedicas, y la investigación avanza igual aunque los gastes en otra
+ * cosa — solo que a la mitad.
+ */
+function research(
+  state: MageState,
+  spellId: string,
+  turns: number,
+  ctx: Ctx,
+  tuning: ApplyTuning,
+): Result {
+  if (turns <= 0 || !Number.isInteger(turns)) return fail('invalid_amount', 'Los turnos son un entero positivo.');
+  if (state.turns.current < turns) return fail('not_enough_turns', 'No tienes tantos turnos.');
+
+  const spell = ctx.catalog.spells[spellId];
+  if (!spell) return fail('spell_unknown', `No existe el hechizo ${spellId}.`);
+
+  let s: MageState = state;
+  const previos: GameEvent[] = [];
+
+  // Si ya se estaba investigando otra cosa, se cambia: el progreso del
+  // anterior **se pierde**, que es lo que hace que elegir importe.
+  if (!state.spellbook.researching || state.spellbook.researching.spellId !== spellId) {
+    const error = canStartResearch(state, spell);
+    if (error === 'spell_already_known') return fail('spell_already_known', 'Ya sabes ese hechizo.');
+    if (error === 'spell_not_researchable') {
+      return fail('spell_not_researchable', 'Tu escuela no llega a ese hechizo.');
+    }
+    s = { ...s, spellbook: { ...s.spellbook, researching: { spellId, progress: 0 } } };
+    previos.push({ type: 'research.started', spellId });
+  }
+
+  const out = spend(s, turns, ctx, tuning, (x) => x, {}, 'research');
+  if (!out) return fail('not_enough_turns', 'No tienes tantos turnos.');
+  out.events.unshift(...previos);
+  out.events.push({ type: 'turns.spent', amount: turns, on: 'research' });
+  return { ok: true, state: out.state, events: out.events };
+}
+
+/**
+ * Lanzar. docs/SISTEMAS.md §7.1.
+ *
+ * El maná se cobra **al iniciar**, no al terminar: el original dice que
+ * cuesta aunque falles, y un hechizo de diez turnos que cobrara al final
+ * sería gratis si lo abandonas a mitad.
+ */
+function cast(
+  state: MageState,
+  spellId: string,
+  turns: number,
+  ctx: Ctx,
+  tuning: ApplyTuning,
+): Result {
+  if (turns <= 0 || !Number.isInteger(turns)) return fail('invalid_amount', 'Los turnos son un entero positivo.');
+  if (state.turns.current < turns) return fail('not_enough_turns', 'No tienes tantos turnos.');
+
+  const spell = ctx.catalog.spells[spellId];
+  if (!spell) return fail('spell_unknown', `No existe el hechizo ${spellId}.`);
+
+  let s: MageState = state;
+  const previos: GameEvent[] = [];
+
+  // Si no hay lanzamiento en curso de ESTE hechizo, se inicia.
+  if (!state.casting || state.casting.spellId !== spellId) {
+    const { error, manaCost } = checkCast(state, spell, ctx.catalog);
+    if (error === 'spell_not_learned') return fail('spell_not_learned', 'Todavía no sabes ese hechizo.');
+    if (error === 'spell_not_castable') {
+      return fail('spell_not_castable', 'Ese hechizo necesita una batalla: todavía no se puede lanzar.');
+    }
+    if (error === 'already_casting') return fail('already_casting', 'Ya estás lanzando otro hechizo.');
+    if (error === 'enchantment_already_active') {
+      return fail('enchantment_already_active', 'Ya tienes ese encantamiento activo.');
+    }
+    if (error === 'not_enough_mana') return fail('not_enough_mana', 'No tienes maná suficiente.');
+
+    // Invocar necesita sitio ANTES de cobrar: si no cabe, no se gasta nada
+    // (docs/SISTEMAS.md §7.1, criterio 8).
+    if (spell.effect.kind === 'summon') {
+      const { capacity } = populationCapacity(state, tuning);
+      const ocupado = armyPopulationSpace(state, ctx.catalog);
+      const unidad = ctx.catalog.units[spell.effect.unitId];
+      const necesario = (unidad?.populationSpace ?? 1) * spell.effect.min;
+      if (capacity - ocupado < necesario) {
+        return fail('no_population_space', 'No tienes espacio de población para esa invocación.');
+      }
+    }
+
+    s = {
+      ...s,
+      resources: { ...s.resources, mana: s.resources.mana - manaCost },
+      casting: { spellId, turnsRemaining: Math.max(1, spell.castTurns) },
+    };
+    previos.push({ type: 'cast.started', spellId, manaCost, turns: Math.max(1, spell.castTurns) });
+  }
+
+  const out = spend(s, turns, ctx, tuning, (x) => x, {}, 'cast');
+  if (!out) return fail('not_enough_turns', 'No tienes tantos turnos.');
+  out.events.unshift(...previos);
+  out.events.push({ type: 'turns.spent', amount: turns, on: 'cast' });
+  return { ok: true, state: out.state, events: out.events };
+}
+
+/** Quitarse un encantamiento de encima. No cuesta turnos ni devuelve maná. */
+function dispel(state: MageState, spellId: string): Result {
+  if (!state.enchantments.some((e) => e.spellId === spellId)) {
+    return fail('enchantment_not_active', 'No tienes ese encantamiento activo.');
+  }
+  return {
+    ok: true,
+    state: { ...state, enchantments: state.enchantments.filter((e) => e.spellId !== spellId) },
+    events: [{ type: 'enchantment.dispelled', spellId }],
   };
 }

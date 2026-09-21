@@ -236,6 +236,7 @@ describe('las rutas', () => {
     const r = await app.inject({ method: 'GET', url: '/api/catalog' });
     expect(r.statusCode).toBe(200);
     expect(Object.keys(r.json().buildings)).toHaveLength(8);
-    expect(Object.keys(r.json().units)).toHaveLength(5);
+    // 5 de barracks + 15 invocables de Verdant (fase 2).
+    expect(Object.keys(r.json().units)).toHaveLength(20);
   });
 });

@@ -21,7 +21,7 @@ function mageWith(buildings: Partial<Buildings>, land: number, population: numbe
     buildings: b, construction: emptyConstruction(),
     resources: { geld: 0, mana: 0, population },
     army: [], recruiting: null,
-    spellbook: { known: [], researching: null, level: 0 },
+    spellbook: { known: [], researching: null, level: 0 }, casting: null,
     enchantments: [], heroes: [], items: {}, skills: {},
   };
 }

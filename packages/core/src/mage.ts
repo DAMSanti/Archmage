@@ -88,6 +88,7 @@ export function createMage(args: CreateMageArgs): MageState {
     army: [],
     recruiting: null,
     spellbook: { known: [], researching: null, level: 0 },
+    casting: null,
     enchantments: [],
     heroes: [],
     items: {},

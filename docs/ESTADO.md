@@ -149,6 +149,13 @@ balance en vez de medirlo, ni para dar algo por bueno sin mirarlo**.
 
   **La primera pasada falló dos**, y una era una violación de la propia
   spec: los avisos se dibujaban fuera de panel, sobre la ilustración.
-- **Lo que sigue sin comprobarse**: nada de las fases 2 a 5, y el juego
-  **no se ha jugado una sesión larga de verdad**. El simulador cubre la
-  economía; que el bucle de quince minutos enganche, no lo sabe nadie aún.
+- **El generador de azar tenía un sesgo, y no lo veía ningún test**
+  (2026-09-21). Era un xorshift32 sembrado directamente, con tres copias
+  en el repositorio, y **con semillas pequeñas las primeras tiradas
+  salían casi cero**: un hechizo con 30% de fallo fallaba cinco de cada
+  cinco veces. Lo destapó implementar el fallo por concentración de la
+  fase 2, no un test. Ahora hay **una sola implementación** con su test
+  de distribución sobre 200 semillas.
+- **Lo que sigue sin comprobarse**: las fases 3 a 5, y el juego **no se
+  ha jugado una sesión larga de verdad**. El simulador cubre la economía;
+  que el bucle de quince minutos enganche, no lo sabe nadie aún.

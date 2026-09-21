@@ -8,3 +8,5 @@ export * from './actions.js';
 export * from './netpower.js';
 export * from './magic.js';
 export * from './spells.js';
+export * from './casting.js';
+export * from './random.js';

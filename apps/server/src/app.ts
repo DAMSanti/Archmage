@@ -30,6 +30,7 @@ import {
   populationCapacity,
   upkeep,
 } from '@archmage/core';
+import { makeRandom as _makeRandom } from '@archmage/core';
 import type { Ctx, MageState, RandomSource } from '@archmage/core';
 import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import { actionRequestSchema } from '@archmage/contract';
@@ -55,19 +56,11 @@ export interface AppDeps {
   random: () => RandomSource;
 }
 
-/** Azar por defecto del servidor. La semilla se guarda con cada resultado. */
-export function makeRandom(seed: number): RandomSource {
-  let s = seed >>> 0 || 1;
-  const next = (): number => {
-    s ^= s << 13;
-    s >>>= 0;
-    s ^= s >>> 17;
-    s ^= s << 5;
-    s >>>= 0;
-    return s / 0x1_0000_0000;
-  };
-  return { next, nextInt: (max: number) => Math.floor(next() * max) };
-}
+/**
+ * Azar del servidor. Viene del núcleo: **una sola implementación** para
+ * servidor, simulador y tests (docs/SPECS.md §5, invariante 3).
+ */
+export { makeRandom } from '@archmage/core';
 
 /** Todo lo que la interfaz necesita y que **no debe recalcular por su cuenta**. */
 function derive(state: MageState, now: number) {

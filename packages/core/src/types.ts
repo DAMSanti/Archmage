@@ -105,13 +105,40 @@ export interface Recruiting {
 
 export interface Spellbook {
   known: SpellId[];
-  researching: SpellId | null;
+  /**
+   * Investigación en curso, **con su progreso**.
+   *
+   * Antes era un `SpellId | null` y no decía cuánto faltaba. Cambiado el
+   * 2026-09-21 al implementar la fase 2 (docs/SISTEMAS.md §7.1): no hizo
+   * falta migración porque `spellbook` ya se guarda como `jsonb`.
+   */
+  researching: { spellId: SpellId; progress: number } | null;
   level: number;
+}
+
+/**
+ * Lanzamiento en curso.
+ *
+ * Los hechizos con *Cast Turn* tardan varios turnos en completarse
+ * ([orig], docs/SISTEMAS.md §7). El maná **ya se cobró al iniciar**, así que
+ * abandonar a mitad no devuelve nada.
+ */
+export interface Casting {
+  spellId: SpellId;
+  turnsRemaining: number;
 }
 
 export interface Enchantment {
   spellId: SpellId;
   upkeepMana: number;
+  /**
+   * Los modificadores **congelados al lanzarlo**.
+   *
+   * [orig], docs/ORIGINAL.md §6.2: «un encantamiento ya lanzado no se
+   * actualiza si tu nivel cambia después». Por eso se guardan aquí en vez de
+   * recalcularse desde el catálogo.
+   */
+  modifiers: Record<string, number>;
 }
 
 export interface Hero {
@@ -144,9 +171,12 @@ export interface MageState {
   army: Stack[];
   recruiting: Recruiting | null;
 
-  // Fase 2 en adelante. Vacíos en la fase 1.
   spellbook: Spellbook;
+  /** Lanzamiento en curso, o `null`. Fase 2. */
+  casting: Casting | null;
   enchantments: Enchantment[];
+
+  // Fase 3 en adelante. Vacíos todavía.
   heroes: Hero[];
   items: Record<ItemId, number>;
   skills: Record<SkillId, number>;
@@ -219,6 +249,10 @@ export interface UnitEconomySpec {
 export interface Catalog {
   buildings: Record<Building, BuildingSpec>;
   units: Record<UnitId, UnitEconomySpec>;
+  /** Fase 2. El tipo vive en `spells.ts` para no cruzar los módulos. */
+  spells: Record<SpellId, import('./spells.js').SpellSpec>;
+  /** Nivel de hechizo máximo de **este** catálogo. Escala las invocaciones. */
+  maxSpellLevel: number;
 }
 
 /** docs/SPECS.md §2: el tiempo y el azar **entran**, nunca se cogen. */
@@ -245,7 +279,11 @@ export type Action =
   | { type: 'explore'; turns: number }
   | { type: 'chargeMana'; turns: number }
   | { type: 'chargeGeld'; turns: number }
-  | { type: 'setRecruit'; unitId: UnitId; count: number };
+  | { type: 'setRecruit'; unitId: UnitId; count: number }
+  // Fase 2.
+  | { type: 'research'; spellId: SpellId; turns: number }
+  | { type: 'cast'; spellId: SpellId; turns: number }
+  | { type: 'dispel'; spellId: SpellId };
 
 // --- Eventos --------------------------------------------------------------
 
@@ -270,7 +308,17 @@ export type GameEvent =
   | { type: 'collapse.geld'; fortsLost: number; buildingsLost: number; unitsDeserted: number }
   | { type: 'collapse.mana'; stacksDisbanded: number; enchantmentsLost: number }
   | { type: 'collapse.population'; stacksDisbanded: number }
-  | { type: 'protection.ended' };
+  | { type: 'protection.ended' }
+  // Fase 2.
+  | { type: 'research.started'; spellId: SpellId }
+  | { type: 'research.advanced'; spellId: SpellId; progress: number; total: number; needed: number }
+  | { type: 'research.completed'; spellId: SpellId; levelGained: number }
+  | { type: 'cast.started'; spellId: SpellId; manaCost: number; turns: number }
+  | { type: 'cast.failed'; spellId: SpellId }
+  | { type: 'spell.summoned'; spellId: SpellId; unitId: UnitId; count: number }
+  | { type: 'spell.enchanted'; spellId: SpellId; upkeepMana: number }
+  | { type: 'spell.resources'; spellId: SpellId; geld: number; mana: number; population: number }
+  | { type: 'enchantment.dispelled'; spellId: SpellId };
 
 // --- Resultado y errores --------------------------------------------------
 
@@ -283,7 +331,17 @@ export type DomainErrorCode =
   | 'no_population_space'
   | 'unknown_unit'
   | 'unknown_action'
-  | 'invalid_amount';
+  | 'invalid_amount'
+  // Fase 2.
+  | 'spell_unknown'
+  | 'spell_already_known'
+  | 'spell_not_researchable'
+  | 'spell_not_castable'
+  | 'spell_not_learned'
+  | 'not_enough_mana'
+  | 'enchantment_already_active'
+  | 'enchantment_not_active'
+  | 'already_casting';
 
 /** docs/SPECS.md §5, invariante 9: esto es un 422, no un 500. */
 export interface DomainError {
