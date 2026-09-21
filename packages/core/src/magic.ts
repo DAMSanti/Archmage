@@ -121,13 +121,47 @@ const LEVEL_GAIN: Record<SpellRank, number> = {
   ancient: 15,
 };
 
-export function spellLevelGain(rank: SpellRank): number {
-  return LEVEL_GAIN[rank];
+/**
+ * Lo que sube el nivel al aprender un hechizo.
+ *
+ * **`noSpellLevel` lo pone a cero**, y lo tiene exactamente uno:
+ * *Armageddon* (docs/ORIGINAL.md §10.1). Es el único del catálogo que no te
+ * hace más fuerte — aprenderlo solo sirve para acabar el mundo.
+ */
+export function spellLevelGain(rank: SpellRank, noSpellLevel = false): number {
+  return noSpellLevel ? 0 : LEVEL_GAIN[rank];
 }
 
-/** El nivel es la suma de lo aprendido. Nada más. */
-export function spellLevelOf(learnedRanks: readonly SpellRank[]): number {
+/**
+ * El nivel es la suma de lo aprendido. Nada más.
+ *
+ * Acepta rangos sueltos —como siempre— o fichas enteras, que es lo que hace
+ * falta para respetar `noSpellLevel` sin que quien llama tenga que saber
+ * cuál es la excepción.
+ */
+export function spellLevelOf(
+  learned: readonly (SpellRank | { rank: SpellRank; noSpellLevel?: boolean })[],
+): number {
   let total = 0;
-  for (const r of learnedRanks) total += LEVEL_GAIN[r];
+  for (const x of learned) {
+    if (typeof x === 'string') total += LEVEL_GAIN[x];
+    else total += spellLevelGain(x.rank, x.noSpellLevel);
+  }
   return total;
+}
+
+/**
+ * Si se puede investigar un hechizo marcado `researchLast`.
+ *
+ * *Armageddon* **se investiga después de todos los demás**
+ * (docs/ORIGINAL.md §10.1): es el último botón del juego, y tiene que
+ * costar llegar a él.
+ */
+export function canResearchLast(
+  knownIds: readonly string[],
+  allIds: readonly string[],
+  itselfId: string,
+): boolean {
+  const faltan = allIds.filter((id) => id !== itselfId && !knownIds.includes(id));
+  return faltan.length === 0;
 }

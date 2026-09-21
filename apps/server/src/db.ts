@@ -185,10 +185,96 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS ranking_server_idx
       ON ranking_snapshots (server_id, taken_at);
+
+    -- Fase 5, 2026-09-22. Gremios, alianzas, mensajes y temporadas.
+    -- Todo aditivo.
+    CREATE TABLE IF NOT EXISTS guilds (
+      id         text PRIMARY KEY,
+      server_id  text NOT NULL,
+      name       text NOT NULL,
+      leader_id  text NOT NULL REFERENCES mages(id),
+      enemies    jsonb NOT NULL DEFAULT '[]'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS guild_members (
+      guild_id text NOT NULL REFERENCES guilds(id),
+      mage_id  text NOT NULL REFERENCES mages(id),
+      role     text NOT NULL DEFAULT 'member',
+      PRIMARY KEY (guild_id, mage_id)
+    );
+
+    -- Un mago, un gremio. Es regla del codigo y por eso es un indice
+    -- unico y no una comprobacion en la aplicacion.
+    CREATE UNIQUE INDEX IF NOT EXISTS guild_one_per_mage
+      ON guild_members (mage_id);
+
+    CREATE TABLE IF NOT EXISTS alliances (
+      id                  text PRIMARY KEY,
+      server_id           text NOT NULL,
+      mage_a              text NOT NULL REFERENCES mages(id),
+      mage_b              text NOT NULL REFERENCES mages(id),
+      break_requested_at  bigint,
+      created_at          timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS alliances_a_idx ON alliances (mage_a);
+    CREATE INDEX IF NOT EXISTS alliances_b_idx ON alliances (mage_b);
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id         serial PRIMARY KEY,
+      server_id  text NOT NULL,
+      from_id    text NOT NULL REFERENCES mages(id),
+      -- Nulo cuando el mensaje va al tablon de un gremio.
+      to_id      text REFERENCES mages(id),
+      guild_id   text REFERENCES guilds(id),
+      body       text NOT NULL,
+      read_at    bigint,
+      created_at bigint NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS messages_to_idx    ON messages (to_id, created_at);
+    CREATE INDEX IF NOT EXISTS messages_guild_idx ON messages (guild_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS blocks (
+      blocker_id text NOT NULL REFERENCES mages(id),
+      blocked_id text NOT NULL REFERENCES mages(id),
+      created_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (blocker_id, blocked_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS seasons (
+      id         text PRIMARY KEY,
+      server_id  text NOT NULL,
+      started_at bigint NOT NULL,
+      status     text NOT NULL DEFAULT 'open',
+      ended_at   bigint,
+      end_reason text,
+      halls      jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS seasons_server_idx ON seasons (server_id, status);
+
+    CREATE TABLE IF NOT EXISTS seals (
+      season_id  text NOT NULL REFERENCES seasons(id),
+      idx        integer NOT NULL,
+      mage_id    text NOT NULL REFERENCES mages(id),
+      broken_at  bigint NOT NULL,
+      PRIMARY KEY (season_id, idx)
+    );
+
+    -- Un mago rompe un sello, y solo uno. Igual que el gremio: si el
+    -- juego lo permitiera, alguien lo usaria.
+    CREATE UNIQUE INDEX IF NOT EXISTS seals_one_per_mage
+      ON seals (season_id, mage_id);
+
+    ALTER TABLE mages ADD COLUMN IF NOT EXISTS season_id text REFERENCES seasons(id);
+    CREATE INDEX IF NOT EXISTS mages_season_idx ON mages (season_id);
   `);
 }
 
 /** Solo para los tests: vacía las tablas sin tocar el esquema. */
 export async function truncateAll(sql: postgres.Sql): Promise<void> {
-  await sql.unsafe('TRUNCATE ranking_snapshots, market_lots, outbox, auth_tokens, sessions, battles, events, mages, accounts RESTART IDENTITY CASCADE;');
+  await sql.unsafe('TRUNCATE seals, seasons, blocks, messages, alliances, guild_members, guilds, ranking_snapshots, market_lots, outbox, auth_tokens, sessions, battles, events, mages, accounts RESTART IDENTITY CASCADE;');
 }

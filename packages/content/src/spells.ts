@@ -484,4 +484,39 @@ export const SPELLS_BY_ID: Record<string, SpellSpec> = Object.fromEntries(
  * invocaciones (docs/SISTEMAS.md §7.1) — **no el 624 del original**, que
  * corresponde a un mago con las seis escuelas investigadas.
  */
+/**
+ * El hechizo *Armageddon*. docs/SISTEMAS.md §14.1.
+ *
+ * **Es el único del catálogo que no te hace más fuerte**: no suma nivel de
+ * hechizo, y se investiga después de todos los demás
+ * ([ORIGINAL.md §10.1](ORIGINAL.md), confianza alta). Lo único que hace es
+ * **romper un sello**, y hacen falta siete magos distintos.
+ *
+ * **[nuestro] El coste no está publicado**: se pone el **doble del Ultimate
+ * más caro del catálogo** —160.000, así que 320.000— porque romper un sello
+ * tiene que ser un esfuerzo de mago grande y no un trámite. Decidido con el
+ * usuario el 2026-09-22 y validado con simulación: un mago que llega al
+ * final de la temporada puede pagarlo, **y no dos veces seguidas** — que da
+ * igual, porque solo puede romper uno.
+ */
+export const ARMAGEDDON: SpellSpec = {
+  id: 'armageddon',
+  name: 'Armageddon',
+  school: 'plain',
+  rank: 'ultimate',
+  castTurns: 10,
+  castMana: 320_000,
+  researchCost: 50_000,
+  upkeepMana: 0,
+  // **No es de combate, pero tampoco de los otros tres.** Se marca así
+  // porque `isCastable()` deja fuera los de combate, y Armageddon no se
+  // lanza desde la pantalla de magia: se lanza desde `/temporada`, contra
+  // el mundo y no contra un mago.
+  effect: { kind: 'combat', note: 'Rompe un sello de Armageddon. Ver SISTEMAS §14.1.' },
+  noSpellLevel: true,
+  researchLast: true,
+  source:
+    '[orig] ORIGINAL §10.1: rompe un sello, no suma nivel, se investiga el último. [nuestro] el coste: el doble del Ultimate más caro.',
+};
+
 export const MAX_SPELL_LEVEL = 207;

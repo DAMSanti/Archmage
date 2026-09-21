@@ -270,16 +270,54 @@ colectiva**; la fecha solo pone el tope.
 
 **Armageddon**
 
-- [ ] **13. El hechizo, como dato.** Se investiga **después de todos los
+- [x] **13. El hechizo, como dato.** Se investiga **después de todos los
       demás** y **no suma nivel de hechizo**: el catálogo necesita un
       campo para decirlo, no un `if` con su nombre. *Test = criterio 16.*
       *Toca `packages/content` y `packages/core`.*
-- [ ] **14. Los siete sellos.** *Test = criterios 14 y 15: siete magos
+
+      > **HECHO (2026-09-22).** Dos campos nuevos en la ficha de hechizo:
+      > `noSpellLevel` y `researchLast`. **Van como dato y no como un `if`
+      > con su nombre** (docs/SPECS.md §4), y `magic.ts` ya lo había
+      > anticipado en un comentario desde la fase 2: «Armageddon no suma,
+      > a propósito. Cuando exista (fase 5) será la excepción, y estará
+      > marcada en su entrada del catálogo».
+      >
+      > **El cambio fue aditivo**: `spellLevelOf()` sigue aceptando rangos
+      > sueltos, así que nada de lo que ya la llamaba tuvo que tocarse, y
+      > el nivel máximo del catálogo sigue siendo **207**.
+      >
+      > **[nuestro] El coste**: 320.000, el doble del Ultimate más caro.
+      > Romper un sello tiene que ser un esfuerzo de mago grande y no un
+      > trámite.
+      >
+      > *El test acabó en `content` y no en `core`, y fue el invariante 1
+      > quien lo mandó allí: el núcleo no importa nada, así que un test
+      > que compara catálogo con reglas no cabe en él.*
+
+- [x] **14. Los siete sellos.** *Test = criterios 14 y 15: siete magos
       **distintos**, y dos sellos seguidos en menos de 24 horas es error
       de dominio.* **El reloj por parámetro.**
-- [ ] **15. La fecha tope, 90 días.** *Test = criterio 17 por las dos
+
+      > **HECHO (2026-09-22).** `season.ts`, 21 tests. Siete sellos, **un
+      > mago solo rompe uno**, y 24 horas entre cada dos — con el reloj
+      > por parámetro.
+      >
+      > Medido: **romper los siete lleva al menos seis días**. El final no
+      > puede improvisarse en una tarde, y eso es lo que lo convierte en
+      > una decisión colectiva y no en una carrera.
+
+- [x] **15. La fecha tope, 90 días.** *Test = criterio 17 por las dos
       vías: acaba al séptimo sello, y acaba sola a los 90 días.*
       **Proceso programado idempotente.**
+
+      > **HECHO (2026-09-22).** 90 días de tope, y `shouldEnd()` es
+      > **idempotente por construcción** —una temporada ya cerrada
+      > devuelve `false`—, así que el proceso programado puede correr mil
+      > veces.
+      >
+      > **Los sellos mandan sobre la fecha**: si se rompió el séptimo, la
+      > temporada acabó por decisión de siete magos y no por el reloj. Es
+      > lo que se cuenta en `/temporada`.
 
 **El final**
 
@@ -287,8 +325,19 @@ colectiva**; la fecha solo pone el tope.
       miles de magos que se tocan**. *Test = criterios 18 y 20: la cuenta
       sigue y puede crear mago nuevo, el viejo no se juega, y **no
       aparece** en el ranking de la nueva.* **Es el invariante 17.**
-- [ ] **17. Hall of Fame y Hall of Immortals.** Diez por net power y los
+- [x] **17. Hall of Fame y Hall of Immortals.** Diez por net power y los
       siete de los sellos. *Test = criterio 19.*
+
+      > **HECHO (2026-09-22).** Hall of Fame: los diez primeros por net
+      > power, **congelados al cerrar** y no calculados al mirar — el mago
+      > deja de jugar y su net power deja de tener sentido, pero el puesto
+      > que sacó no cambia.
+      >
+      > Hall of Immortals: **en orden de sello, no por poder**. El primero
+      > se la jugó cuando nadie sabía si habría siete.
+      >
+      > Y sin sellos no hay inmortales: acabó el reloj, no nadie.
+
 - [ ] **18. Que lo que sobrevive NO dé ventaja.** *Test = criterio 21: un
       mago nuevo de una cuenta con Hall of Fame empieza exactamente igual
       que uno de una cuenta nueva.*

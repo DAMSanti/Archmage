@@ -52,6 +52,9 @@ export const mages = pgTable(
     items: jsonb('items').$type<Record<string, number>>().notNull().default({}),
     skills: jsonb('skills').$type<Record<string, number>>().notNull().default({}),
 
+    /** Fase 5: en qué temporada juega. Anulable: la migración es aditiva. */
+    seasonId: text('season_id'),
+
     /**
      * La cuenta que juega este mago. **Anulable a propósito**: el mago de
      * desarrollo no tiene cuenta (docs/SISTEMAS.md §12.1), y la migración
@@ -225,3 +228,102 @@ export const rankingSnapshots = pgTable(
     porServidor: index('ranking_server_idx').on(t.serverId, t.takenAt),
   }),
 );
+
+// --- Gremios, alianzas, mensajes y temporadas. Fase 5 -------------------
+
+export const guilds = pgTable('guilds', {
+  id: text('id').primaryKey(),
+  serverId: text('server_id').notNull(),
+  name: text('name').notNull(),
+  leaderId: text('leader_id')
+    .notNull()
+    .references(() => mages.id),
+  enemies: jsonb('enemies').$type<string[]>().notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Quién está en qué gremio.
+ *
+ * **El índice único sobre `mage_id` es la regla**, no una comprobación de
+ * la aplicación: «un mago, un gremio» tiene que cumplirlo la base de datos
+ * porque entre la consulta y el insert cabe otra petición.
+ */
+export const guildMembers = pgTable('guild_members', {
+  guildId: text('guild_id')
+    .notNull()
+    .references(() => guilds.id),
+  mageId: text('mage_id')
+    .notNull()
+    .references(() => mages.id),
+  role: text('role').notNull().default('member'),
+});
+
+export const alliances = pgTable('alliances', {
+  id: text('id').primaryKey(),
+  serverId: text('server_id').notNull(),
+  mageA: text('mage_a')
+    .notNull()
+    .references(() => mages.id),
+  mageB: text('mage_b')
+    .notNull()
+    .references(() => mages.id),
+  /** Cuándo se pidió romperla. La alianza sigue activa 24 h más. */
+  breakRequestedAt: bigint('break_requested_at', { mode: 'number' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Un mensaje directo (`toId`) o del tablón de un gremio (`guildId`). */
+export const messages = pgTable('messages', {
+  id: serial('id').primaryKey(),
+  serverId: text('server_id').notNull(),
+  fromId: text('from_id')
+    .notNull()
+    .references(() => mages.id),
+  toId: text('to_id').references(() => mages.id),
+  guildId: text('guild_id').references(() => guilds.id),
+  body: text('body').notNull(),
+  readAt: bigint('read_at', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+});
+
+export const blocks = pgTable('blocks', {
+  blockerId: text('blocker_id')
+    .notNull()
+    .references(() => mages.id),
+  blockedId: text('blocked_id')
+    .notNull()
+    .references(() => mages.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Una temporada.
+ *
+ * **Es una fila, no una bandera en cada mago** (docs/SPECS.md §5,
+ * invariante 17): cerrarla es **una escritura**, no miles. Los magos
+ * apuntan a ella con `season_id`.
+ */
+export const seasons = pgTable('seasons', {
+  id: text('id').primaryKey(),
+  serverId: text('server_id').notNull(),
+  startedAt: bigint('started_at', { mode: 'number' }).notNull(),
+  status: text('status').notNull().default('open'),
+  endedAt: bigint('ended_at', { mode: 'number' }),
+  endReason: text('end_reason'),
+  /** Hall of Fame y Hall of Immortals, congelados al cerrar. */
+  halls: jsonb('halls').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Los siete sellos. El índice único impide que un mago rompa dos. */
+export const seals = pgTable('seals', {
+  seasonId: text('season_id')
+    .notNull()
+    .references(() => seasons.id),
+  idx: integer('idx').notNull(),
+  mageId: text('mage_id')
+    .notNull()
+    .references(() => mages.id),
+  brokenAt: bigint('broken_at', { mode: 'number' }).notNull(),
+});

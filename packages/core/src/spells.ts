@@ -70,6 +70,20 @@ export interface SpellSpec {
   /** Mantenimiento continuo. Solo los encantamientos. */
   upkeepMana: number;
   effect: SpellEffect;
+  /**
+   * Si **no** suma nivel de hechizo al aprenderlo.
+   *
+   * **Lo tiene exactamente uno: *Armageddon*** (docs/ORIGINAL.md §10.1).
+   * Está aquí y no como un `if` con su nombre porque el contenido es dato
+   * (docs/SPECS.md §4): el día que haya otro, se añade una entrada y no se
+   * toca código.
+   */
+  noSpellLevel?: boolean;
+  /**
+   * Si solo se puede investigar **cuando ya se sabe todo lo demás**.
+   * También es cosa de *Armageddon*, y por la misma razón va como dato.
+   */
+  researchLast?: boolean;
   /** De dónde sale el número: la fuente del original, o el porqué si es nuestro. */
   source: string;
 }

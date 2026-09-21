@@ -61,12 +61,15 @@ export function rowToState(row: Row): MageState {
 /**
  * El estado del mago, en fila.
  *
- * **`accountId` no está aquí y es a propósito.** De quién es un mago no es
- * parte de su estado de juego —`MageState` no lo lleva, y el núcleo no debe
- * saberlo—, así que se escribe al crearlo y `stateToRow` no lo toca: si
- * estuviera, cada guardado lo reescribiría y un día lo borraría.
+ * **`accountId` y `seasonId` no están aquí, y es a propósito.** De quién es
+ * un mago y en qué temporada juega **no son parte de su estado de juego**
+ * —`MageState` no los lleva, y el núcleo no debe saberlos—, así que se
+ * escriben al crearlo y `stateToRow` no los toca: si estuvieran, cada
+ * guardado los reescribiría y un día los borraría.
  */
-function stateToRow(state: MageState): Omit<Row, 'createdAt' | 'updatedAt' | 'accountId'> {
+function stateToRow(
+  state: MageState,
+): Omit<Row, 'createdAt' | 'updatedAt' | 'accountId' | 'seasonId'> {
   return {
     id: state.id,
     serverId: state.serverId,
