@@ -84,6 +84,40 @@ recurso** y **dos piezas de ornamento**.
 
 ---
 
+### Guerra de la fase 3 — spec escrita, sin implementar
+
+**Spec y criterios de aceptación:
+[docs/SISTEMAS.md §9.1](docs/SISTEMAS.md).** Escrita el 2026-09-21 con
+`/spec`. La investigación que la sostiene, en
+[docs/ORIGINAL.md §9.1-9.5](docs/ORIGINAL.md).
+
+Qué cerró:
+
+- **La fórmula de daño está publicada**, y también la del acierto, la
+  fatiga y el emparejamiento. Eran cuatro marcas `[abierto]` y ya no lo
+  son.
+- **Las fichas de unidad también**, con su `Power Rank` — que cierra de
+  paso el `[abierto]` del coeficiente de poder en net power.
+- **Alcance: los tres ataques, más héroes e items de batalla.** Es el más
+  grande de los que se plantearon, elegido a sabiendas.
+- **Doce criterios de aceptación**, nueve de test y tres de simulación.
+
+**Lo que obliga a hacer antes, y no es menor.** Los upkeeps de unidad que
+inventé en las fases 1 y 2 **están mal por un factor de entre 40 y 100**:
+la Dríade cuesta 0,01 de maná y yo puse 1; el Treant 0,63 y yo puse 24.
+Se corrigen a los números del original, y eso **invalida las cifras
+medidas de las fases 1 y 2**: hay que rehacer la calibración, y es el
+criterio 12 de §9.1.
+
+**Lo que esta fase desbloquea**: el criterio 10 de `SISTEMAS §7.1` falló
+en la fase 2 porque **invocar no paga sin combate**. Éste es el que lo
+arregla, y con él los criterios 9 y 13 de §17.2, aplazados desde la
+fase 1.
+
+Sin tareas todavía: las saca `/plan-tarea`.
+
+---
+
 ### Magia de la fase 2 — cerrada el 2026-09-21
 
 **Spec y plan: [docs/SISTEMAS.md §7.1](docs/SISTEMAS.md).** Las 15 tareas

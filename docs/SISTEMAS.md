@@ -367,8 +367,10 @@ frente a los demás**: 1 maná = 100 geld, 1 habitante = 40 geld, 1 acre =
 edificio, un ingreso, un upkeep— se comprueba contra ella. Es lo que
 convierte «me he inventado un precio» en «he deducido un precio».
 
-**[abierto]** El coeficiente de poder de cada unidad. Se cierra con la
-spec del combate, en la fase 3.
+**[orig]** **El coeficiente de poder de cada unidad es su `Power Rank`**,
+y está publicado en su ficha ([ORIGINAL.md §9.5](ORIGINAL.md), confianza
+alta): 23 la Dríade, 423 el Treant, 36.883 el Fénix. Cerrado el
+2026-09-21 al investigar la guerra; se implementa con la fase 3.
 
 ---
 
@@ -798,6 +800,13 @@ demás se reparten alrededor.
 **[orig]** Las cinco son tropa de barracks y **no tienen escuela**
 (`plain`): docs/ORIGINAL.md §7, confianza alta.
 
+> **Estos números están mal, y se corrigen en la fase 3.** Las fichas
+> publicadas del original dan **0,01 de maná** para la Dríade y **0,63**
+> para el Treant ([ORIGINAL.md §9.5](ORIGINAL.md)); los de esta tabla se
+> inventaron con un factor de entre 40 y 100 de más. La spec de §9.1
+> adopta los del original y rehace la calibración. *(Anotado el
+> 2026-09-21, al investigar la guerra.)*
+
 **[abierto]** Como los de §4.2, son **primera tirada** y se calibran con
 el simulador (§17.2), no discutiéndolos. Lo barato y lo caro tienen que
 seguir siendo decisiones distintas cuando existan los números de combate:
@@ -837,9 +846,206 @@ power. Fuera de Armageddon.
    habilidades y resistencias, y **fatiga** (una unidad rinde menos
    después de atacar).
 
-**[abierto]** La **fórmula de daño y de acierto**, el cálculo de fatiga y
-la curva del bonus de fort. No están publicadas. Es la spec más
-importante de la fase 3 y **no se improvisa al implementar**.
+**[orig]** **La fórmula de daño está publicada**, y también la del
+acierto y la fatiga ([ORIGINAL.md §9.1](ORIGINAL.md), confianza alta). La
+`[abierto]` que había aquí queda cerrada en §9.1.
+
+**[abierto]** Solo sigue sin publicarse **la curva del bonus de fort**
+entre el 0,67% y el 2,33% de la tierra.
+
+### 9.1. La guerra de la fase 3 **[F3]**
+
+**Spec del 2026-09-21.** Cierra las marcas `[abierto]` de la fórmula de
+daño, de los números de combate de las unidades (§8) y del coeficiente de
+poder del net power (§5.7).
+
+#### Qué problema resuelve
+
+Tres cosas que el juego necesita y hoy no tiene:
+
+1. **La tierra deja de tener techo.** Explorar se agota en 3.421 acres
+   (§3); a partir de ahí **solo se crece atacando**. Sin guerra, el juego
+   tiene un final silencioso.
+2. **El maná empieza a pagar.** Medido en la fase 2: de las tres cosas
+   que compra el maná, dos no pagan porque **invocar no sirve sin
+   combate** (§7.1, criterio 10). La fase 3 es la que lo arregla.
+3. **La elección de escuela pasa a tener consecuencias.** Las
+   resistencias son por tipo de daño, así que llevar las unidades
+   adecuadas contra las del rival **es** la decisión táctica del juego.
+
+#### Alcance, decidido con el usuario
+
+**[nuestro]** Los **tres tipos de ataque**, más **héroes** e **items de
+batalla**. Es el alcance más grande de los que se plantearon, y se eligió
+a sabiendas: héroes e items son dos sistemas que no tenían spec propia y
+que aquí entran por la puerta del combate.
+
+**Lo que eso arrastra, dicho por delante**: los héroes y los items
+llegarán **solo con lo que toca una batalla**. La taberna del mercado
+negro, la generación de items por guilds y el sistema de dioses siguen
+siendo de la fase 4. Un héroe en la fase 3 se tiene o no se tiene; cómo
+se consigue, después.
+
+#### La corrección que esto obliga a hacer antes
+
+**[nuestro]** **Los upkeeps de unidad de las fases 1 y 2 estaban mal, y
+se corrigen.** Las fichas publicadas dan 0,01 de maná para la Dríade y
+0,63 para el Treant ([ORIGINAL.md §9.5](ORIGINAL.md)); §8.1 tenía 1 y 24.
+Un factor de entre 40 y 100.
+
+Se adoptan **los números del original**: ataque, contraataque, ataque
+extra, HP, iniciativa, tipo de daño, habilidades, tabla de resistencias,
+`Power Rank` y upkeep. Con eso:
+
+- Se cierra el `[abierto]` de §8 (números de combate).
+- Se cierra el `[abierto]` de §5.7 (`Power Rank` **es** el coeficiente de
+  poder del net power).
+- **Y se invalidan las cifras medidas de las fases 1 y 2.** La
+  calibración hay que rehacerla, y está en los criterios de abajo.
+
+**[nuestro]** Los upkeeps publicados son **fraccionarios** (0,01, 0,63,
+0,80). Los recursos son enteros (§17.1, criterio 8), así que la **tasa**
+se guarda en punto fijo y **el total se redondea una sola vez**, al
+sumar el ejército entero. Con miles de unidades el total es un entero
+grande y la fracción deja de importar; con tres unidades, no cobrar nada
+es lo correcto.
+
+#### El combate, regla a regla
+
+Todo **[orig]** salvo lo que se marque, y todo de
+[ORIGINAL.md §9.1-9.5](ORIGINAL.md), confianza alta.
+
+**La fórmula.**
+
+```
+bajas de R = N_A × ataque_A × (acierto/100) × azar × eficiencia
+             × (1 − resistencia_R) × habilidades_defensivas_R ÷ HP_R
+```
+
+**El acierto**, que pesa más que el ataque: base **30** en defensa y
+ataque regular, **20 en asedio** —ésa es la penalización de asedio, en
+números—, y su propia fórmula a tramos para los modificadores.
+
+**El azar**: entre **0,25 y 0,75**, y **fijo en 0,5** para Magic y
+Psychic. Sale del `RandomSource` y **la semilla se guarda**
+([SPECS.md §5](SPECS.md), invariante 3): toda batalla se puede repetir
+exacta, que es lo que permite enseñar la repetición
+([VISION.md §1](VISION.md)).
+
+**La fatiga**: la eficiencia empieza en 100 y **baja 15 por cada ataque
+primario o contraataque**, **10 con *Endurance***. Los secundarios no la
+bajan. **No depende del tamaño del stack**: una unidad fatiga igual que
+veinte mil.
+
+**Las resistencias son por tipo de daño**, con media cuando el ataque
+tiene varios tipos, y una **debilidad mete −50%** en esa media.
+
+**El orden y el emparejamiento**: los stacks se ordenan por un
+multiplicador de tipo —1,0 a distancia, 1,5 el resto, 2,25 voladores—;
+los voladores y los de distancia pegan a cualquiera, los de melee solo a
+tierra y **se quedan sin objetivo** si no queda ninguna; y un stack solo
+es objetivo si **vale al menos el 10%** del que ataca.
+
+**Quién gana**: pierde quien pierda **más porcentaje** de ejército, y el
+defensor necesita pasar del **10% de bajas** para perder tierra. Con un
+ejército que pase del **200%** del rival, el atacante se lleva **1% de
+bonus por cada 2%** que pase del doble.
+
+**La tierra**: regular hasta el **5%**, asedio hasta el **10%**, y en los
+dos **el atacante se queda un tercio**.
+
+**[nuestro]** **Supervivientes por acre: 50.** Las fuentes se
+contradicen —el *Beginner's Guide* dice 2,5 y 5; *Battle Mechanics* dice
+50 con un ejemplo aritmético que cuadra— y **nos quedamos con 50**,
+porque viene con la cuenta hecha ([ORIGINAL.md §9.3](ORIGINAL.md)).
+
+**[nuestro]** **Iniciativa 0-5.** Las fuentes dan 0-7, 0-6 y «1-5
+típicamente»; las fichas reales que hemos visto usan 1, 3 y 5. Se adopta
+**0-5**, que es lo que los datos soportan.
+
+#### Héroes en la batalla **[orig]**
+
+El de **mayor nivel lidera tu stack más potente**, y así hacia abajo.
+Prefieren su raza y su color, y cuando los lideran dan un **bonus de
+eficiencia igual a su nivel en puntos porcentuales**. Mueren si su stack
+es aniquilado y queda daño para superar sus HP. Ganan experiencia por
+turno y por liderar; subir cuesta **1.000 × nivel**.
+
+**[abierto]** El efecto numérico de cada **habilidad de héroe**. La wiki
+las nombra sin publicar cuánto hacen.
+
+#### Items de batalla **[orig]**
+
+Se usan **en combate** o se disparan solos por **assignment** al
+defenderse, según el porcentaje de ejército enemigo que fijes. **En
+defensa no se pueden bloquear.**
+
+La escala está publicada y es la referencia: *Bubble Wine* +10% de ataque
+y **+30% de HP**, *Potion of Valor* +20% de ataque, *Ash of Invisibility*
+pone la iniciativa a 6, *Strange Metallic Can* resucita el **25%** de las
+bajas.
+
+**[abierto]** Qué items concretos entran en la fase 3 y sus números. La
+lista completa es de la fase 4.
+
+#### Criterios de aceptación
+
+**Tests del núcleo:**
+
+1. **La fórmula da lo que dice la fórmula.** Con acierto 30, azar fijo en
+   0,5, eficiencia 100, resistencia 0 y sin habilidades, 1.000 Treants
+   (ataque 4.200) contra Dríades (HP 70) matan exactamente
+   `1000 × 4200 × 0,3 × 0,5 × 1 × 1 × 1 / 70 = 9.000` dríades.
+2. **El asedio penaliza en el acierto.** La misma batalla en asedio hace
+   exactamente **dos tercios** del daño: 20 en vez de 30 de acierto.
+3. **La fatiga se acumula y el tamaño no importa.** Tras tres ataques
+   primarios la eficiencia es 55; con *Endurance*, 70. Un stack de 1 y
+   uno de 20.000 fatigan lo mismo.
+4. **Las resistencias por tipo cambian el resultado.** El Treant, que
+   resiste 67% a melee y 0% al fuego, recibe **tres veces más daño** de
+   un ataque de fuego equivalente. Y su debilidad al fuego lo empeora
+   otro tanto.
+5. **El emparejamiento respeta los tipos.** Un ejército solo de melee
+   contra uno solo de voladores **no hace daño**: se queda sin objetivo.
+6. **Toda batalla es reproducible.** Misma semilla, mismo resultado, ronda
+   a ronda. Dos ejecuciones dan logs idénticos.
+7. **La condición de victoria es la del original.** Un defensor que pierde
+   el 9% no pierde tierra; con el 11%, sí.
+8. **La tierra sale de los supervivientes.** Con 18.250 supervivientes y
+   un objetivo de 3.654 acres, un asedio le quita 365 y el atacante se
+   queda 122.
+9. **Todo entero.** Ninguna batalla deja unidades fraccionarias ni
+   recursos en negativo, y el redondeo está en un solo sitio por fórmula.
+
+**Simulación:**
+
+10. **Ningún ejército de una sola unidad domina.** Simulando batallas
+    entre composiciones —solo melee, solo voladores, solo a distancia,
+    mezclado—, **la mezclada gana a las puras** más veces de las que
+    pierde. Si una unidad sola domina, sus números están mal.
+11. **El maná ya compite** — el criterio 10 de §7.1, reabierto. Con
+    combate, un reparto volcado a maná que invoque y ataque **deja de ser
+    estrictamente peor** que el económico. **Éste es el criterio que
+    cierra los criterios 9 y 13 de §17.2**, aplazados desde la fase 1.
+12. **La economía sigue cuadrando tras corregir los upkeeps.** Rehecha la
+    calibración de §17.2 con los números reales, los criterios 10, 11 y 12
+    siguen cumpliéndose, o se dice cuál no y por qué.
+
+#### Fuera de alcance de la fase 3
+
+- **Cómo se consiguen héroes e items**: la taberna, el mercado negro, la
+  generación por guilds y los dioses. Fase 4.
+- **La lista completa de items**, y las habilidades de héroe con sus
+  números. Fase 4.
+- **Las otras cuatro escuelas.** Verdant tiene fichas publicadas; las
+  demás siguen `[abierto]` en §7 y §8.
+- **Los hechizos ofensivos de mago a mago** que no sean de batalla —
+  robar turnos, quemar edificios a distancia. Entran cuando entre el
+  mercado y los dioses.
+- **Gremios, aliados y refuerzos.** Fase 5, aunque toquen la batalla: un
+  aliado manda refuerzos, y eso es diplomacia antes que combate.
+- **Combate táctico sobre un mapa.** Sigue fuera para siempre
+  (§16).
 
 **[nuestro]** **Toda batalla guarda su semilla** y es reproducible exacta
 ([ARQUITECTURA.md §5](ARQUITECTURA.md)). El jugador puede ver la

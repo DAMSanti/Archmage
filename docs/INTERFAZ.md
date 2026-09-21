@@ -73,9 +73,9 @@ esa función falta en `packages/core`.
 | `/reino` | **La pantalla principal.** Recursos, ingresos, edificios, construir, explorar. | 1 |
 | `/ejercito` | Stacks, reclutamiento, upkeep total, héroes. | 1-2 |
 | `/magia` | Libro de hechizos, investigación en curso, lanzar, encantamientos activos. Ver §3.1. | 2 |
-| `/guerra` | Buscar objetivo, previsualizar el ataque, lanzarlo. | 3 |
+| `/guerra` | Buscar objetivo, previsualizar el ataque, lanzarlo. Ver §3.2. | 3 |
 | `/cronica` | Qué ha pasado: ataques recibidos, investigación terminada, colapsos. | 1 |
-| `/batalla/:id` | **La repetición**, ronda a ronda. | 3 |
+| `/batalla/:id` | **La repetición**, ronda a ronda. Ver §3.3. | 3 |
 | `/mercado` | Mercado negro: items, hechizos ancient, taberna de héroes. | 4 |
 | `/ranking` | Clasificación del servidor. | 4 |
 | `/gremio` | Gremio, aliados, diplomacia. | 5 |
@@ -122,6 +122,57 @@ resolver, y que no es obvio:
 **Y lo que no hace**, igual que en el reino (§1): no recomienda qué
 investigar, no ordena el libro por «lo mejor primero», y no avisa de que
 un hechizo es mala compra. Enseña los cuatro costes y decide el jugador.
+
+### 3.2. La pantalla de guerra **[F3]**
+
+Spec en [SISTEMAS.md §9.1](SISTEMAS.md). Lo que tiene que resolver:
+
+- **Contra quién puedo ir.** El original limita el pillage a magos dentro
+  del **50% de tu net power** (§9); la lista dice quién entra y quién no,
+  y por qué.
+- **Qué me va a costar.** Atacar cuesta **el upkeep de todo tu ejército**
+  antes de resolver, y eso hunde a quien ataca sin poder pagarlo. Va
+  dicho antes de confirmar, no después.
+- **Los tres ataques son tres decisiones**, no un desplegable: regular,
+  asedio y saqueo dan cosas distintas y cuestan cosas distintas. La
+  pantalla los presenta como tres caminos.
+
+**La previsualización.** Aquí sí se calcula qué pasaría, **con el mismo
+núcleo que lo resolverá en el servidor**
+([ARQUITECTURA.md §1](ARQUITECTURA.md)) — es la razón principal de que
+todo el repo sea TypeScript.
+
+Y **no contradice §1**: enseñar el resultado probable de *lo que has
+pedido* es información sobre tu propia acción, como el coste de construir.
+Lo que sigue sin hacerse es **elegir por ti**: nada de «este objetivo te
+conviene más» ni de ordenar la lista por facilidad.
+
+> **Con una salvedad honesta**: la previsión de una batalla es
+> **probable, no cierta** — el azar va entre 0,25 y 0,75 por golpe. La
+> pantalla lo dice con un rango, nunca con un número solo. Una previsión
+> que parezca exacta y luego falle es peor que no dar ninguna.
+
+### 3.3. La repetición de batalla **[F3]**
+
+Toda batalla guarda su semilla y **se puede volver a jugar exacta**
+([SISTEMAS.md §9.1](SISTEMAS.md)). Ésta es la pantalla que lo aprovecha, y
+existe por una razón de [VISION.md §3](VISION.md): en un juego donde
+perder un ejército cuesta días, **«te han ganado» sin poder ver por qué es
+inaceptable**.
+
+- **Ronda a ronda**, con el orden de iniciativa, qué stack pegó a cuál,
+  cuánto daño y cuántas bajas.
+- **Se ve por qué**: el acierto que se aplicó, la resistencia del
+  defensor a ese tipo de daño, y la eficiencia que quedaba tras la fatiga.
+  Los números de la fórmula, no un resumen.
+- **Sin animación.** Números y estado de los stacks
+  (§7). Un juego que resuelve 40.000 unidades en
+  milisegundos no gana nada animándolas.
+
+**Esto sí explica reglas, y es la excepción deliberada a §1.** La
+diferencia con la pantalla del reino: allí el jugador decide **antes** y
+explicarle el óptimo le quita la decisión; aquí la batalla **ya pasó**, y
+entender qué ocurrió es lo que le permite decidir mejor la próxima vez.
 
 ---
 

@@ -607,9 +607,157 @@ pillar a magos dentro del **50%** de tu net power.
    encantamientos, habilidades y resistencias de las unidades, y
    **fatiga** (una unidad rinde menos después de atacar).
 
-**Parcial.** No hay fórmula publicada de daño ni de probabilidad de
-acierto. Sabemos el orden de resolución y qué entra en la cuenta; no los
-coeficientes.
+### 9.1. La fórmula de daño, publicada
+
+**Confirmado** (páginas *Damage Formula* y *Battle Mechanics*, ampliación
+del 2026-09-21). La `Parcial` que había aquí **queda cerrada**: sí está
+publicada.
+
+```
+bajas de R = N_A × ataque_A × (acierto/100) × azar × eficiencia
+             × (1 − resistencia_R/100) × habilidades_defensivas_R
+             ÷ HP_R
+```
+
+Cada término, con sus números:
+
+- **N_A** — cuántas unidades atacan.
+- **ataque_A** — el *Attack Power* de la ficha. Lo modifican encantamientos,
+  items, héroes y hechizos de batalla.
+- **acierto** — **base 30** en defensa y ataque regular, **20 en asedio**.
+  Ésa es la penalización de asedio, dicha en números. La wiki insiste en que
+  **el acierto pesa más que el ataque**: *«3% de acierto da el mismo bono que
+  10% de ataque»*.
+- **azar** — aleatorio entre **0,25 y 0,75**; **fijo en 0,5** para ataques
+  de tipo Magic y Psychic. *(Una segunda fuente da 0,2-0,8 para el rango
+  físico; la media de 0,5 coincide en las dos.)*
+- **eficiencia** — empieza en 100% y **baja 15 puntos por cada ataque
+  primario o contraataque**; **10 con la habilidad *Endurance***. Los ataques
+  secundarios **no** la bajan. Eso es la fatiga.
+- **resistencia_R** — la del defensor **al tipo de daño concreto**. Con
+  varios tipos se hace la media: *«Fire Ranged = (30% + 75%) / 2 = 52,5%»*.
+  Una **debilidad** mete **−50%** en esa media.
+- **habilidades defensivas** — se multiplican entre sí: *healing* 0,7,
+  *scales* 0,75, *regeneration* 0,8, *charm* 0,5 (contra primarios),
+  *large shield* 0,5 (contra a distancia), y **weakness 2,0** cuando el tipo
+  coincide.
+- **HP_R** — los puntos de vida del defensor.
+
+**Confirmado — la fórmula del acierto**, a tramos, donde `A` es la suma de
+modificadores:
+
+```
+A ≥ 0        → acierto = 30 + A
+−15 ≤ A < 0  → acierto = 30 − A
+−30 ≤ A < −15 → acierto = 24 − (3/5)·A
+A < −30      → acierto = 12 − (1/5)·A
+```
+
+### 9.2. Cómo se ordena y se empareja
+
+**Confirmado.** Los stacks se ordenan por un multiplicador **que depende
+solo del tipo de unidad**, y la wiki avisa de que *«el multiplicador solo
+decide el ORDEN, no mejora sus capacidades»*:
+
+| Tipo | Multiplicador | Dónde acaba |
+|---|---|---|
+| A distancia | **1,0** | atrás |
+| Ni volador ni a distancia | **1,5** | en medio |
+| Volador | **2,25** | delante |
+
+*(Relativo al de en medio son ×1,5 y ×2/3 — que es exactamente lo que decía
+§9 con otra normalización. Las dos fuentes concuerdan.)*
+
+**Confirmado — quién puede pegar a quién**: los **voladores** pegan a
+cualquiera; los de **distancia**, a cualquiera; los de **melee**, solo a
+unidades de tierra, y **se quedan sin objetivo** si no queda ninguna.
+
+**Confirmado — un stack solo es objetivo si vale al menos el 10%** del poder
+del stack que ataca.
+
+**Confirmado — iniciativa**: ataca antes quien la tiene más alta, y con 0 no
+ataca. *(Conflicto entre fuentes: §9 daba 0-7; estas páginas hablan de 1-5
+«típicamente» y de 0-6. Las fichas de unidad que hemos visto usan 1, 3 y 5.)*
+La modifican *Animal/Undead Mastery* nivel 20 (+1), *Slow* (−1 a todos),
+*Paralyze* (−6 a uno al azar) y el item *Spider's Web* (−1 a todos).
+
+**Confirmado — contraataques.** Una unidad atacada contraataca, y el
+contraataque **genera fatiga aparte**. La fatiga **no depende del tamaño del
+stack**: una unidad y veinte mil fatigan igual, que es por lo que se usan
+stacks pequeños de alta iniciativa solo para fatigar.
+
+### 9.3. Quién gana, y cuánta tierra se lleva
+
+**Confirmado.**
+
+- **Gana quien pierde menos porcentaje de ejército.** El defensor necesita
+  pasar del **10% de bajas** para perder tierra.
+- **Bonus de batalla**: si un ejército pasa del **200%** del otro, el
+  atacante gana **1% por cada 2%** que pase del doble. Un ejército que
+  duplica y además se pasa un 100% del doble se lleva un **50% de bonus**.
+- **Tierra**: el ataque regular quita hasta el **5%**, el asedio hasta el
+  **10%**, y en los dos el atacante **se queda un tercio** — los otros dos
+  tercios se destruyen.
+- **Supervivientes por acre**: *«por cada 50 unidades que te sobrevivan, el
+  objetivo pierde 1 acre»*, con ejemplo trabajado: 3.654 acres, asedio de
+  365 como máximo, hacen falta **18.250 supervivientes**; el atacante se
+  lleva 122 y se destruyen 243.
+
+> **Conflicto entre fuentes, sin resolver.** El *Beginner's Guide* daba
+> **2,5 supervivientes por acre** en regular y **5** en asedio (§9); estas
+> páginas dan **50 para los dos**. Es un factor de 10 a 20. La cifra de 50
+> viene con un ejemplo aritmético que cuadra consigo mismo, así que es la
+> más creíble, pero son guías de épocas distintas y **ninguna es autoridad
+> sobre la otra**.
+
+### 9.4. Las tres fases de una batalla
+
+**Confirmado.**
+
+1. **Pre-batalla** — hechizos e items. El del defensor por *assignment*
+   **siempre entra**; el del atacante tiene que pasar **tres resistencias**:
+   la barrier (máx. 75%), la del color (máx. 75%) y la de la unidad. Luego
+   las habilidades de héroe, y el daño previo.
+2. **Batalla** — ataques por orden de iniciativa hasta que se agotan.
+3. **Post-batalla** — resurrección. *Regeneration* y compañía se combinan
+   multiplicando los complementos: healing 30% + hechizo 20% + item 25% da
+   `1 − (0,70 × 0,80 × 0,75) ≈ 58%`.
+
+### 9.5. La ficha de una unidad, con números reales
+
+**Confirmado** (páginas individuales, 2026-09-21). Tres unidades de Verdant
+que cubren la escala entera:
+
+| | Dríade | Treant | Fénix |
+|---|---|---|---|
+| Ataque | 240 | 4.200 | 200.000 |
+| Contraataque | 0 | 1.680 | 40.000 |
+| Ataque extra | — | 2.500 | 600.000 |
+| HP | 70 | 4.200 | 70.000 |
+| Iniciativa | 3 | 1 | 1 (extra: 5) |
+| **Power Rank** | **23** | **423** | **36.883** |
+| Upkeep | 0,80 geld + 0,01 maná | 0,63 maná | 60 maná |
+| Tipo de ataque | Magic, Ranged | Melee | Magic; extra Magic+Ranged |
+| Habilidades | Beauty, Charm | Additional Strike, Endurance, debilidad al fuego | Bursting (fuego, 50.000), Flying, Regeneration |
+
+**Y el `Power Rank` cierra un hueco**: es el «coeficiente de poder» que el
+net power necesitaba (§3.2), y que hasta ahora estaba sin publicar.
+
+**Confirmado — las resistencias son una tabla por unidad**, con un valor por
+**escuela de magia** y otro por **tipo de ataque**. El Treant resiste 90% al
+veneno, 67% a melee, 0% al fuego —su debilidad—; la Dríade resiste 40% a
+melee y 0% a casi todo. Es lo que hace que importe **qué unidades llevas
+contra cuáles**.
+
+**Confirmado — capacidad de aguante**, una fórmula de la propia wiki para
+juzgar si una unidad defiende bien:
+
+```
+aguante = HP / (acierto × (1 − resistencia) × habilidades × power_rank)
+```
+
+Con su baremo: más de 100 excelente, más de 65 buena, más de 40 aceptable,
+menos de 30 mala.
 
 **Confirmado — defensa pasiva.** *Assignment* lanza hechizos y usa items
 automáticamente al ser atacado, según el porcentaje de ejército enemigo
@@ -661,9 +809,13 @@ nuestro** y allí se dice:
   esta lista el 2026-09-21: su fórmula está publicada, §3.1.)*
 - **La curva exacta de exploración**. Tenemos los extremos medidos
   (§4.1), no la función.
-- **Fórmula de daño y de acierto** en combate, y el cálculo de fatiga y
-  de bonus de fort.
-- **Los números de las unidades**: ataque, defensa, HP, upkeep, coste.
+- **La curva del bonus de fort.** La fórmula de daño, la de acierto y la
+  fatiga **dejaron de estar aquí el 2026-09-21**: están publicadas (§9.1).
+  Lo que sigue sin publicarse es cuánto exactamente multiplica el bonus
+  defensivo de los forts entre el 0,67% y el 2,33% de la tierra.
+- **Los números de las unidades** de las escuelas que no hemos mirado.
+  Los de Verdant **están publicados** (§9.5), con su `Power Rank` y su
+  tabla de resistencias.
 - **El efecto numérico de las 10 habilidades.**
 - **La lista completa de hechizos** por escuela y rango, con sus cuatro
   costes.
