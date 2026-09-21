@@ -114,7 +114,107 @@ en la fase 2 porque **invocar no paga sin combate**. Éste es el que lo
 arregla, y con él los criterios 9 y 13 de §17.2, aplazados desde la
 fase 1.
 
-Sin tareas todavía: las saca `/plan-tarea`.
+**Plan técnico**: [docs/SISTEMAS.md §9.1](docs/SISTEMAS.md), apartado
+«Plan técnico». Escrito el 2026-09-21.
+
+**Decidido con el usuario el 2026-09-21:**
+
+- **Los rivales son magos sembrados** de distintos tamaños y
+  composiciones, creados al arrancar. No juegan: están para atacarlos y
+  para que te ataquen. Se borran el día que haya cuentas. **Lo que se
+  mida contra ellos dice cómo funciona el combate, no cómo juega un
+  humano**, y eso queda dicho.
+- **Se para en la tarea 3**, tras recalibrar. Los upkeeps bajan entre 40
+  y 100 veces, y si eso desequilibra la economía hay que decidir qué se
+  mueve **antes** de tener el combate encima.
+
+**Las fichas, y la deuda de atrás**
+
+- [ ] **1. La ficha de combate de una unidad.** Ataque, contraataque,
+      ataque extra, HP, iniciativa, tipos de daño, habilidades, tabla de
+      resistencias y `powerRank`. Y el **upkeep en punto fijo**, porque
+      los valores publicados son fraccionarios.
+      *Test: la ficha del Treant sale clavada — 4.200/1.680/2.500/4.200,
+      iniciativa 1, powerRank 423.* **Cambia el contrato.**
+      *Toca `packages/core` y `packages/content`.*
+- [ ] **2. Las veinte unidades con sus números reales.** Las 15
+      invocables de Verdant y las 5 de barracks. *Test: los upkeeps son
+      los publicados — Dríade 0,01 de maná, Treant 0,63, Fénix 60 — y
+      **ya no los que me inventé**.*
+- [ ] **3. Recalibrar las fases 1 y 2.** Rehacer la simulación de §17.2
+      con los upkeeps corregidos. *Criterio 12 de §9.1: los criterios 10,
+      11 y 12 de §17.2 siguen cumpliéndose, o se dice cuál no y por qué.*
+      **Va aquí y no al final**: si los upkeeps rompen la economía, mejor
+      saberlo antes de construir el combate encima.
+
+**El combate, pieza a pieza**
+
+- [ ] **4. La fórmula de daño.** *Test = criterio 1 de §9.1, con el
+      número exacto: 1.000 Treants contra Dríades matan **9.000**.*
+- [ ] **5. El acierto.** Base 30, **20 en asedio**, y la fórmula a tramos
+      para los modificadores. *Test = criterio 2: el asedio hace
+      exactamente dos tercios del daño.*
+- [ ] **6. Resistencias por tipo de daño.** Media con varios tipos, y la
+      debilidad metiendo −50%. *Test = criterio 4: el Treant recibe tres
+      veces más daño de fuego que de melee.*
+- [ ] **7. Habilidades defensivas.** Healing 0,7, scales 0,75,
+      regeneration 0,8, charm 0,5, large shield 0,5, weakness 2,0,
+      multiplicándose. *Test: cada una por separado y dos combinadas.*
+- [ ] **8. Orden de stacks y emparejamiento.** Multiplicadores
+      1,0/1,5/2,25; voladores y distancia pegan a todo, melee solo a
+      tierra; objetivo solo si vale ≥10%. *Test = criterio 5: melee puro
+      contra voladores puros **no hace daño**.*
+- [ ] **9. Fatiga.** −15 por primario o contraataque, −10 con
+      *Endurance*, los secundarios no. *Test = criterio 3, incluido que
+      **un stack de 1 fatiga igual que uno de 20.000**.*
+- [ ] **10. La ronda.** Orden de iniciativa, ataques extra con la suya,
+      y contraataques. *Test: el orden sale reproducible con la semilla.*
+- [ ] **11. La batalla entera.** Pre-batalla, batalla y post-batalla, con
+      **semilla guardada y log ronda a ronda**. *Test = criterio 6: misma
+      semilla, log idéntico.*
+- [ ] **12. Quién gana, y el bonus de batalla.** *Test = criterio 7: con
+      9% de bajas el defensor no pierde tierra; con 11%, sí.*
+- [ ] **13. La tierra y los tres ataques.** Regular 5%, asedio 10%, un
+      tercio para el atacante, 50 supervivientes por acre, y el saqueo.
+      *Test = criterio 8, con el ejemplo trabajado del original.*
+
+**Héroes e items**
+
+- [ ] **14. Héroes en batalla.** El de mayor nivel lidera el stack más
+      potente; bonus de eficiencia igual a su nivel; mueren con su stack.
+      *Test: el reparto de héroes es determinista, y el bonus se aplica
+      solo con su raza y color.*
+- [ ] **15. Items de batalla y assignment.** Usarlos en combate, y que se
+      disparen solos al defenderse según el porcentaje de ejército
+      enemigo. *Test: en defensa **no se pueden bloquear**.*
+
+**Varios magos, y la persistencia**
+
+- [ ] **16. Que exista contra quién luchar.** Hoy solo hay un mago.
+      *Test: hay objetivos, y el límite del 50% de net power para el
+      saqueo se aplica.*
+- [ ] **17. La tabla de batallas y el bloqueo de dos filas.** Siempre
+      **por id ascendente**. *Test contra Postgres: dos ataques mutuos
+      simultáneos **no se bloquean entre sí**, y la batalla queda
+      guardada con su semilla.*
+- [ ] **18. La acción y las rutas.** `attack` en el contrato, el
+      resultado con su log, y la ruta de la batalla.
+      *Toca `packages/contract` y `apps/server`.*
+
+**Cliente**
+
+- [ ] **19. `/guerra`.** Lista de objetivos, los tres ataques como tres
+      decisiones, el coste del upkeep dicho antes, y la previsión **con
+      un rango, no con un número**.
+- [ ] **20. `/batalla/:id`.** La repetición ronda a ronda, con el acierto,
+      la resistencia y la eficiencia que se aplicaron. *Las tareas 19 y 20
+      se verifican en **una sola pasada de navegador**.*
+
+**Calibración**
+
+- [ ] **21. ¿Compite ya el maná?** *Criterio 11 de §9.1, y **el que cierra
+      los criterios 9 y 13 de §17.2**, aplazados desde la fase 1.* Y el
+      criterio 10: ningún ejército de una sola unidad domina.
 
 ---
 

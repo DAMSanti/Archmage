@@ -1047,6 +1047,124 @@ lista completa es de la fase 4.
 - **Combate táctico sobre un mapa.** Sigue fuera para siempre
   (§16).
 
+#### Plan técnico
+
+**Escrito el 2026-09-21 con `/plan-tarea`.** Las tareas están en
+[ROADMAP.md](../ROADMAP.md) «En curso».
+
+##### Lo que planear destapó, mirando el código
+
+Tres cosas que la spec daba por hechas y **no existen**:
+
+1. **No hay más de un mago.** `DEV_MAGE_ID` está fijo en `'dev'` y es el
+   único registro que se crea. **No hay a quién atacar.** Sin
+   autenticación —que sigue fuera de alcance
+   ([ARQUITECTURA.md §9.6](ARQUITECTURA.md))— hace falta otra forma de
+   que existan rivales.
+2. **El repositorio bloquea una sola fila.** Un ataque toca **dos**
+   magos, así que hay que bloquear las dos — y **en un orden
+   determinista por id**, o dos ataques mutuos simultáneos se quedan
+   esperándose para siempre. Es un caso nuevo del invariante 6.
+3. **No hay dónde guardar una batalla.** La repetición exige guardar la
+   semilla y el log ([INTERFAZ.md §3.3](INTERFAZ.md)), y eso es una
+   tabla nueva.
+
+##### Qué cambia del contrato
+
+1. **La unidad gana su mitad de combate.** `UnitEconomySpec` pasa a ser
+   la mitad de una ficha completa: ataque, contraataque, ataque extra,
+   HP, iniciativa, tipos de daño, habilidades, **tabla de resistencias**
+   y `powerRank`.
+2. **El upkeep pasa a punto fijo.** Los valores publicados son
+   fraccionarios —0,01, 0,63, 0,80— y los recursos son enteros
+   (invariante 7). Se guardan en **centésimas** y **el total se redondea
+   una sola vez**, al sumar el ejército entero.
+3. **Tabla `battles`**, con la semilla, los dos participantes, el
+   resultado y el log. Aditiva.
+4. **`attack` como acción**, con su tipo. Y el resultado de una acción
+   deja de afectar **solo a quien la hace**: es la primera vez, y el
+   contrato tiene que decirlo.
+
+##### Los números que el plan tiene que cerrar
+
+- **La curva del bonus de fort** entre 0,67% y 2,33% de la tierra: es lo
+  único del combate que el original no publica. Se cierra con una curva
+  lineal entre los dos extremos y se valida con el criterio 10.
+- **Qué items de batalla entran**, y sus números. La escala está
+  publicada (§9.1); la lista es nuestra.
+- **El efecto numérico de las habilidades de héroe.**
+
+##### Dónde va cada cosa
+
+| | Va a | Por qué |
+|---|---|---|
+| La fórmula de daño, el acierto, las resistencias, la fatiga, el emparejamiento, la ronda, quién gana, la tierra | **`packages/core`** | Son reglas. Funciones puras, con el azar por `Ctx`. |
+| Las fichas de unidad, los items y las habilidades de héroe | **`packages/content`** | Son datos. |
+| La acción `attack`, el resultado y el log | **`packages/contract`** | Rompe los dos lados a la vez. |
+| La tabla `battles` y el bloqueo de dos filas | **`apps/server`** | Entrada y salida. |
+| `/guerra` y `/batalla/:id` | **`apps/web`** | Ver [INTERFAZ.md §3.2 y §3.3](INTERFAZ.md). |
+
+**La batalla entera es una función pura.** Entra `(atacante, defensor,
+tipo, semilla)` y sale `(resultado, log)`. Eso es lo que permite las tres
+cosas que la fase necesita: **previsualizar** en el cliente con el mismo
+código, **repetir** una batalla exacta, y **simular** miles para calibrar
+sin levantar nada.
+
+##### Detalles con trampa
+
+1. **Dos filas, un orden.** Se bloquean siempre **por id ascendente**,
+   ataque quien ataque. Sin eso, A→B y B→A simultáneos se abrazan.
+2. **El upkeep se cobra ANTES de resolver** ([orig], §9): atacar cuesta
+   el upkeep de **todo** tu ejército. Un mago que ataca sin poder pagarlo
+   se hunde aunque gane, y eso tiene que pasar de verdad.
+3. **La previsión no es el resultado.** El cliente previsualiza con una
+   semilla distinta de la que usará el servidor. Enseñar un número exacto
+   que luego no sale sería peor que no enseñar nada: va **un rango**
+   ([INTERFAZ.md §3.2](INTERFAZ.md)).
+4. **La fatiga no depende del tamaño del stack** ([orig]). Es
+   contraintuitivo y es fácil implementarlo «proporcional» sin querer.
+5. **Las bajas se reparten sobre unidades enteras.** La fórmula da un
+   número con decimales; se trunca **una vez**, y nunca puede matar más
+   unidades de las que hay.
+
+##### Orden de dependencias
+
+```
+fichas de unidad con su mitad de combate (content)
+   └─ recalibrar las fases 1 y 2 con los upkeeps corregidos
+         └─ daño → acierto → resistencias → habilidades defensivas
+               └─ orden y emparejamiento → fatiga → la ronda
+                     └─ la batalla entera, con semilla y log
+                           ├─ quién gana → la tierra → los tres ataques
+                           ├─ héroes en batalla
+                           └─ items de batalla y assignment
+                                 └─ varios magos → tabla de batallas
+                                       └─ acción y rutas → /guerra → /batalla
+                                             └─ calibración: ¿compite ya el maná?
+```
+
+**La recalibración va la segunda, no la última.** Si los upkeeps
+corregidos rompen la economía, es mejor saberlo antes de construir el
+combate encima.
+
+##### Riesgos
+
+- **Es la fase más grande del proyecto**, y con diferencia. El combate
+  del original tiene resistencias por tipo, habilidades defensivas,
+  ataques extra con su propia iniciativa, contraataques y fatiga. Se
+  eligió fidelidad completa a sabiendas.
+- **La recalibración puede salir mal.** Los upkeeps bajan entre 40 y 100
+  veces, así que el maná sobrará donde antes faltaba. Puede obligar a
+  mover los rendimientos de los nodes, y eso toca la fase 1.
+- **Héroes e items llegan sin su spec de origen.** Entran solo por la
+  puerta del combate; cómo se consiguen es fase 4. El hueco está
+  declarado en «Fuera de alcance».
+- **Sin autenticación, los rivales son artificiales.** Decidido con el
+  usuario el 2026-09-21: **magos sembrados** de distintos tamaños y
+  composiciones, creados al arrancar y borrados el día que haya cuentas.
+  Lo que se mida contra ellos dice cómo funciona el combate, **no** cómo
+  se comporta un jugador humano.
+
 **[nuestro]** **Toda batalla guarda su semilla** y es reproducible exacta
 ([ARQUITECTURA.md §5](ARQUITECTURA.md)). El jugador puede ver la
 repetición ronda a ronda, no solo el resultado. En un juego donde perder
