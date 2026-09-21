@@ -110,6 +110,27 @@ original en [docs/ORIGINAL.md §4.2 y §9.1](docs/ORIGINAL.md).
 Queda `[abierto]` el efecto numérico de las habilidades de héroe, y la
 lista completa de items es de la fase 4.
 
+### El mundo de la fase 4 — spec escrita, sin implementar
+
+**Spec**: [docs/SISTEMAS.md §12.1](docs/SISTEMAS.md), «El mundo de la
+fase 4». Escrita el 2026-09-21. Toca además
+[docs/SPECS.md §5](docs/SPECS.md) —invariantes 13, 14 y 15— y
+[docs/INTERFAZ.md §3.4-3.6](docs/INTERFAZ.md).
+
+Cuentas, mercado negro, items, héroes que crecen, las diez habilidades y
+el ranking. **Cuatro decisiones tomadas con el usuario**: las cuentas
+entran y van primero; el mercado es subasta entre jugadores como el
+original, con el riesgo de quedarse vacío declarado; las diez habilidades
+se cierran en +1% por rango; y los gremios se quedan en la fase 5.
+
+**Lo que se encontró al especificar**: el mercado negro **está
+publicado** con todos sus números (ORIGINAL §7.1), incluido que **pujar
+cuesta un turno**; y de las diez habilidades hay **una** con efecto
+publicado, que sirve de ancla de escala para deducir las otras nueve en
+vez de inventarlas.
+
+Sin tareas todavía: las saca `/plan-tarea`.
+
 ### Magia de la fase 2 — cerrada el 2026-09-21
 
 **Spec y plan: [docs/SISTEMAS.md §7.1](docs/SISTEMAS.md).** Las 15 tareas
@@ -534,12 +555,20 @@ Gestionar un reino de verdad, solo. Sin magia y sin guerra.
 
 ## Fase 4 — Mundo
 
-- [ ] Varios magos y ranking.
-- [ ] Mercado negro: items, hechizos ancient, taberna.
-- [ ] Items: generación por guilds, uso, assignment.
-- [ ] Héroes: niveles, liderazgo de stacks, bonus de eficiencia.
-- [ ] Las 10 habilidades.
-- [ ] Cliente: `/mercado`, `/ranking`.
+**Spec escrita el 2026-09-21**, en
+[docs/SISTEMAS.md §12.1](docs/SISTEMAS.md). Ver «En curso».
+
+- [ ] **Cuentas**: registro, sesión, un mago por cuenta y servidor.
+- [ ] Mercado negro: subasta entre jugadores, cuatro secciones.
+- [ ] Items: generación por guilds, catálogo de veinte, robo al pillar.
+- [ ] Héroes: experiencia, niveles, taberna.
+- [ ] Las 10 habilidades, cerradas en +1% por rango.
+- [ ] Ranking por net power.
+- [ ] Cliente: `/`, `/mercado`, `/ranking`, `/habilidades`.
+
+*(Héroes en batalla y items en combate **ya están hechos** desde la fase
+3: reparto, bonus de eficiencia, muerte con el stack, assignment y los
+cuatro items publicados.)*
 
 ## Fase 5 — Temporada
 

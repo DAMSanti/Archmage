@@ -69,15 +69,16 @@ esa función falta en `packages/core`.
 
 | Ruta | Qué es | Fase |
 |---|---|---|
-| `/` | Portal: entrar, crear cuenta, elegir servidor. | 1 |
+| `/` | Portal: entrar, crear cuenta, elegir servidor. | **4** |
 | `/reino` | **La pantalla principal.** Recursos, ingresos, edificios, construir, explorar. | 1 |
 | `/ejercito` | Stacks, reclutamiento, upkeep total, héroes. | 1-2 |
 | `/magia` | Libro de hechizos, investigación en curso, lanzar, encantamientos activos. Ver §3.1. | 2 |
 | `/guerra` | Buscar objetivo, previsualizar el ataque, lanzarlo. Ver §3.2. | 3 |
 | `/cronica` | Qué ha pasado: ataques recibidos, investigación terminada, colapsos. | 1 |
 | `/batalla/:id` | **La repetición**, ronda a ronda. Ver §3.3. | 3 |
-| `/mercado` | Mercado negro: items, hechizos ancient, taberna de héroes. | 4 |
-| `/ranking` | Clasificación del servidor. | 4 |
+| `/mercado` | Mercado negro: subasta de items, hechizos y unidades, y taberna de héroes. Ver §3.4. | 4 |
+| `/ranking` | Clasificación del servidor por net power. Ver §3.5. | 4 |
+| `/habilidades` | Las diez habilidades del mago y en qué gastar los puntos. Ver §3.6. | 4 |
 | `/gremio` | Gremio, aliados, diplomacia. | 5 |
 
 ---
@@ -173,6 +174,53 @@ inaceptable**.
 diferencia con la pantalla del reino: allí el jugador decide **antes** y
 explicarle el óptimo le quita la decisión; aquí la batalla **ya pasó**, y
 entender qué ocurrió es lo que le permite decidir mejor la próxima vez.
+
+---
+
+### 3.4. El mercado negro **[F4]**
+
+Spec en [SISTEMAS.md §12.1](SISTEMAS.md). Cuatro secciones —items,
+hechizos, unidades invocables y taberna de héroes—, cada una con sus
+lotes en subasta.
+
+**Lo que esta pantalla tiene que dejar claro, y son cuatro cosas que
+duelen si se callan:**
+
+1. **Pujar cuesta un turno.** Va dicho **antes** del botón, como el
+   coste de atacar en §3.2. Es la diferencia entre una subasta y una
+   tienda, y es lo que hace que competir por un lote sea una decisión.
+2. **Una puja no se puede cancelar.** Se dice antes de confirmar, no
+   después.
+3. **El geld se cobra al pujar**, no al ganar, y vuelve entero si te
+   superan. Un jugador que no lo sepa creerá que ha perdido el dinero.
+4. **Cuánto queda.** Cada lote enseña su cuenta atrás —30 minutos desde
+   la última puja— en **tiempo real**, que es el único sitio del juego
+   donde el reloj manda sobre algo.
+
+**Cuando no hay nada a la venta, la pantalla lo dice.** El mercado se
+llena solo con lo que ponen los jugadores, así que estará vacío a menudo
+al principio de una temporada. Un panel vacío parece roto; uno que dice
+«no hay nada a la venta, pon tú el primer lote» es información.
+
+### 3.5. El ranking **[F4]**
+
+Net power, tierra y escuela. **No** el ejército ni el geld: saber con qué
+cuenta el rival convierte la guerra en aritmética
+([SISTEMAS.md §12.1](SISTEMAS.md)).
+
+Un mago **protegido aparece igualmente**, marcado. Esconderlo haría que
+la lista mintiera sobre cuánta gente hay jugando, que es justo lo que un
+jugador nuevo mira para decidir si se queda.
+
+### 3.6. Las habilidades **[F4]**
+
+Las diez, con su nivel, lo que cuesta el siguiente rango y **qué cambia
+en números** — «+7% de acierto en batalla», no «mejora tus tropas». La
+regla de §4 vale aquí más que en ningún sitio: la interfaz no esconde la
+fórmula.
+
+Las cinco de especialidad dicen **cuánto cuestan fuera de tu color** —el
+doble— en la propia fila, no en una nota al pie.
 
 ---
 

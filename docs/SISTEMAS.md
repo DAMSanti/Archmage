@@ -1600,9 +1600,305 @@ puntos** acumulados (1 el primer rango, 20 el vigésimo).
 guilds** y la velocidad del servidor. Referencia: 5.000 de tierra con 5%
 de guilds en un servidor rápido da **un punto cada ~34 turnos**.
 
-**[abierto]** El **efecto numérico** de cada habilidad.
+**[nuestro]** **Cerrado el 2026-09-21**: +1% por rango, hasta +20% al
+nivel 20, sobre la magnitud que cada habilidad toca. La tabla entera y de
+dónde sale cada número están en **§12.1**. Solo *Spell Mastery* tiene
+efecto publicado, y es el ancla de escala.
 
 ---
+
+### 12.1. El mundo de la fase 4 **[F4]**
+
+**Spec del 2026-09-21.** Cierra la marca `[abierto]` del efecto de las
+diez habilidades, y añade lo que el juego necesita para dejar de ser un
+solitario: **cuentas, mercado, items, héroes que crecen y un ranking**.
+
+#### Qué problema resuelve
+
+Tres cosas que hoy faltan, y las tres se notan al jugar:
+
+1. **No hay jugadores.** Todo el servidor corre con **un mago fijo**
+   (`DEV_MAGE_ID`), y los rivales se siembran con un script. La fase 3
+   dejó la guerra montada sobre magos que nadie juega: el ranking sería
+   una tabla de maniquíes y el mercado no tendría contra quién pujar.
+2. **El geld no tiene dónde gastarse tarde.** A partir de cierto punto un
+   mago acumula millones y solo puede construir. Sin un sitio donde el
+   dinero compre **ventaja** —items, héroes, hechizos—, la mitad de la
+   economía deja de decidir nada.
+3. **Los guilds solo sirven para investigar.** Producen puntos de
+   habilidad e items en el original, y aquí no hacen ni una cosa ni la
+   otra: el edificio existe y su segundo motivo de ser no.
+
+#### Alcance, decidido con el usuario
+
+**[nuestro]** Decidido el 2026-09-21, con las cuatro preguntas que
+cambiaban el trabajo:
+
+- **Las cuentas entran, y van primero.** Registro, sesión y **un mago por
+  cuenta y servidor**. Es la tarea que desbloquea a las demás: sin ella
+  el ranking y el mercado no tienen sujeto.
+- **El mercado es una subasta entre jugadores**, como el original, y
+  **no** una tienda con stock de la casa. Con el riesgo declarado que
+  eso trae, abajo.
+- **Las diez habilidades se cierran aquí**, deduciéndolas del ancla de
+  net power (§5.7) y del único efecto publicado (*Spell Mastery*).
+- **Gremios y alianzas se quedan en la fase 5.** Cambian el combate ya
+  implementado —refuerzos automáticos, hechizos que ignoran la barrier— y
+  eso pide su propia spec.
+
+---
+
+#### Cuentas y magos
+
+**[nuestro]** Una **cuenta** es correo y contraseña; un **mago** es lo que
+esa cuenta juega en un servidor. **Un mago por cuenta y servidor**, que en
+el original es norma de convivencia y aquí es **regla del código**: si el
+juego lo permite, alguien lo usa (§13).
+
+**[nuestro]** Crear el mago pide **nombre y escuela**, y la escuela **no
+cambia durante la temporada** — ya es el invariante 10 de
+[SPECS.md §5](SPECS.md); lo nuevo es que ahora la elige un jugador en vez
+de venir fijada.
+
+**[nuestro]** El mago de desarrollo se queda, detrás de una bandera de
+entorno. Quitarlo obligaría a registrarse para correr un test de
+navegador, y eso encarece la comprobación más cara que tenemos.
+
+> **Criterio 1.** Dos cuentas distintas ven dos magos distintos, y una
+> misma cuenta **no puede crear dos magos en el mismo servidor**: el
+> segundo intento es un error de dominio con su código, no un 500.
+> *Test del servidor contra Postgres.*
+>
+> **Criterio 2.** Ninguna ruta devuelve el estado de un mago que no es
+> del que pide. *Test: pedir el reino con la sesión de otro da 403, y
+> atacar con un `mageId` ajeno también.*
+
+---
+
+#### El mercado negro
+
+**[orig]** Subasta entre jugadores, con los números publicados
+([ORIGINAL.md §7.1](ORIGINAL.md), confianza alta):
+
+- **Pujar cuesta un turno**, y eso es lo que lo ata al resto del juego:
+  el mercado compite con explorar y con lanzar, no es una ventana aparte.
+- **Puja mínima siguiente: +5%** sobre la anterior.
+- **Ventana de 30 minutos** para superar una puja; el lote está a la
+  venta **al menos 2,5 horas** y se adjudica **30 minutos después** de la
+  puja ganadora.
+- **Una puja no se puede cancelar.** Al ser superado te devuelven tu
+  geld.
+- **Seis secciones**: *Antique Store* (items), *Tavern of Heroes*
+  (héroes), *Exotic Mageware* (hechizos), *Spawning Hatchery* (unidades
+  invocables), *Swords for Hire* (mercenarios) y *Altar of Darkness*
+  (favores divinos).
+
+**[nuestro]** **Entran cuatro secciones de las seis.** El *Altar of
+Darkness* queda fuera porque **los dioses están fuera de alcance** (§16),
+y *Swords for Hire* también: un mercenario es una unidad con su ficha, y
+el catálogo de unidades ya está cerrado en §8 — meter mercenarios es
+abrir una lista que decidimos no abrir.
+
+**[nuestro]** **El reloj del mercado no es el reloj de los turnos.** Las
+subastas van en **tiempo real** —30 minutos, 2,5 horas— porque así lo
+publica el original, y eso **no rompe §2**: el tiempo real no produce
+nada, solo cierra plazos. Lo que se produce sigue saliendo de gastar
+turnos.
+
+**[nuestro]** **De dónde salen los lotes.** De los propios jugadores: se
+pone a la venta lo que se tiene. En la fase 4 **nadie pone lotes de la
+nada**, así que el mercado se llena solo cuando alguien vende.
+
+> **Riesgo declarado, y es el que el usuario aceptó al elegir fidelidad.**
+> Con pocos magos activos **el mercado está vacío**, y una pantalla vacía
+> parece rota. La respuesta no es inventar stock: es que **la pantalla lo
+> diga** — «no hay nada a la venta; pon tú el primer lote»— en vez de
+> enseñar una tabla en blanco. Si al calibrar resulta que está vacío la
+> mayor parte del tiempo, **la decisión de meter stock de la casa se
+> reabre**, y se reabre con el dato delante.
+
+> **Criterio 3.** Pujar cuesta exactamente un turno, y **cobra el geld al
+> pujar, no al ganar**. Al ser superado, el geld vuelve entero. *Test del
+> núcleo, y test del servidor de que las dos cosas van en la misma
+> transacción.*
+>
+> **Criterio 4.** Una puja que no supere el 5% es un error de dominio con
+> su código. *Test del núcleo.*
+>
+> **Criterio 5.** Dos pujas simultáneas sobre el mismo lote **no se
+> pisan**: gana una, la otra recibe su error y su geld sigue intacto.
+> *Test contra Postgres con la fila del lote bloqueada, igual que las dos
+> filas de una batalla (§9.1).*
+>
+> **Criterio 6.** Un lote se adjudica **30 minutos después** de la última
+> puja, no antes, y el comprador recibe lo comprado **y** el vendedor su
+> geld en la misma transacción. *Test del servidor con el reloj
+> inyectado.*
+>
+> **Criterio 7.** Con cero lotes, la pantalla **dice por qué** está
+> vacía. *Pasada de navegador.*
+
+---
+
+#### Items
+
+**[orig]** Se generan solos al gastar turnos, a un ritmo que depende del
+**porcentaje de guilds sobre la tierra**; se compran en el mercado; salen
+de otros items; y **se roban pillando** — el saqueo de §9.1 ya está
+implementado y hoy no roba items porque no los había.
+
+**[orig]** **Lesser items**, acumulables, y **unique items**, con tope de
+uno. Tres usos: fuera de batalla con efecto inmediato, **por assignment**
+al defenderse, y en combate. Los dos últimos ya existen desde la fase 3.
+
+**[nuestro]** **El catálogo entra con veinte items**, no con la lista
+entera del original: los cuatro con números publicados —*Bubble Wine*,
+*Potion of Valor*, *Ash of Invisibility*, *Strange Metallic Can*— ya
+están en el código desde la fase 3, y los dieciséis restantes se
+interpolan **con la misma regla declarada** que se usó para las unidades
+(§8.1): se dice de dónde sale cada número y se calibra con simulación.
+
+**[nuestro]** **El ritmo de generación se ancla en el original**: un mago
+con el **5% de su tierra en guilds** saca del orden de **un item cada 40
+turnos**. Sale de la misma escala que los puntos de habilidad (un punto
+cada ~34 turnos con 5% de guilds, [ORIGINAL.md §8](ORIGINAL.md)) y de que
+un item bueno **cambia una batalla**: si salieran cada cinco turnos, no
+la cambiaría ninguno.
+
+> **Criterio 8.** Un mago con el 10% de su tierra en guilds genera items
+> al doble de ritmo que uno con el 5%, y uno sin guilds **no genera
+> ninguno**. *Test del núcleo.*
+>
+> **Criterio 9.** El saqueo roba items, y **no roba uniques**. *Test del
+> núcleo: un pillage contra un mago con tres lesser y un unique se lleva
+> lesser y deja el unique.*
+>
+> **Criterio 10.** Los uniques tienen tope de uno: comprar el segundo es
+> un error de dominio. *Test del núcleo.*
+>
+> **Criterio 11.** Todo entero: ningún item genera cantidades
+> fraccionarias, y el efecto se redondea **en un solo sitio**.
+
+---
+
+#### Héroes que crecen
+
+**[orig]** Ganan experiencia **por turno y por liderar en batalla**.
+Subir de nivel cuesta **1.000 × nivel actual**. Los comprables empiezan
+en **nivel 8**; las habilidades llegan a partir del 9, normalmente dos:
+una entre 8 y 10, otra entre 13 y 17.
+
+**[nuestro]** La fase 3 dejó hecho **lo que un héroe hace en batalla** —
+reparto por nivel, bonus de eficiencia por su raza y color, y la muerte
+con su stack—. Lo que falta es **cómo se consigue y cómo crece**, que es
+lo que lo convierte en una inversión y no en un modificador.
+
+**[nuestro]** **Las habilidades de héroe siguen `[abierto]`.** Se le pone
+número a las diez del mago (§12) porque hay un ancla publicada; de las de
+héroe no hay ninguna, y **se declara el hueco en vez de rellenarlo**. Un
+héroe de la fase 4 tiene nivel y bonus de eficiencia, nada más.
+
+> **Criterio 12.** Un héroe de nivel 8 que lidera durante una temporada
+> simulada **llega a nivel 12 o más**, y no a 20: subir tiene que costar
+> lo suficiente para que un héroe veterano valga algo. *Simulación de
+> temporada.*
+>
+> **Criterio 13.** La experiencia por turno sola **no basta** para subir
+> de nivel a un ritmo razonable: liderar en batalla tiene que aportar
+> más. *Test del núcleo comparando los dos ritmos.*
+
+---
+
+#### Las diez habilidades del mago
+
+**[orig]** Diez habilidades de **20 niveles**; llegar al 20 cuesta **210
+puntos** acumulados. Cinco están **ligadas a especialidad** y cuestan el
+doble fuera de tu color; cinco son neutras. Los puntos se generan según
+la **raíz cuadrada del número de guilds**: 5.000 de tierra con 5% de
+guilds da **un punto cada ~34 turnos**.
+
+**[orig]** El único efecto publicado es el de *Spell Mastery*: del orden
+de **−1% de coste de maná por rango**, con fuente floja
+([ORIGINAL.md §8](ORIGINAL.md), confianza baja).
+
+**[nuestro]** **Se cierra la marca `[abierto]`, y así se deducen.** Ese
+único dato da la **escala**: una habilidad al máximo vale del orden de un
+**20%**, no de un 2% ni de un 200%. Con eso, y con la tabla de net power
+de §5.7 —que es la equivalencia entre recursos según los propios
+diseñadores—, las diez quedan en **+1% por rango, hasta +20% al nivel
+20**, sobre la cosa que cada una toca:
+
+| Habilidad | Toca | Al nivel 20 |
+|---|---|---|
+| *Spell Mastery* **[orig]** | coste de maná de todos los hechizos | −20% |
+| *Spell Penetration* | fallo por lanzar fuera de color (§7) | −20% |
+| *Grand Enchanter* | upkeep de maná de los encantamientos | −20% |
+| *Augment Summoning* | unidades por invocación | +20% |
+| *Animal Mastery* | ataque de las unidades animales | +20% |
+| *Undead Mastery* | ataque de las unidades no muertas | +20% |
+| *Legendary Commander* | acierto en batalla (§9.1) | +20% |
+| *Grand Conqueror* | tierra que se arranca al ganar | +20% |
+| *Barrier Proficiency* | efecto defensivo de las barriers | +20% |
+| *Legendary Artificer* | ritmo de generación de items | +20% |
+
+**Por qué +1% por rango y no una curva.** Porque el único dato publicado
+es lineal en los tres primeros rangos, y **una curva inventada sería una
+decisión de diseño escondida en una constante**. Si la calibración dice
+que el 20% final es demasiado, se mueve el 20% — no la forma.
+
+> **Criterio 14.** Cada habilidad al nivel 20 cambia su magnitud en un
+> 20% exacto, y al nivel 0 no cambia nada. *Diez tests del núcleo, uno
+> por habilidad.*
+>
+> **Criterio 15.** Llegar al 20 cuesta **210 puntos** y fuera de color
+> **420**. *Test del núcleo.*
+>
+> **Criterio 16.** Un mago con 5.000 de tierra y 5% de guilds saca un
+> punto cada **34 turnos**, ±2. *Test del núcleo contra el ancla
+> publicada.*
+>
+> **Criterio 17.** **Ninguna habilidad sola cambia quién gana una
+> temporada.** Con las diez al 20, el net power final sube menos de un
+> 50% respecto a no tener ninguna. *Simulación de temporada.* Es el
+> criterio que impide que las habilidades se coman el juego: son una
+> ventaja, no una segunda economía.
+
+---
+
+#### El ranking
+
+**[orig]** El **net power** es la medida oficial del tamaño de un mago, y
+su fórmula está publicada (§5.7). Desde la fase 3 **cuenta el ejército**,
+así que por fin distingue estrategias.
+
+**[nuestro]** El ranking enseña **net power, tierra y escuela**, y **no**
+el ejército ni el geld: saber exactamente con qué cuenta el rival
+convierte la guerra en aritmética. El original tampoco lo enseña.
+
+> **Criterio 18.** El ranking ordena por net power descendente y
+> **coincide con `netPower()`**, sin recalcular nada por su cuenta
+> (invariante 5). *Test del servidor.*
+>
+> **Criterio 19.** El ranking **no filtra** por protección: un mago
+> protegido aparece, y se dice que lo está. Esconderlo haría que la lista
+> mintiera sobre cuánta gente hay. *Test del servidor.*
+
+---
+
+#### Fuera de alcance de la fase 4
+
+- **Gremios, alianzas y NAP.** Siguen `[F5]` (§13). Cambian el combate ya
+  implementado y piden su propia spec.
+- **Los dioses y el *Altar of Darkness*.** Ya estaban fuera (§16) y
+  siguen fuera.
+- **Mercenarios (*Swords for Hire*).** Abrirían el catálogo de unidades,
+  que está cerrado (§8).
+- **Las habilidades de héroe.** Sin ancla publicada; se declara el hueco.
+- **Hechizos *ancient*.** La *Exotic Mageware* vende hechizos del
+  catálogo existente; los *ancient* son una lista nueva y no hay
+  investigación que los cubra.
+- **Mensajería entre jugadores.** Es `[F5]`, con los gremios.
+- **Chat en tiempo real.** Fuera para siempre (§16).
 
 ## 13. Gremios y diplomacia **[F5]**
 

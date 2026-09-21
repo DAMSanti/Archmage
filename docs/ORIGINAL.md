@@ -642,6 +642,38 @@ acabar la batalla).
 
 ---
 
+### 7.1. El mercado negro, publicado
+
+**Confirmado** (página *Black Market*, ampliación del 2026-09-21). Es una
+**subasta entre jugadores**, no una tienda:
+
+| | |
+|---|---|
+| Moneda | **geld** |
+| Pujar cuesta | **un turno**, y una pérdida pequeña de net power |
+| Ventana para superar una puja | **30 minutos** |
+| Puja mínima siguiente | **+5%** sobre la anterior |
+| Un lote está a la venta | **al menos 2,5 horas** |
+| Se adjudica | **30 minutos después** de la puja ganadora |
+| Cancelar una puja | **no se puede** |
+| Al ser superado | te devuelven tu geld y puedes volver a pujar |
+
+> **Que pujar cueste un turno es la pieza que lo ata todo.** Convierte el
+> mercado en una decisión del mismo tipo que explorar o lanzar un
+> hechizo, y no en una ventana aparte donde el dinero no compite con
+> nada. Es coherente con §2: el turno es la moneda.
+
+**Confirmado — seis secciones**, y no venden lo mismo:
+
+| Sección | Qué vende |
+|---|---|
+| *Antique Store* | items |
+| *Tavern of Heroes* | héroes, y **solo** héroes |
+| *Exotic Mageware* | hechizos |
+| *Spawning Hatchery* | unidades invocables |
+| *Swords for Hire* | mercenarios |
+| *Altar of Darkness* | favores de los dioses |
+
 ## 8. Habilidades (skills)
 
 **Confirmado.** **10 habilidades, de 20 niveles cada una.** Subir al 20
@@ -653,7 +685,26 @@ cuesta **210 puntos acumulados** (1 el primer rango, 20 el vigésimo).
 - **Neutras**: *Barrier Proficiency, Grand Enchanter, Legendary
   Commander, Augment Summoning, Grand Conqueror*.
 
-**Parcial.** La wiki no publica el efecto numérico de cada habilidad.
+**Parcial, y con una excepción encontrada el 2026-09-21.** La wiki no
+publica el efecto numérico de nueve de las diez. De **Spell Mastery** sí
+hay una cifra, aunque de fuente floja:
+
+> *«los tres primeros rangos de la habilidad de phantasm son un 3% menos
+> de coste de maná en todos los hechizos. (el 4º rango es −3,6%, no sé
+> más [Edit: el nivel 6 es −6%])»*
+
+**Confianza baja**: es una nota de jugador, se contradice a sí misma —1%
+por rango daría 4% en el cuarto, no 3,6%— y el propio autor dice que no
+sabe más. Sirve para una cosa y solo para una: **la escala**. Una
+habilidad al máximo vale del orden de un **20%**, no de un 2% ni de un
+200%. Es el ancla con la que se pueden deducir las otras nueve en vez de
+inventarlas ([SISTEMAS.md §12](SISTEMAS.md)).
+
+**Confirmado — cómo se generan los puntos.** Según la **velocidad del
+servidor** y la **raíz cuadrada del número de guilds**. Referencia: en un
+servidor Beta con 5% de guilds hacen falta ~166.000 turnos por unidad de
+tierra, o sea que un mago de **5.000 de tierra saca un punto cada ~34
+turnos**. El hechizo *Wish* da **un punto instantáneo**.
 
 ---
 
@@ -916,7 +967,8 @@ nuestro** y allí se dice:
 - **Los números de las unidades** de las escuelas que no hemos mirado.
   Los de Verdant **están publicados** (§9.5), con su `Power Rank` y su
   tabla de resistencias.
-- **El efecto numérico de las 10 habilidades.**
+- **El efecto numérico de las habilidades.** Nueve de las diez; de
+  *Spell Mastery* hay una cifra de fuente floja (§8).
 - **La lista completa de hechizos** por escuela y rango, con sus cuatro
   costes.
 - **Armageddon**: qué hace exactamente el hechizo y cómo se resuelve el

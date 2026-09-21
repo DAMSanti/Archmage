@@ -79,8 +79,22 @@ Acciones de la fase 1: `Build`, `Demolish`, `Explore`, `SetRecruit`,
 `ChargeMana`, `ChargeGeld`.
 Fase 2: `Research`, `CastSpell`, `DispelEnchantment`.
 Fase 3: `Attack` (regular / siege / pillage), `SetAssignment`.
-Fase 4: `UseItem`, `MarketBid`, `TrainSkill`, `AssignHero`.
+Fase 4: `UseItem`, `MarketList`, `MarketBid`, `TrainSkill`, `AssignHero`.
 Fase 5: gremios, aliados, diplomacia.
+
+> **Dos acciones no caben por esta puerta, y se dice.** `apply()` está
+> escrito para **un** mago, y hay cosas que tocan dos o más:
+>
+> - **`Attack`** ya salió por su vía en la fase 3 (`resolveAttack()`),
+>   con las dos filas bloqueadas por id ascendente.
+> - **`MarketBid`** hará lo mismo en la fase 4: mueve geld entre el que
+>   puja, el que fue superado y —al adjudicar— el vendedor.
+>
+> No es una excepción cómoda: es que «acción de un mago» y «acción entre
+> magos» son dos formas distintas, y fingir que son una obligaría a que
+> `apply()` supiera de la base de datos. Lo que **no** cambia es que la
+> regla sigue en el núcleo y la ruta solo carga, llama y guarda
+> (invariante 8).
 
 ---
 
@@ -214,6 +228,36 @@ protege; solo las protege saberlas.
     silencioso habría durado una fase entera. Ya pasó una vez: el
     ejército no contaba desde la fase 1, y la fase 2 dedujo de ahí que
     invocar era una trampa ([SISTEMAS.md §7.1](SISTEMAS.md)).
+
+13. **Ninguna ruta sirve el estado de un mago que no es de quien pide.**
+    Añadido el 2026-09-21 con la spec de la fase 4
+    ([SISTEMAS.md §12.1](SISTEMAS.md)). Hasta ahora había **un solo
+    mago** y el servidor podía permitirse coger su id de una constante;
+    en cuanto hay cuentas, el id del mago sale **de la sesión, nunca del
+    cuerpo de la petición ni de la URL**.
+
+    Es de los que se rompen sin dar error: un endpoint que acepte un
+    `mageId` por parámetro funciona perfectamente **y deja leer y jugar
+    el reino de cualquiera**. La forma de no romperlo es que el id no
+    viaje: si una ruta lo necesita, lo pide a la sesión.
+
+14. **Un lote del mercado se resuelve con su fila bloqueada.** Añadido el
+    2026-09-21. Es el mismo problema que las dos filas de una batalla
+    (invariante 6) con otra cara: dos pujas simultáneas sobre el mismo
+    lote leen el mismo importe y la segunda pisa a la primera **sin que
+    nada se queje** — y el jugador que perdió su puja se queda además sin
+    su geld.
+
+    Y el dinero va con ella: **cobrar la puja, devolver la anterior y
+    guardar el lote son una transacción**, no tres.
+
+15. **El tiempo real solo cierra plazos; no produce nada.** Añadido el
+    2026-09-21. Las subastas duran minutos y horas de reloj
+    ([SISTEMAS.md §12.1](SISTEMAS.md)), y eso **no** es una excepción al
+    invariante de que todo se produce al gastar turnos: un plazo que
+    vence no genera geld, ni maná, ni población. Si un día algo del
+    mercado empieza a producir con el reloj, **está roto**, aunque los
+    números cuadren.
 
 ---
 
