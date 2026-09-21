@@ -1650,6 +1650,14 @@ cambiaban el trabajo:
 
 #### Cuentas y magos
 
+**[nuestro]** **Con verificación por correo y recuperación de
+contraseña**, decidido el 2026-09-21. Una temporada dura tres meses: sin
+forma de recuperar una cuenta, perder la contraseña es perder la
+temporada. El envío va detrás de una interfaz con dos implementaciones —
+una real por SMTP y otra que **deja el mensaje en una tabla**, que es la
+que usan los tests y el desarrollo— para no atar el proyecto a un
+proveedor antes de tener jugadores.
+
 **[nuestro]** Una **cuenta** es correo y contraseña; un **mago** es lo que
 esa cuenta juega en un servidor. **Un mago por cuenta y servidor**, que en
 el original es norma de convivencia y aquí es **regla del código**: si el
@@ -1751,12 +1759,28 @@ implementado y hoy no roba items porque no los había.
 uno. Tres usos: fuera de batalla con efecto inmediato, **por assignment**
 al defenderse, y en combate. Los dos últimos ya existen desde la fase 3.
 
-**[nuestro]** **El catálogo entra con veinte items**, no con la lista
-entera del original: los cuatro con números publicados —*Bubble Wine*,
-*Potion of Valor*, *Ash of Invisibility*, *Strange Metallic Can*— ya
-están en el código desde la fase 3, y los dieciséis restantes se
-interpolan **con la misma regla declarada** que se usó para las unidades
-(§8.1): se dice de dónde sale cada número y se calibra con simulación.
+**[orig]** **Los lesser items están publicados enteros**, con sus
+números ([ORIGINAL.md §7.2](ORIGINAL.md), confianza alta). Se encontró el
+2026-09-21, al ir a inventar dieciséis.
+
+> **Esto cambió el alcance, y hacia arriba.** La spec decía «veinte
+> items: cuatro publicados y dieciséis interpolados **con regla
+> declarada**». No hace falta interpolar ninguno — pero los reales
+> **traen mecánicas que el combate no tiene**: daño directo a todos los
+> stacks, resistencias que suben y bajan, iniciativas que se fijan o se
+> restan, unidades que vuelan sin volar, y bajas que resucitan. Copiar
+> los números es gratis; **hacer que funcionen no**.
+
+**[nuestro]** **Entran los lesser publicados, menos tres.** *Bottle of
+Eversmoking*, *Cosmetics* y *Dozens of Silver-tipped Arrows* están
+**deshabilitados en el propio original**, así que no se implementan. Los
+**46 unique** quedan fuera: la wiki solo publica sus nombres.
+
+**[nuestro]** **Los items de batalla se resuelven en la pre-batalla**, y
+eso no es una decisión nueva: [ORIGINAL.md §9.4](ORIGINAL.md) ya describe
+tres fases —pre-batalla con hechizos, items y **daño previo**; batalla;
+post-batalla con resurrección—, y `battle.ts` dejó los dos huecos
+declarados desde la fase 3. Ahora se rellenan.
 
 **[nuestro]** **El ritmo de generación se ancla en el original**: un mago
 con el **5% de su tierra en guilds** saca del orden de **un item cada 40
@@ -1765,6 +1789,17 @@ cada ~34 turnos con 5% de guilds, [ORIGINAL.md §8](ORIGINAL.md)) y de que
 un item bueno **cambia una batalla**: si salieran cada cinco turnos, no
 la cambiaría ninguno.
 
+> **Criterio 8 bis.** Los items publicados salen **clavados**: el *Sage
+> Stone* da entre 1.000.000 y 2.000.000 de geld, el *Voodoo Doll*
+> destruye entre 2 y 8 turnos, y la *Figurine of Ice Queen* hace
+> `100.000 + [1-3 × unidades]` de daño de frío a cada stack. *Test del
+> catálogo, y test del núcleo con la semilla fijada para los rangos.*
+>
+> **Criterio 8 ter.** Un item de batalla se aplica **en la pre-batalla**
+> y su efecto se ve en el log: un *Drums of War* baja el ataque enemigo
+> un 10% **en todos los golpes de la batalla**, no solo en el primero.
+> *Test del núcleo con semilla fijada.*
+>
 > **Criterio 8.** Un mago con el 10% de su tierra en guilds genera items
 > al doble de ritmo que uno con el 5%, y uno sin guilds **no genera
 > ninguno**. *Test del núcleo.*
@@ -1899,6 +1934,145 @@ convierte la guerra en aritmética. El original tampoco lo enseña.
   investigación que los cubra.
 - **Mensajería entre jugadores.** Es `[F5]`, con los gremios.
 - **Chat en tiempo real.** Fuera para siempre (§16).
+
+#### Plan técnico
+
+**Escrito el 2026-09-21.** Lo que sigue es cómo se construye la spec de
+arriba, no qué se construye.
+
+**Lo primero, porque condiciona todo lo demás:** `packages/core` **no
+sabe de cuentas**. Una cuenta no es una regla del juego —no produce, no
+gasta turnos, no se puede simular— así que vive entera en
+`apps/server`. El núcleo sigue sin importar nada
+([SPECS.md §5](SPECS.md), invariante 1).
+
+**Paquetes y módulos afectados**
+
+| Qué | Dónde | Nuevo o tocado |
+|---|---|---|
+| Reglas del mercado | `packages/core/src/market.ts` | **nuevo** |
+| Habilidades: puntos, coste, efecto | `packages/core/src/skills.ts` | **nuevo** |
+| Items: generación, uso, robo | `packages/core/src/items.ts` | **nuevo** |
+| Héroes: experiencia y niveles | `packages/core/src/heroes.ts` | tocado |
+| El saqueo roba items | `packages/core/src/war.ts` | tocado |
+| Las nueve fórmulas que las habilidades tocan | `casting.ts`, `economy.ts`, `magic.ts`, `combat.ts`, `battle.ts`, `land.ts` | tocados |
+| Catálogo de items | `packages/content/src/items.ts` | **nuevo** |
+| **La pre-batalla**: modificadores y daño previo | `packages/core/src/prebattle.ts` | **nuevo** |
+| Catálogo de habilidades | `packages/content/src/skills.ts` | **nuevo** |
+| Esquemas de cuenta, mercado, ranking | `packages/contract/src/index.ts` | tocado |
+| Cuentas, sesión, contraseñas | `apps/server/src/auth.ts` | **nuevo** |
+| Tablas y migración | `apps/server/src/schema.ts`, `db.ts` | tocados |
+| Pujas y resolución de subastas | `apps/server/src/repository.ts` | tocado |
+| Rutas | `apps/server/src/app.ts` | tocado |
+| Pantallas | `apps/web/src/routes/{Portal,Mercado,Ranking,Habilidades}.tsx` | **nuevas** |
+
+**Toca `packages/core`, `packages/contract`, `packages/content` y el
+esquema de base de datos** — los cuatro que más cruzan con otros agentes
+([AGENTES.md §1.1](AGENTES.md)).
+
+**Dónde va cada cosa**
+
+- **¿Es una regla?** El mínimo del +5%, que pujar cueste un turno, que un
+  lote cierre a los 30 minutos de la última puja, cuántos puntos de
+  habilidad da un número de guilds, cuánto sube un héroe: **todo eso es
+  `packages/core`, y puro**. El servidor no decide nada de eso; carga,
+  llama y guarda (invariante 8).
+- **¿Es un número?** Los veinte items y las diez habilidades son
+  **`packages/content`**, con su esquema Zod y su test de catálogo.
+- **El reloj entra por parámetro.** Un lote «está cerrado» es una función
+  de `(lote, now)`, no de `Date.now()` (invariante 2). El servidor le
+  pasa su `deps.now()`, que ya es inyectable y es lo que hace que los
+  tests del mercado no dependan del día.
+
+**Una corrección de sitio que arrastra la fase 3.** Los cuatro items
+publicados están hoy en `packages/core/src/heroes.ts` como
+`BATTLE_ITEMS`. **Eso es dato en un paquete de código**: se mueven a
+`packages/content/src/items.ts` y en el núcleo queda solo el tipo, como
+con las unidades. Es un cambio pequeño y se hace al principio, no al
+final, porque después habría veinte items en el sitio equivocado.
+
+**El contrato cambia primero.** Los esquemas Zod de `packages/contract`
+—registro, sesión, lote, puja, fila de ranking, habilidad— se escriben
+antes que el servidor y que el cliente, para que un desajuste rompa la
+compilación de los dos lados a la vez.
+
+**La migración es aditiva.** Tablas nuevas `accounts`, `sessions`,
+`market_lots` y `ranking_snapshots`, y **una columna nueva
+`mages.account_id`, anulable**: el mago de desarrollo no tiene cuenta y
+tiene que seguir funcionando. Nada se borra.
+
+**Decisiones de arquitectura que la spec obliga a tomar**
+
+1. **Contraseñas con `scrypt` de `node:crypto`.** Sin dependencia nueva:
+   está en la biblioteca estándar y es la función que Node recomienda
+   para esto. `apps/server` sí puede importar de `node:*`; el núcleo no.
+2. **Sesión en cookie firmada, con tabla.** La cookie lleva un id de
+   sesión y el servidor lo busca; no lleva el `mageId` dentro. Así cerrar
+   sesión es borrar una fila, y no hay que esperar a que caduque un
+   token.
+3. **El id del mago sale de la sesión, nunca del cuerpo ni de la URL** —
+   es el invariante 13, y la forma de no romperlo es que el id **no
+   viaje**.
+4. **La resolución de subastas es un proceso programado idempotente**,
+   de los que [SPECS.md §3](SPECS.md) ya tiene listados. Se puede correr
+   mil veces: solo toca lotes con `estado = abierto` y `cierra_en <=
+   now`.
+5. **Una puja bloquea la fila del lote** (invariante 14), igual que un
+   ataque bloquea dos filas de mago. Cobrar la puja, devolver la
+   anterior y guardar el lote son **una transacción**.
+6. **El mago de desarrollo se queda tras una bandera de entorno.** Sin
+   él, la pasada de navegador —la comprobación más cara que tenemos—
+   tendría que registrarse cada vez.
+
+**Orden de dependencias**
+
+```
+cuentas ──► todo lo demás (sin sujeto no hay ranking ni mercado)
+catálogos (items, habilidades) ──► generación y efectos
+habilidades ──► las nueve fórmulas que tocan
+items ──► el saqueo que los roba, y el mercado que los vende
+héroes ──► la taberna del mercado
+mercado ──► su resolución programada
+todo ──► una sola pasada de navegador
+```
+
+**Qué queda fuera, y va al docstring de cada módulo**
+
+- Gremios, alianzas, dioses, mercenarios y hechizos *ancient*: declarados
+  en la spec de arriba.
+- **Las habilidades de héroe**: sin ancla publicada. Un héroe de la fase
+  4 tiene nivel y bonus de eficiencia, nada más.
+- **WebSocket y avisos en vivo.** Siguen `[abierto]` en
+  [SPECS.md §6](SPECS.md). Nada de la fase 4 los necesita: una subasta se
+  mira, no te avisa.
+
+**Riesgos técnicos, declarados**
+
+0. **Los items reales traen mecánicas nuevas al combate**, y es el riesgo
+   que apareció al investigar, no al planear. Daño directo a todos los
+   stacks, resistencias que suben y bajan, iniciativas que se fijan,
+   *Flying* concedido, bajas que resucitan. La pre-batalla de §9.4 es el
+   sitio donde caben todas sin tocar la ronda — pero **la ronda tiene que
+   leer un ejército ya modificado**, y eso es una capa que hoy no existe.
+   Si esa capa se filtra a la fórmula de daño, se rompe el invariante 7.
+
+1. **Las habilidades tocan nueve fórmulas ya escritas y calibradas.** Es
+   donde van a salir las regresiones, y no en el código nuevo. La defensa
+   es doble: cada habilidad con su test del núcleo, y **los tests de
+   calibración de las fases 1 a 3 como canario** — si una habilidad al
+   nivel 0 cambia un solo número de los que ya están medidos, está mal
+   enchufada.
+2. **La autenticación toca todas las rutas a la vez.** Un fallo aquí no
+   da error: **sirve el reino de otro**. Por eso el invariante 13 y por
+   eso un test que lo intente explícitamente.
+3. **El mercado vacío.** Está declarado en la spec y no es un riesgo
+   técnico sino de diseño; lo que sí es técnico es que **la pantalla
+   distinga «vacío» de «no ha cargado»**.
+4. **Deuda que se hereda:** `DEV_MAGE_ID` está hoy en nueve sitios de
+   `app.ts`. Quitarlo de golpe y dejar el id en la sesión es la mitad del
+   trabajo de la primera tarea.
+
+---
 
 ## 13. Gremios y diplomacia **[F5]**
 

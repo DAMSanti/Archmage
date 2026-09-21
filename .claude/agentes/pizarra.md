@@ -27,3 +27,8 @@ con `mkdir`.
 
 <!-- Los bloques van debajo de esta línea. Si no hay ninguno, nadie está
      trabajando y el repositorio está libre. -->
+
+## claude — Mundo fase 4, tareas 1-24
+tarea: implementar la fase 4 entera
+toco: packages/core, packages/content, packages/contract, apps/server, apps/web, ROADMAP.md
+puede que toque: docs/SISTEMAS.md, docs/SPECS.md, docs/INTERFAZ.md, docs/ESTADO.md

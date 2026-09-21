@@ -129,7 +129,140 @@ cuesta un turno**; y de las diez habilidades hay **una** con efecto
 publicado, que sirve de ancla de escala para deducir las otras nueve en
 vez de inventarlas.
 
-Sin tareas todavía: las saca `/plan-tarea`.
+**Plan técnico**: [docs/SISTEMAS.md §12.1](docs/SISTEMAS.md), apartado
+«Plan técnico». Escrito el 2026-09-21.
+
+**Cuentas — sin esto no hay sujeto**
+
+- [ ] **1. Cuentas y sesión.** Tablas `accounts` y `sessions`, columna
+      `mages.account_id` **anulable**, contraseñas con `scrypt` de
+      `node:crypto`, cookie firmada con id de sesión. *Test contra
+      Postgres: registrar, entrar, salir, y que una contraseña mala no
+      entre.* **Migración aditiva.** *Toca `apps/server` y
+      `packages/contract`.*
+- [ ] **1 bis. Verificación por correo y recuperación.** *Decidido por el
+      usuario.* Tabla de mensajes, tokens con caducidad, y el envío
+      **detrás de una interfaz con dos implementaciones**: SMTP real, y
+      una que deja el mensaje en la tabla —la que usan los tests y el
+      desarrollo—. *Test: un token caducado no verifica, uno usado no se
+      reutiliza, y recuperar cambia la contraseña sin saber la vieja.*
+- [ ] **2. El id del mago sale de la sesión.** Quitar `DEV_MAGE_ID` de
+      las nueve rutas y dejarlo tras una bandera de entorno para la
+      pasada de navegador. *Test = criterios 1 y 2 de §12.1: un mago por
+      cuenta y servidor, y **pedir el reino con la sesión de otro da
+      403**.* **Es el invariante 13.**
+
+**Los catálogos, que son dato**
+
+- [ ] **3. Mover los cuatro items publicados a `content`.** Hoy están en
+      `packages/core/src/heroes.ts` como `BATTLE_ITEMS`, que es dato en
+      un paquete de código. En el núcleo queda el tipo. *Test: el
+      catálogo valida y los cuatro números siguen siendo los
+      publicados.* **Toca `packages/core` y `packages/content`.**
+- [ ] **4. El catálogo de items publicados.** **No se interpola
+      ninguno**: la wiki los publica enteros con sus números
+      ([ORIGINAL.md §7.2](docs/ORIGINAL.md)). Entran los lesser menos los
+      **tres que el propio original tiene deshabilitados**. *Test =
+      criterio 8 bis: el Sage Stone da 1-2 millones, el Voodoo Doll 2-8
+      turnos, la Figurine of Ice Queen `100.000 + [1-3 × unidades]`.*
+- [ ] **5. Las diez habilidades, como dato.** Nombre, si es de
+      especialidad, y **qué magnitud toca**. *Test: las diez están, cinco
+      son de especialidad, y el efecto al nivel 20 es +20%.*
+
+**Habilidades: puntos, coste y efecto**
+
+- [ ] **6. Puntos y coste de entrenar.** Raíz cuadrada de los guilds para
+      generar; 210 puntos hasta el 20; **el doble fuera de color**.
+      *Test = criterios 15 y 16: 210 y 420, y un punto cada 34 turnos
+      ±2 con 5.000 de tierra al 5% de guilds.* *Toca `packages/core`.*
+- [ ] **7. Enchufar las diez, una por una.** Cada habilidad en la
+      fórmula que toca: coste de maná, fallo fuera de color, upkeep de
+      encantamientos, unidades por invocación, ataque animal, ataque no
+      muerto, acierto, tierra arrancada, barriers e items. *Test =
+      criterio 14: diez tests, uno por habilidad, y **al nivel 0 no
+      cambia nada**.* **Aquí es donde van a salir las regresiones**:
+      toca `casting.ts`, `economy.ts`, `magic.ts`, `combat.ts`,
+      `battle.ts` y `land.ts`, y los tests de calibración de las fases
+      1-3 son el canario.
+
+**Items**
+
+- [ ] **8. Generación por guilds.** *Test = criterio 8: al 10% de guilds
+      el doble que al 5%, y sin guilds ninguno.*
+- [ ] **9. La pre-batalla: modificadores y daño previo.** El hueco que
+      `battle.ts` declaró en la fase 3 y que [ORIGINAL.md §9.4](docs/ORIGINAL.md)
+      ya describía. Una capa que **modifica el ejército antes de la
+      primera ronda** —ataque, resistencias, iniciativa, *Flying*— y
+      resuelve el daño previo. *Test = criterio 8 ter: un Drums of War
+      baja el ataque enemigo un 10% **en todos los golpes**, no solo en
+      el primero.* **Es el riesgo 0 del plan**: si esta capa se filtra a
+      la fórmula de daño, se rompe el invariante 7. *Toca
+      `packages/core/src/prebattle.ts` (nuevo) y `battle.ts`.*
+- [ ] **10. Los items de batalla, enchufados.** Los ~28 de batalla sobre
+      la capa de la 9. *Test: uno por familia —AP, resistencia,
+      iniciativa, daño directo, resurrección— con la semilla fijada.*
+- [ ] **11. `UseItem` fuera de batalla.** Los ~21 que dan recursos,
+      unidades o tierra, y los que **atacan sin batalla**: turnos,
+      población y maná del enemigo. *Test = criterio 10: el segundo
+      unique es error de dominio.* *Toca `packages/core` y
+      `packages/contract`.*
+- [ ] **12. El saqueo roba items.** *Test = criterio 9: se lleva lesser
+      y **deja los uniques**.* *Toca `packages/core/src/war.ts`.*
+
+**Héroes que crecen**
+
+- [ ] **13. Experiencia y niveles.** Por turno y por liderar; subir
+      cuesta 1.000 × nivel. *Test = criterio 13: liderar aporta más que
+      el turno solo.*
+- [ ] **14. Calibrar el crecimiento.** *Criterio 12: un héroe de nivel 8
+      que lidera una temporada llega a 12 o más, y no a 20.*
+      **Simulación de temporada.**
+
+**El mercado**
+
+- [ ] **15. Las reglas de la subasta, puras.** Mínimo del +5%, un turno
+      por puja, cierre a los 30 minutos de la última, 2,5 horas mínimo.
+      *Test = criterios 3 y 4, con el reloj **por parámetro**.* *Toca
+      `packages/core`.*
+- [ ] **16. La tabla de lotes y la puja con bloqueo.** *Test = criterio
+      5 contra Postgres: **dos pujas simultáneas no se pisan**, gana una
+      y la otra conserva su geld.* **Es el invariante 14.** **Migración
+      aditiva.**
+- [ ] **17. La resolución programada.** Idempotente: solo lotes
+      abiertos y vencidos. *Test = criterio 6 con el reloj inyectado, y
+      que correrla dos veces no adjudique dos veces.*
+- [ ] **18. Poner un lote a la venta, y las cuatro secciones.** Items,
+      hechizos, unidades invocables y taberna de héroes. *Test: vender
+      lo que no se tiene es error de dominio.*
+
+**Ranking**
+
+- [ ] **19. Ranking e instantánea diaria.** *Test = criterios 18 y 19:
+      ordena por `netPower()` sin recalcular nada, y **un mago protegido
+      aparece marcado**.* *Toca `apps/server`.*
+
+**Cliente**
+
+- [ ] **20. `/` — el portal.** Registrar, entrar, crear mago con nombre
+      y escuela.
+- [ ] **21. `/habilidades`.** Las diez con **qué cambian en números**, y
+      el doble coste fuera de color **en la fila**.
+- [ ] **22. `/mercado`.** Las cuatro secciones, la cuenta atrás en
+      tiempo real, y las cuatro cosas que no se pueden callar: pujar
+      cuesta un turno, no se puede cancelar, el geld se cobra al pujar,
+      y **cuando está vacío lo dice**.
+- [ ] **23. `/ranking`.** Net power, tierra y escuela; ni ejército ni
+      geld.
+
+      *Las tareas 20 a 23 se verifican en **una sola pasada de
+      navegador**, con los criterios 7, 17 y 19 dentro.*
+
+**Calibración**
+
+- [ ] **24. ¿Se comen el juego las habilidades?** *Criterio 17: con las
+      diez al 20, el net power final sube **menos de un 50%** respecto a
+      no tener ninguna.* **Simulación de temporada.** Si se pasa, lo que
+      se mueve es el 20%, no la forma.
 
 ### Magia de la fase 2 — cerrada el 2026-09-21
 

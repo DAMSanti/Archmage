@@ -642,6 +642,88 @@ acabar la batalla).
 
 ---
 
+### 7.2. La lista de items, publicada
+
+**Confirmado** (página *Items*, ampliación del 2026-09-21). La wiki
+publica **los lesser items enteros, con sus números**. No hay nada que
+interpolar aquí: hay que copiarlos.
+
+*(Las variantes «en Arch» son de un servidor concreto y se anotan pero no
+se adoptan: nuestro servidor es uno.)*
+
+#### Fuera de batalla
+
+| Item | Efecto |
+|---|---|
+| *Sage Stone* | **1.000.000-2.000.000 de geld** |
+| *Treasure Chest* | 500.000 de geld, **5 lesser**, un unique (**2%**) o nada |
+| *Treasure Map* | 1.000.000 de geld, 5 lesser, o localiza un unique |
+| *Mana Crystal* | **30.000-70.000 de maná**, después del upkeep |
+| *Book of Prophecy* | **5.000-10.000 de población** |
+| *Wine of the Three Whips* | **+10% de población**, o lo que falte hasta el tope |
+| *Magical Compass* | **100-250 acres** de yermo; rinde menos cuanto más tierra tienes |
+| *Horn of Valhalla* | **2.000-4.000** Knights |
+| *Book of Golem Summoning* | **7-25** Iron Golems |
+| *Peaches* | **1.500-5.000** Gorilas |
+| *Coffin* | 2.000 Zombies, 1.000 Ghouls, 500 Wraiths, 20 Liches o 20 Vampiros (**20% cada uno**) |
+| *Total Newbie Handbook* | 5.000 Ranas o 5.000 Ardillas |
+| *Crystal Ball* | **espía**: edificios, orden de stacks y número de unidades |
+| *Letters of the Thieves' Guild* | **roba** geld, un item o un unique |
+| *Voodoo Doll* | **destruye 2-8 turnos** del enemigo |
+| *Rotten Food* | destruye **5.000-15.000** de población enemiga |
+| *Mana Vortex* | destruye **3.000-9.000** de maná enemigo |
+| *Pipes of the Sewer* | destruye **exactamente 500.000 de geld y 7.500 de población** |
+| *Official List of Demands* | dispara al azar uno de: *Thieves' Guild*, *Mana Vortex*, *Rotten Food*, *Voodoo Doll* |
+| *Blood Stained Map* | 3% de cada uno de los cinco Griales — **15% acumulado** |
+| *Minor Indulgence* | disipa hechizos de dioses, de otros magos, y los *No Dispel* |
+
+#### En batalla
+
+| Item | Efecto |
+|---|---|
+| *Potion of Valor* | **+20%** de AP primario, extra y contraataque, a los tuyos |
+| *Bubble Wine* | **+10%** de AP y **+30% de HP** |
+| *Drums of War* | **−10%** de AP a todos los enemigos |
+| *Monkey Brains* | **dobla** el AP de tus unidades con ataque Psychic |
+| *Ring of Animal Command* | **+100%** de AP a tus animales y **−100%** a los suyos |
+| *Ash of Invisibility* | pone la **iniciativa a 6** de tu primario y extra |
+| *The Spider's Web* | **−1 de iniciativa** a todos los enemigos |
+| *Sogrom's Binding* | pone a **0** la iniciativa de un stack enemigo al azar |
+| *Nets of Ensnarement* | **aterriza** un stack enemigo al azar; si volaba, además −1 de iniciativa |
+| *Carpet of Flying* | da **Flying** a los tuyos que no lo tuvieran |
+| *Brooch of Protection* | **+40%** de resistencia a melee a los tuyos |
+| *Missile Shield* | **+50%** de resistencia a *ranged*, **topada en 100%** |
+| *Scroll of Protection from Fire* | **+40%** de resistencia al fuego |
+| *Oil Flasks* | **−40%** de resistencia al fuego enemiga, **puede bajar de 0** |
+| *Pixie Dust* | **−20%** de todas las resistencias enemigas, **repartido entre sus stacks** |
+| *Candle of Sleeping* | **−10%** de resistencias **y −10% de eficiencia** a los enemigos |
+| *Satchel of Mist* | **−10% de acierto a los dos bandos** |
+| *Vial of Venom* | añade **Poison** al primario de tus unidades de melee |
+| *Figurine of Ice Queen* | daño de **frío**: `100.000 + [1-3 × nº de unidades del stack]` a cada stack enemigo |
+| *Javelin of Lightning Bolt* | igual, de **rayo**, y además **−25%** de contraataque enemigo |
+| *Staff of Illusion* | igual, de **magia** |
+| *Powder Keg* | daño de **fuego** `1-3 × nº de unidades`, y **−5%** de AP enemigo |
+| *Flasks of Holy Water* | **100.000** de daño sagrado a los **no muertos** enemigos |
+| *The Head of Medusa* | **destruye 1-10 unidades** de un stack enemigo al azar |
+| *Ointment of Healing* | **cura 1-5 HP** por unidad de cada stack |
+| *Pouch of Herbs* | **resucita el 15%** de tus bajas y **+10%** de resistencia al veneno |
+| *Strange Metallic Can* | **resucita el 25%** de tus bajas, de los stacks no aniquilados |
+| *Capsule Monster* | **invoca 1.000** Capsule Monsters que **desaparecen al acabar** |
+
+**Confirmado — tres deshabilitados** en todos los servidores del
+original: *Bottle of Eversmoking*, *Cosmetics* y *Dozens of Silver-tipped
+Arrows*. Se anotan por completitud y no se implementan.
+
+**Confirmado — 46 unique items**, listados por nombre. Sus efectos están
+en páginas propias que **no hemos mirado**: siguen sin verificar.
+
+> **Lo que esta lista enseña del diseño, y conviene no perderlo.** Los
+> items de batalla **no son un +5% más**: doblan un ataque, aterrizan un
+> stack, ponen una iniciativa a cero o hacen 100.000 de daño directo. Y
+> los de fuera de batalla **atacan al enemigo sin batalla**: le queman
+> turnos, población y maná. Un item bueno cambia una guerra, no una
+> ronda.
+
 ### 7.1. El mercado negro, publicado
 
 **Confirmado** (página *Black Market*, ampliación del 2026-09-21). Es una
@@ -969,6 +1051,9 @@ nuestro** y allí se dice:
   tabla de resistencias.
 - **El efecto numérico de las habilidades.** Nueve de las diez; de
   *Spell Mastery* hay una cifra de fuente floja (§8).
+- **Los efectos de los 46 unique items.** Los **lesser están publicados
+  enteros** y se copiaron el 2026-09-21 (§7.2); de los unique solo
+  tenemos los nombres.
 - **La lista completa de hechizos** por escuela y rango, con sus cuatro
   costes.
 - **Armageddon**: qué hace exactamente el hechizo y cómo se resuelve el
