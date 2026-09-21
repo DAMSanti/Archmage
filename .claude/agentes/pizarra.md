@@ -27,8 +27,3 @@ con `mkdir`.
 
 <!-- Los bloques van debajo de esta línea. Si no hay ninguno, nadie está
      trabajando y el repositorio está libre. -->
-
-## claude — Fase 1, tareas 15-21
-tarea: persistencia, servidor y cliente
-toco: apps/server, apps/web, packages/contract, ROADMAP.md
-puede que toque: docs/SPECS.md, docs/ESTADO.md, docs/INTERFAZ.md
