@@ -32,6 +32,10 @@ export const actionSchema = z.discriminatedUnion('type', [
     unitId: z.string().min(1).max(64),
     count: z.number().int().positive().max(10_000_000),
   }),
+  // Fase 2.
+  z.object({ type: z.literal('research'), spellId: z.string().min(1).max(64), turns: positiveTurns }),
+  z.object({ type: z.literal('cast'), spellId: z.string().min(1).max(64), turns: positiveTurns }),
+  z.object({ type: z.literal('dispel'), spellId: z.string().min(1).max(64) }),
 ]);
 export type ActionInput = z.infer<typeof actionSchema>;
 
@@ -63,10 +67,21 @@ export const mageStateSchema = z.object({
     .nullable(),
   spellbook: z.object({
     known: z.array(z.string()),
-    researching: z.string().nullable(),
+    researching: z
+      .object({ spellId: z.string(), progress: z.number().int() })
+      .nullable(),
     level: z.number().int(),
   }),
-  enchantments: z.array(z.object({ spellId: z.string(), upkeepMana: z.number().int() })),
+  casting: z
+    .object({ spellId: z.string(), turnsRemaining: z.number().int() })
+    .nullable(),
+  enchantments: z.array(
+    z.object({
+      spellId: z.string(),
+      upkeepMana: z.number().int(),
+      modifiers: z.record(z.string(), z.number().int()),
+    }),
+  ),
   heroes: z.array(z.object({ id: z.string(), level: z.number().int(), experience: z.number().int() })),
   items: z.record(z.string(), z.number().int()),
   skills: z.record(z.string(), z.number().int()),
@@ -88,6 +103,31 @@ export const derivedSchema = z.object({
   msToNextTurn: z.number().int(),
   turnsAtCap: z.boolean(),
   protectedUntilTurn: z.number().int(),
+  /**
+   * El libro de hechizos **ya resuelto**: qué puede investigar, qué sabe, y
+   * **lo que le costaría lanzar a él** con el recargo fuera de color
+   * aplicado. La pantalla no recalcula nada (docs/INTERFAZ.md §3.1).
+   */
+  spellbook: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      school: specialtySchema,
+      rank: z.enum(['simple', 'average', 'complex', 'ultimate', 'ancient']),
+      castTurns: z.number().int(),
+      researchCost: z.number().int(),
+      upkeepMana: z.number().int(),
+      effectKind: z.enum(['summon', 'enchantment', 'resource', 'combat']),
+      known: z.boolean(),
+      researchable: z.boolean(),
+      castable: z.boolean(),
+      castMana: z.number().int().nullable(),
+      relation: z.enum(['own', 'adjacent', 'opposite']),
+      /** Probabilidad de fallar, en %. 0 en tu color. */
+      failureChance: z.number().int(),
+    }),
+  ),
+  maxSpellLevel: z.number().int(),
 });
 
 export const serverConfigSchema = z.object({
@@ -136,6 +176,7 @@ export const catalogResponseSchema = z.object({
       specialty: specialtySchema,
       cost: z.number().int(),
       upkeepGeld: z.number().int(),
+      upkeepMana: z.number().int(),
       upkeepPopulation: z.number().int(),
       populationSpace: z.number().int(),
       recruitPerBarracks: z.number().int(),

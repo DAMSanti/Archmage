@@ -21,6 +21,9 @@ const ACCION: Record<string, string> = {
   chargeMana: 'cargar maná',
   chargeGeld: 'cargar geld',
   setRecruit: 'reclutar',
+  research: 'investigar',
+  cast: 'lanzar un hechizo',
+  dispel: 'disipar',
 };
 
 /** «1 turnos» es de robot. */
@@ -59,6 +62,26 @@ const TEXTO: Record<string, (p: Record<string, unknown>) => string> = {
   'collapse.population': (p) =>
     `Te quedaste sin población: se disolvieron ${num(Number(p.stacksDisbanded))} stacks.`,
   'protection.ended': () => 'Se acabó tu periodo de protección.',
+
+  // Fase 2.
+  'research.started': (p) => `Empezaste a investigar ${String(p.spellId)}.`,
+  'research.advanced': (p) =>
+    `Investigación: ${num(Number(p.total))} de ${num(Number(p.needed))}.`,
+  'research.completed': (p) =>
+    `Aprendiste ${String(p.spellId)}. Tu nivel de hechizo sube ${num(Number(p.levelGained))}.`,
+  'cast.started': (p) =>
+    `Empezaste a lanzar ${String(p.spellId)}: ${num(Number(p.manaCost))} de maná, ${turnos(
+      Number(p.turns),
+    )}.`,
+  'cast.failed': (p) =>
+    `${String(p.spellId)} falló por concentración. El maná se gastó igual.`,
+  'spell.summoned': (p) =>
+    `Invocaste ${num(Number(p.count))} × ${String(p.unitId)}.`,
+  'spell.enchanted': (p) =>
+    `${String(p.spellId)} quedó activo, a ${num(Number(p.upkeepMana))} de maná por turno.`,
+  'spell.resources': (p) =>
+    `${String(p.spellId)} te dio ${num(Number(p.geld))} de geld y ${num(Number(p.mana))} de maná.`,
+  'enchantment.dispelled': (p) => `Disipaste ${String(p.spellId)}.`,
 };
 
 export function Cronica({ filas }: { filas: ChronicleRow[] }) {

@@ -17,12 +17,14 @@ import type { ChronicleRow } from './api.js';
 import { Reino } from './routes/Reino.js';
 import { Ejercito } from './routes/Ejercito.js';
 import { Cronica } from './routes/Cronica.js';
+import { Magia } from './routes/Magia.js';
 
-type Pantalla = 'reino' | 'ejercito' | 'cronica';
+type Pantalla = 'reino' | 'ejercito' | 'magia' | 'cronica';
 
 const PANTALLAS: { id: Pantalla; nombre: string }[] = [
   { id: 'reino', nombre: 'Reino' },
   { id: 'ejercito', nombre: 'Ejército' },
+  { id: 'magia', nombre: 'Magia' },
   { id: 'cronica', nombre: 'Crónica' },
 ];
 
@@ -106,6 +108,8 @@ export function App() {
             <Reino data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
           ) : pantalla === 'ejercito' ? (
             <Ejercito data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
+          ) : pantalla === 'magia' ? (
+            <Magia data={data} onAction={onAction} ocupado={ocupado} />
           ) : (
             <Cronica filas={cronica} />
           )}

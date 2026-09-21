@@ -573,10 +573,33 @@ comprobar.
 
 **Comprobables con la simulación de temporada:**
 
-10. **El maná ya sirve para algo.** Rehaciendo la simulación de §17.2 con
-    magia, el reparto volcado a maná **deja de ser estrictamente peor**
-    que el económico. No hace falta que gane: hace falta que compita.
-    **Éste es el criterio que desbloquea el 9 de §17.2.**
+10. **El maná ya sirve para algo.** ❌ **No se cumple, y se midió por
+    qué** (2026-09-21).
+
+    Se esperaba que al haber magia el reparto volcado a maná dejara de ser
+    estrictamente peor que el económico. **Sigue siéndolo**: a 2.000
+    turnos, el económico acaba en 1.513.000 de net power y el de maná en
+    1.468.000, incluso jugando la magia bien.
+
+    **El motivo, y no es un fallo de balance.** El maná compra tres cosas,
+    y en la fase 2 **dos no pagan**:
+
+    - **Nivel de hechizo** → net power. Sí paga, y es lo que acorta la
+      distancia.
+    - **Encantamientos** → economía. Paga, pero **paga más al mago
+      económico**: los de Verdant suben farms y población, así que
+      favorecen justo al que ya tiene muchas.
+    - **Invocar** → ejército. **No paga nada**: las unidades cuestan maná
+      para siempre y no pelean, porque no hay combate.
+
+    Así que el maná no competirá mientras lo que compra sea un ejército
+    que no sirve. **Aplazado a la fase 3**, igual que los criterios 9 y 13
+    de §17.2 — y ahora con la causa medida en vez de supuesta.
+
+    > **Consecuencia declarada: invocar es una trampa hasta la fase 3.**
+    > Un jugador que invoque en la fase 2 empeora su maná neto sin ganar
+    > nada. Está medido con un test, y la interfaz **no lo va a avisar**
+    > (docs/INTERFAZ.md §1): aquí el juego está incompleto, no oculto.
 11. **La progresión de investigación dura lo que debe.** Aprender el
     catálogo completo de Verdant y Plain lleva un número de turnos del
     orden que documenta el original para investigarlo todo —1.500-3.000
@@ -1079,6 +1102,11 @@ Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
    Lo que sí se comprobó: **el reparto a maná da más maná y el de
    economía más geld**, así que las dos decisiones existen y no hay una
    estrictamente mejor en su propio terreno.
+
+   **Reevaluado el 2026-09-21, con magia ya implementada: sigue sin
+   cumplirse.** Y ahora se sabe por qué: lo que el maná compra es, en dos
+   tercios, un ejército que no pelea. Ver §7.1, criterio 10. La fase 3 es
+   la que de verdad lo desbloquea.
 10. **La curva de crecimiento se parece a la del original.** ✅
     **Cumple.** Llegar de 200 a **1.250 acres cuesta 61 turnos** de
     exploración, así que un mago que reparta sus 120 primeros turnos

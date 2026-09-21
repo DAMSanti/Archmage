@@ -106,7 +106,19 @@ export function Reino({ data, catalog, onAction, ocupado }: ReinoProps) {
             <div className="recurso__nombre">Maná</div>
             <div className="recurso__valor cifra">{num(mage.resources.mana)}</div>
             <Neto valor={derived.net.mana} />
-            <div className="recurso__nota">almacén {num(derived.manaStorage)}</div>
+            <div className="recurso__nota">
+              almacén {num(derived.manaStorage)}
+              {/* El upkeep de los encantamientos va aquí, no escondido en
+                  /magia: es donde un mago se arruina sin darse cuenta
+                  (docs/INTERFAZ.md §3.1). */}
+              {mage.enchantments.length > 0 && (
+                <>
+                  {' · '}
+                  {mage.enchantments.length} encantamiento
+                  {mage.enchantments.length === 1 ? '' : 's'}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="recurso">

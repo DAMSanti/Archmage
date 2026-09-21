@@ -240,3 +240,81 @@ describe('las rutas', () => {
     expect(Object.keys(r.json().units)).toHaveLength(20);
   });
 });
+
+describe('la magia por el API (fase 2)', () => {
+  test('el libro llega ya resuelto, con el precio que pagaría ÉL', () => {
+    // El mago de desarrollo es Verdant.
+    return app.inject({ method: 'GET', url: '/api/mage/me' }).then((r) => {
+      const libro = r.json().derived.spellbook as {
+        id: string;
+        castMana: number | null;
+        relation: string;
+        castable: boolean;
+      }[];
+      expect(libro.length).toBeGreaterThan(0);
+
+      const propio = libro.find((e) => e.id === 'summon_dryad')!;
+      expect(propio.relation).toBe('own');
+      expect(propio.castMana).toBe(3_000);
+
+      // Los de combate llegan marcados: se investigan, no se lanzan.
+      expect(libro.find((e) => e.id === 'plant_growth')!.castable).toBe(false);
+    });
+  });
+
+  test('investigar por el API avanza y queda en el estado', async () => {
+    await insertMage(conn.db, { ...nuevoMago(), specialty: 'verdant' });
+    const r = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'research', spellId: 'summon_dryad', turns: 2 } },
+    });
+    expect(r.statusCode).toBe(200);
+    const body = r.json();
+    // 5 guilds de partida × 2 = 10/turno; Summon Dryad cuesta 900.
+    expect(body.mage.spellbook.researching).toMatchObject({ spellId: 'summon_dryad' });
+    expect(body.events.some((e: { type: string }) => e.type === 'research.started')).toBe(true);
+  });
+
+  test('lanzar un hechizo que no sabes es 422, no 500', async () => {
+    await insertMage(conn.db, { ...nuevoMago(), specialty: 'verdant' });
+    const r = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'cast', spellId: 'summon_dryad', turns: 1 } },
+    });
+    expect(r.statusCode).toBe(422);
+    expect(r.json().error.code).toBe('spell_not_learned');
+  });
+
+  test('un hechizo de combate es 422 con su código', async () => {
+    const m = nuevoMago();
+    await insertMage(conn.db, {
+      ...m,
+      specialty: 'verdant',
+      spellbook: { known: ['plant_growth'], researching: null, level: 20 },
+    });
+    const r = await app.inject({
+      method: 'POST',
+      url: '/api/mage/me/actions',
+      payload: { action: { type: 'cast', spellId: 'plant_growth', turns: 1 } },
+    });
+    expect(r.statusCode).toBe(422);
+    expect(r.json().error.code).toBe('spell_not_castable');
+  });
+
+  test('el estado con magia sobrevive la ida y vuelta a Postgres', async () => {
+    const m = nuevoMago();
+    await insertMage(conn.db, {
+      ...m,
+      specialty: 'verdant',
+      spellbook: { known: ['weather_summoning'], researching: { spellId: 'summon_dryad', progress: 400 }, level: 3 },
+      casting: { spellId: 'summon_dryad', turnsRemaining: 2 },
+      enchantments: [{ spellId: 'weather_summoning', upkeepMana: 60, modifiers: { farmOutput: 125 } }],
+    });
+    const leido = await loadAccrued(conn.db, DEV_MAGE_ID, NOW, TERRA);
+    expect(leido?.spellbook.researching).toEqual({ spellId: 'summon_dryad', progress: 400 });
+    expect(leido?.casting).toEqual({ spellId: 'summon_dryad', turnsRemaining: 2 });
+    expect(leido?.enchantments[0]?.modifiers).toEqual({ farmOutput: 125 });
+  });
+});

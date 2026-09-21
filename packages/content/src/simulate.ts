@@ -9,14 +9,17 @@
  * datos a la vez**, y el núcleo no puede importar el contenido
  * (docs/SPECS.md §5, invariante 1).
  *
- * Fuera de alcance: no hay PvP, ni magia, ni items. Un mago simulado juega
- * solo, así que esto calibra **la economía**, no el juego entero. El balance
- * de combate es de la fase 3.
+ * Fuera de alcance: no hay PvP ni items. Desde la fase 2 **sí hay magia**,
+ * que es lo que permite volver a comparar repartos: sin ella el maná no
+ * servía para nada y el reparto económico ganaba por definición
+ * (docs/SISTEMAS.md §17.2, criterio 9). El balance de combate sigue siendo
+ * de la fase 3.
  */
 
 import { apply, createMage, exploreYield, makeRandom, netIncome, netPower, populationCapacity } from '@archmage/core';
 import type { Action, Ctx, MageState } from '@archmage/core';
 import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from './index.js';
+import { SPELLS } from './spells.js';
 
 const TUNING = { ...ECONOMY };
 
@@ -48,6 +51,74 @@ export interface Mix {
  * cuota. Es la aproximación a «un jugador razonable» del criterio 10.
  */
 export function mixStrategy(mix: Mix, exploreUntil = 1_300): Strategy {
+  return mixWithMagic(mix, exploreUntil, false);
+}
+
+/**
+ * Lo mismo, pero **usando la magia**: investiga cuando puede, lanza los
+ * encantamientos económicos, e invoca cuando le sobra maná.
+ *
+ * Es la estrategia que hace comparable un reparto volcado a maná con uno
+ * volcado a economía, que es el criterio 10 de §7.1.
+ */
+export function magicStrategy(mix: Mix, exploreUntil = 1_300): Strategy {
+  return mixWithMagic(mix, exploreUntil, true);
+}
+
+function mixWithMagic(mix: Mix, exploreUntil: number, useMagic: boolean): Strategy {
+  const economicos = SPELLS.filter(
+    (sp) => sp.effect.kind === 'enchantment' && sp.school !== 'plain',
+  ).map((sp) => sp.id);
+  const utiles = SPELLS.filter((sp) => sp.effect.kind === 'enchantment').map((sp) => sp.id);
+  const invocaciones = SPELLS.filter((sp) => sp.effect.kind === 'summon')
+    .slice()
+    .sort((a, b) => b.castMana - a.castMana)
+    .map((sp) => sp.id);
+  void economicos;
+
+  return (state, turn) => {
+    if (useMagic) {
+      // 1. Terminar lo empezado.
+      if (state.casting) return { type: 'cast', spellId: state.casting.spellId, turns: 1 };
+
+      // 2. Mantener los encantamientos económicos que se puedan pagar.
+      for (const id of utiles) {
+        const sp = CATALOG.spells[id];
+        if (!sp) continue;
+        if (!state.spellbook.known.includes(id)) continue;
+        if (state.enchantments.some((e) => e.spellId === id)) continue;
+        if (state.resources.mana < sp.castMana) continue;
+        return { type: 'cast', spellId: id, turns: 1 };
+      }
+
+      // 3. Investigar lo siguiente que no sepa.
+      const pendiente =
+        state.spellbook.researching?.spellId ??
+        SPELLS.find(
+          (sp) => !state.spellbook.known.includes(sp.id) && sp.school !== 'nether',
+        )?.id;
+      // Solo se dedica turno a investigar si ya hay guilds que lo aprovechen.
+      if (pendiente && state.buildings.guilds >= 20 && turn % 3 === 0) {
+        return { type: 'research', spellId: pendiente, turns: 1 };
+      }
+
+      // 4. Si sobra maná (más del 60% del almacén), invocar lo más caro que
+      //    quepa: el maná guardado no hace nada.
+      const almacen = state.buildings.nodes * ECONOMY.manaStoragePerNode;
+      if (almacen > 0 && state.resources.mana > almacen * 0.6) {
+        for (const id of invocaciones) {
+          const sp = CATALOG.spells[id];
+          if (!sp || !state.spellbook.known.includes(id)) continue;
+          if (state.resources.mana < sp.castMana) continue;
+          return { type: 'cast', spellId: id, turns: 1 };
+        }
+      }
+    }
+    return baseMix(mix, exploreUntil)(state, turn);
+  };
+}
+
+function baseMix(mix: Mix, exploreUntil: number): Strategy {
   return (state) => {
     if (state.land.total < exploreUntil && exploreYield(state.land.total, ECONOMY) > 0) {
       return { type: 'explore', turns: 1 };
@@ -82,6 +153,11 @@ export interface SeasonResult {
   netPower: number;
   /** Cuántas unidades sostiene el ingreso neto, a 2 geld de upkeep medio. */
   sustainableArmy: number;
+  /** Fase 2. */
+  spellsKnown: number;
+  spellLevel: number;
+  enchantments: number;
+  summonedUnits: number;
   state: MageState;
 }
 
@@ -102,7 +178,9 @@ export function simulateSeason(strategy: Strategy, turns: number, seed = 1): Sea
   let state = createMage({
     id: 'sim',
     name: 'Simulado',
-    specialty: 'plain',
+    // Verdant: es la escuela que la fase 2 implementa. Un mago Plain solo
+    // llega a Simple y Average, así que no podría usar la magia de verdad.
+    specialty: 'verdant',
     server: TERRA,
     starting: STARTING_KINGDOM,
     now: 0,
@@ -129,6 +207,10 @@ export function simulateSeason(strategy: Strategy, turns: number, seed = 1): Sea
     netMana: net.mana,
     netPower: netPower(state),
     sustainableArmy: Math.max(0, Math.floor(net.geld / 2)),
+    spellsKnown: state.spellbook.known.length,
+    spellLevel: state.spellbook.level,
+    enchantments: state.enchantments.length,
+    summonedUnits: state.army.reduce((a, st) => a + st.count, 0),
     state,
   };
 }

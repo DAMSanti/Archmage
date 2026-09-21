@@ -6,7 +6,7 @@ estimación: o está medido, o dice que no lo está.
 Sirve para dos cosas: que nadie tenga que adivinar cuánto tarda algo, y
 que se note cuando un documento afirma algo que ya no es cierto.
 
-**Última actualización: 2026-09-21** (fase 1 implementada, tareas 1 a 21).
+**Última actualización: 2026-09-21** (fase 1 completa salvo assets, y **fase 2 implementada**).
 
 ---
 
@@ -19,9 +19,9 @@ El repositorio contiene, a día de hoy:
 | Documentos en `docs/` | 9 |
 | Comandos en `.claude/commands/` | 4 |
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
-| Tests | **121**, todos en verde |
+| Tests | **212**, todos en verde |
 | `tsc -b` | sale **0** |
-| Bundle del cliente | **217 KB**, **63 KB** comprimido |
+| Bundle del cliente | **225 KB**, **65 KB** comprimido |
 
 **La fase 1 está implementada: tareas 1 a 21 de 22.** Queda la **22**, la
 tanda de assets, que espera una sesión con el usuario. Ver
@@ -36,7 +36,7 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-21) |
 |---|---|---|
-| La suite entera (121 tests) | — | **~2,5 s** |
+| La suite entera (212 tests) | — | **~3 s** |
 | `vitest packages/core` (68 tests) | milisegundos | **~90 ms** |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (9 tests, hasta 2.000 turnos) | segundos | **66 ms** |
@@ -95,9 +95,9 @@ balance en vez de medirlo, ni para dar algo por bueno sin mirarlo**.
 | Catálogo | Entradas |
 |---|---|
 | Edificios | 8 definidos, **8 con coste, mantenimiento y efecto** (sin implementar) |
-| Escuelas | 6 definidas, **0 con contenido** (la tropa básica no tiene escuela) |
-| Hechizos | **0** |
-| Unidades | **5**, solo con su mitad económica (coste, upkeep, espacio, ritmo) |
+| Escuelas | 6 definidas, **2 con contenido** (Plain y Verdant) |
+| Hechizos | **33** — Plain y Verdant, con sus cuatro costes |
+| Unidades | **20**: 5 de barracks y 15 invocables, todas solo con su mitad económica |
 | Items | **0** |
 | Héroes | **0** |
 | Habilidades | 10 nombradas, **0 con efecto numérico** |
@@ -156,6 +156,15 @@ balance en vez de medirlo, ni para dar algo por bueno sin mirarlo**.
   cinco veces. Lo destapó implementar el fallo por concentración de la
   fase 2, no un test. Ahora hay **una sola implementación** con su test
   de distribución sobre 200 semillas.
+- **El criterio 10 de la fase 2 NO se cumple, y está medido**
+  (2026-09-21). Se esperaba que la magia hiciera competir al reparto
+  volcado a maná; a 2.000 turnos el económico sigue ganando por 45.000 de
+  net power. El motivo medido: de las tres cosas que compra el maná
+  —nivel de hechizo, encantamientos e invocación— **la invocación no paga
+  nada hasta que haya combate**, y los encantamientos de Verdant
+  favorecen al mago que ya tiene economía. Aplazado a la fase 3, con la
+  causa medida en vez de supuesta.
 - **Lo que sigue sin comprobarse**: las fases 3 a 5, y el juego **no se
-  ha jugado una sesión larga de verdad**. El simulador cubre la economía;
-  que el bucle de quince minutos enganche, no lo sabe nadie aún.
+  ha jugado una sesión larga de verdad**. El simulador cubre la economía y
+  la magia; que el bucle de quince minutos enganche, no lo sabe nadie
+  aún.

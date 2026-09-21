@@ -123,6 +123,7 @@ try {
   // Recorrer las otras dos pantallas.
   for (const [nombre, fichero] of [
     ['Ejército', 'ejercito'],
+    ['Magia', 'magia'],
     ['Crónica', 'cronica'],
   ]) {
     await page.getByRole('button', { name: nombre }).click();

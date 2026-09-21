@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import {
   createMage,
+  failureChance,
   income,
   isProtected,
   manaStorage,
@@ -28,6 +29,7 @@ import {
   netIncome,
   netPower,
   populationCapacity,
+  spellbookFor,
   upkeep,
 } from '@archmage/core';
 import { makeRandom as _makeRandom } from '@archmage/core';
@@ -77,6 +79,29 @@ function derive(state: MageState, now: number) {
     msToNextTurn: msToNextTurn(state.turns, now, TERRA),
     turnsAtCap: state.turns.current >= TERRA.turnCap,
     protectedUntilTurn: isProtected(state, TERRA) ? TERRA.protectionTurns : 0,
+    // El libro ya resuelto: la pantalla no recalcula la rueda ni el recargo.
+    spellbook: spellbookFor(state.specialty, state.spellbook.known, CATALOG).map((e) => ({
+      id: e.spell.id,
+      name: e.spell.name,
+      school: e.spell.school,
+      rank: e.spell.rank,
+      castTurns: e.spell.castTurns,
+      researchCost: e.spell.researchCost,
+      upkeepMana: e.spell.upkeepMana,
+      effectKind: e.spell.effect.kind,
+      known: e.known,
+      researchable: e.researchable,
+      castable: e.castable,
+      castMana: e.castMana,
+      relation: e.relation,
+      failureChance: failureChance(
+        e.spell,
+        state.specialty,
+        state.spellbook.level,
+        CATALOG.maxSpellLevel,
+      ),
+    })),
+    maxSpellLevel: CATALOG.maxSpellLevel,
   };
 }
 
@@ -97,7 +122,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       const nuevo = createMage({
         id: DEV_MAGE_ID,
         name: 'Archimago',
-        specialty: 'plain',
+        // Verdant porque es la escuela que implementa la fase 2. Un mago
+        // Plain solo vería Simple y Average de todo, y el libro quedaría
+        // cojo. **La escuela no cambia en la temporada** (invariante 10), así
+        // que un mago de desarrollo creado antes sigue siendo Plain hasta un
+        // `pnpm db:reset`.
+        specialty: 'verdant',
         server: TERRA,
         starting: STARTING_KINGDOM,
         now,
