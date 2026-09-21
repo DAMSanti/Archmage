@@ -427,10 +427,174 @@ fuera de tu escuela puede fallar por concentración.
 **[orig]** **Encantamientos**: upkeep continuo, propios u ofensivos.
 Varios distintos a la vez, **nunca el mismo dos veces**.
 
-**[abierto]** La **lista concreta de hechizos** por escuela y rango con
-sus cuatro costes. Es el trabajo de contenido más grande del proyecto y
-va en `packages/content`. Empezamos por **Plain + una escuela completa**
-para poder jugar la fase 2 antes de tener las seis.
+**[orig]** **Lanzar fuera de tu color cuesta más maná**, y cuánto más
+depende del rango y de la distancia en la rueda
+([ORIGINAL.md §6.1](ORIGINAL.md), confianza alta):
+
+| Rango | Propio | Adyacente | Opuesto |
+|---|---|---|---|
+| Simple | 100% | 125% | 200% |
+| Average | 100% | 150% | 350% |
+| Complex | 100% | 200% | **600%** |
+| Ultimate | 100% | — | — |
+| Ancient | 100% | 125% | 200% |
+
+**[orig]** Y el acceso a investigar es **más fino** de lo que decía
+arriba: de tu color, los cuatro rangos investigables; de los
+**adyacentes**, Simple, Average y Complex; de los **opuestos**, solo
+Simple y Average. Junto con la tabla de costes, eso significa que un
+Complex opuesto **se puede** lanzar si lo consigues — a seis veces su
+precio.
+
+**[orig]** **Nivel de hechizo** ([ORIGINAL.md §6.2](ORIGINAL.md)): sube
+al aprender (+1/+3/+7/+20/+15 por Simple/Average/Complex/Ultimate/
+Ancient), afecta a la potencia de hechizos y encantamientos, y vale
+**1.000 de net power por nivel**. **Armageddon no suma.** Y un
+encantamiento ya lanzado **no se actualiza** si tu nivel cambia después.
+
+**[abierto]** La lista de hechizos de las **cinco escuelas restantes**.
+La de Verdant y Plain se cierra en §7.1.
+
+### 7.1. La magia de la fase 2 **[F2]**
+
+**Spec del 2026-09-21.** Cierra la marca `[abierto]` que había aquí sobre
+la lista de hechizos, para **Plain y Verdant**.
+
+#### Qué problema resuelve
+
+Hoy el maná se produce y **no sirve para nada**. Eso no es solo contenido
+que falta: es lo que impide juzgar el equilibrio del juego. Los criterios
+9 y 13 de §17.2 están aplazados con este motivo escrito — sin magia, el
+reparto volcado a economía domina por definición. **La fase 2 es lo que
+permite volver a medir.**
+
+Y es lo que convierte la elección de escuela, que hoy es un campo en la
+base de datos, en una decisión con consecuencias.
+
+#### Alcance, decidido con el usuario
+
+**[nuestro]** **Plain + Verdant, catálogo completo de lo que entra.**
+
+Verdant porque es, con diferencia, **la escuela mejor documentada**
+([ORIGINAL.md §6.4](ORIGINAL.md)): catorce hechizos nombrados, quince
+unidades, fichas completas de tres rangos distintos, y hasta la lista de
+qué encantamientos mantiene un mago verde de verdad. Menos documentación
+significa más números inventados, y aquí hay poco que inventar.
+
+**[nuestro]** **Los hechizos ofensivos quedan fuera hasta la fase 3.** Un
+hechizo que apunta a otro mago no se puede *comprobar* sin otro mago, y
+este proyecto no da por hecha una regla sin comprobarla
+([ARQUITECTURA.md §6](ARQUITECTURA.md)). Lo mismo con los de batalla:
+*Regeneration* cura tus bajas **al acabar un combate**, y no hay combate.
+
+**No se olvidan: se reservan.** Los nombres confirmados que esperan a la
+fase 3 son *Rust Armor*, *Call Hurricane*, *Summon Locust Swarm*,
+*Serenity*, *Web of the Spider Woman* y *Regeneration*. Están escritos
+aquí para que nadie los vuelva a «descubrir».
+
+Así que «catálogo completo» quiere decir **completo de lo que sí entra**:
+invocación, encantamientos propios y utilidad.
+
+#### La escala de costes **[orig]**
+
+Las anclas están publicadas ([ORIGINAL.md §6.3](ORIGINAL.md), confianza
+alta), y tres de ellas son de Verdant:
+
+| Rango | Turnos | Maná | Investigación | De dónde |
+|---|---|---|---|---|
+| Simple | 1 | **3.000** | 900 | *Summon Dryad*, Verdant |
+| Average | 2 | **7.900** | 1.400 | *Summon Nymph*, Verdant |
+| Complex | 4-6 | **30.000-77.700** | 2.500-10.000 | *Regeneration*, *Summon Unicorn/Hydra/Vampire* |
+| Ultimate | **[abierto]** | **[abierto]** | **[abierto]** | no publicado |
+
+**[nuestro]** Para Ultimate extrapolamos la progresión observada —de
+Simple a Average el maná se multiplica por ~2,6 y la investigación por
+~1,6; de Average a Complex, por ~4 y por ~2—: **8-12 turnos, 120.000 de
+maná y 12.000 de investigación**. Es el rango más caro del juego y solo
+se aprende en el propio color, así que tiene que doler.
+
+**[orig]** **El coste de una invocación escala con el poder total
+invocado, no con el número de unidades.** *Summon Nymph* trae 1.700-2.400
+ninfas por 7.900 de maná; *Summon Vampire*, unos 295 vampiros por 77.700.
+Es la regla que impide que una invocación barata sea la óptima.
+
+**[orig]** **Lo invocado depende del nivel de hechizo**, y las cifras
+publicadas son a nivel alto y en color.
+
+#### Lo que la fase 2 tiene que hacer
+
+1. **Investigar** **[orig]**. La velocidad depende del número de
+   **guilds**. Avanza sola al gastar turnos en otra cosa, y se acelera
+   dedicándole turnos. **No se puede tener dos copias de un hechizo.**
+2. **El libro de hechizos** **[orig]**: qué puedes investigar sale de tu
+   escuela y de la rueda. Lo que no te toca, no aparece.
+3. **Lanzar** **[orig]**: cuesta **Cast M.P. aunque falles**, y los
+   hechizos con *Cast Turn* tardan varios turnos en completarse.
+4. **Fallar** **[orig]**: lanzar fuera de tu color puede fallar por
+   concentración, y el **nivel de hechizo** mejora la probabilidad.
+5. **Encantamientos** **[orig]**: upkeep continuo, varios distintos a la
+   vez, **nunca el mismo dos veces**, y se caen si te quedas sin maná
+   (§5.6, ya implementado).
+6. **Invocar** **[orig]**: trae unidades al ejército, en cantidad que
+   depende del nivel de hechizo.
+
+**[nuestro]** **La unidad invocada se parte en dos, como la reclutada.**
+La fase 1 dio a las tropas su mitad económica y dejó la de combate para
+la fase 3 (§8.1). Las invocadas hacen lo mismo: coste de upkeep, espacio
+de población y de qué escuela son ahora; ataque, defensa, HP e iniciativa
+en la fase 3. Es coherente y evita inventar números que no se pueden
+comprobar.
+
+#### Criterios de aceptación
+
+**Comprobables con tests del núcleo:**
+
+1. **La rueda decide qué se investiga.** Un mago Verdant puede investigar
+   Complex de Verdant, Ascendant y Eradication (adyacentes), pero **no**
+   de Nether ni Phantasm (opuestas); de ésas, solo Simple y Average.
+2. **El coste fuera de color es el de la tabla.** Un Complex de escuela
+   opuesta cuesta **exactamente 6×** su Cast M.P.; uno adyacente, 2×.
+3. **Lanzar cuesta maná aunque falle.** Con la semilla fijada en un fallo
+   de concentración, el maná baja igual y el efecto no ocurre.
+4. **El nivel de hechizo suma lo que dice la tabla.** Investigar un
+   Complex sube 7; un Ultimate, 20. Un mago que aprende todo el catálogo
+   de Verdant y Plain llega a un nivel concreto y reproducible.
+5. **No hay duplicados.** Investigar algo que ya sabes es un error de
+   dominio, no un maná gastado.
+6. **Un encantamiento no se puede lanzar dos veces**, y lanzarlo suma su
+   upkeep al ingreso neto que ve el jugador.
+7. **Los `Cast Turn` se consumen de verdad**: un hechizo de 4 turnos no
+   surte efecto hasta el cuarto, y gastar menos turnos lo deja a medias
+   sin cobrar el efecto.
+8. **Invocar respeta el espacio de población.** Si no cabe, el hechizo
+   falla con error de dominio y **no** cobra el maná.
+9. **Todo entero.** Ningún coste ni cantidad invocada tiene decimales, y
+   el redondeo está en un solo sitio por fórmula.
+
+**Comprobables con la simulación de temporada:**
+
+10. **El maná ya sirve para algo.** Rehaciendo la simulación de §17.2 con
+    magia, el reparto volcado a maná **deja de ser estrictamente peor**
+    que el económico. No hace falta que gane: hace falta que compita.
+    **Éste es el criterio que desbloquea el 9 de §17.2.**
+11. **La progresión de investigación dura lo que debe.** Aprender el
+    catálogo completo de Verdant y Plain lleva un número de turnos del
+    orden que documenta el original para investigarlo todo —1.500-3.000
+    turnos para las seis escuelas ([ORIGINAL.md §4.1](ORIGINAL.md))—,
+    escalado a lo que aquí es una escuela.
+
+#### Fuera de alcance de la fase 2
+
+- **Los hechizos ofensivos y los de batalla**, con sus nombres reservados
+  arriba. Fase 3.
+- **Las otras cuatro escuelas.** Sigue `[abierto]` en §7.
+- **Los hechizos Ancient** y el mercado negro que los vende. Fase 4.
+- **La mitad de combate de las unidades invocadas.** Fase 3.
+- **Los modificadores del maná por items y encantamientos** (*Alchemist*
+  −10%, *Moon's Favour* +10%, [ORIGINAL.md §3.1](ORIGINAL.md)): los items
+  son de la fase 4.
+- **Armageddon**, que es un hechizo pero pertenece al final de temporada.
+  Fase 5.
 
 **[nuestro]** Referencia de escala, del único hechizo con ficha pública
 del original: *Summon Unicorn*, Ascendant, Complex — 4 cast turns, 30.000

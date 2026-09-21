@@ -72,7 +72,7 @@ esa función falta en `packages/core`.
 | `/` | Portal: entrar, crear cuenta, elegir servidor. | 1 |
 | `/reino` | **La pantalla principal.** Recursos, ingresos, edificios, construir, explorar. | 1 |
 | `/ejercito` | Stacks, reclutamiento, upkeep total, héroes. | 1-2 |
-| `/magia` | Libro de hechizos, investigación en curso, lanzar, encantamientos activos. | 2 |
+| `/magia` | Libro de hechizos, investigación en curso, lanzar, encantamientos activos. Ver §3.1. | 2 |
 | `/guerra` | Buscar objetivo, previsualizar el ataque, lanzarlo. | 3 |
 | `/cronica` | Qué ha pasado: ataques recibidos, investigación terminada, colapsos. | 1 |
 | `/batalla/:id` | **La repetición**, ronda a ronda. | 3 |
@@ -99,6 +99,29 @@ Tiene que responder de un vistazo, sin abrir nada:
   Que se vea de un golpe que estás al 31,4% de nodes — **sin marcar
   umbrales ni decir si eso es bueno** (§1).
 - **Qué se está construyendo** y cuánto le falta.
+
+### 3.1. La pantalla de magia **[F2]**
+
+Spec en [SISTEMAS.md §7.1](SISTEMAS.md). Lo que esta pantalla tiene que
+resolver, y que no es obvio:
+
+- **Qué puedo investigar y qué no.** La rueda decide el acceso, y el
+  jugador no debería tener que memorizarla: el libro **enseña solo lo que
+  le toca**, y cuando algo no le toca, dice por qué — «Nether es opuesta
+  a Verdant: de ahí solo aprendes Simple y Average».
+- **Cuánto me va a costar lanzarlo, a mí.** El coste fuera de color
+  multiplica hasta por seis, así que el libro enseña **el precio que
+  pagarías tú**, no el precio base. Enseñar 30.000 cuando vas a pagar
+  180.000 sería mentir.
+- **Qué tengo encantado y qué me cuesta.** Los encantamientos son upkeep
+  continuo, y ahí es donde un mago se arruina sin darse cuenta. Su coste
+  va sumado al ingreso neto de la pantalla del reino, no escondido aquí.
+- **Cuánto falta.** La investigación y los *cast turns* avanzan al gastar
+  turnos, así que se cuenta **en turnos, no en minutos**.
+
+**Y lo que no hace**, igual que en el reino (§1): no recomienda qué
+investigar, no ordena el libro por «lo mejor primero», y no avisa de que
+un hechizo es mala compra. Enseña los cuatro costes y decide el jugador.
 
 ---
 

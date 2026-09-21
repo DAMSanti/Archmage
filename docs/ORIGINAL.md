@@ -387,6 +387,101 @@ fuera de tu especialidad puede fallar por *concentration*.
 propios (sobre tu reino) y ofensivos (sobre otro). Puedes tener varios
 distintos a la vez, pero **no el mismo dos veces**.
 
+### 6.1. El coste de lanzar fuera de tu color, publicado
+
+**Confirmado** (ampliación del 2026-09-21). Lanzar un hechizo que no es de
+tu escuela cuesta **más maná**, y cuánto más depende del rango y de la
+distancia en la rueda:
+
+| Rango | Propio | Adyacente | Opuesto |
+|---|---|---|---|
+| Simple | 100% | 125% | 200% |
+| Average | 100% | 150% | 350% |
+| Complex | 100% | 200% | **600%** |
+| Ultimate | 100% | — | — |
+| Ancient | 100% | 125% | 200% |
+
+**Y el acceso a investigar es más fino de lo que decía §6.** Confirmado:
+de tu propio color aprendes **los cuatro rangos investigables**; de los
+**adyacentes**, Simple, Average y Complex; de los **opuestos**, solo
+Simple y Average.
+
+La combinación de las dos tablas es lo que hace que la rueda importe: un
+Complex opuesto **se puede** lanzar si lo consigues, pero a **seis veces**
+su precio.
+
+### 6.2. Nivel de hechizo: la escala, publicada
+
+**Confirmado** (página *Spell level*, 2026-09-21).
+
+- Sube al **aprender** hechizos: **+1** Simple, **+3** Average, **+7**
+  Complex, **+20** Ultimate y **+15** Ancient.
+- **Armageddon no suma nivel**, a propósito.
+- **Máximos por servidor** (datos de 2012-2013): Beta **709** (634 de
+  base más 5 Ancient × 15), Blitz 667, Lightning 646, Arch 627, Solo 589.
+- Afecta a **la potencia de los hechizos y de los encantamientos**, y al
+  net power (1.000 por nivel, que cuadra con §3.2).
+- **No todos los efectos dependen del nivel**, y un encantamiento ya
+  lanzado **no se actualiza** si tu nivel cambia después.
+
+> El máximo base de ~634 es una cifra útil: dice que el catálogo completo
+> de una escuela son **decenas** de hechizos, no un puñado.
+
+### 6.3. Fichas de hechizo reales
+
+**Confirmado** (páginas individuales de la wiki, 2026-09-21). Son las
+anclas de escala para inventar el resto:
+
+| Hechizo | Escuela | Rango | Turnos | Maná | Investigación | Upkeep |
+|---|---|---|---|---|---|---|
+| *Summon Dryad* | Verdant | Simple | 1 | **3.000** | 900 | — |
+| *Summon Nymph* | Verdant | Average | 2 | **7.900** | 1.400 | — |
+| *Regeneration* | Verdant | Complex | — (batalla) | **30.000** | 3.000 | — |
+| *Summon Unicorn* | Ascendant | Complex | 4 | **30.000** | 2.500 | — |
+| *Summon Hydra* | Eradication | Complex | 5 | **41.700** | 4.000 | — |
+| *Aureate Conversion* | Phantasm | Complex | 10 | **50.000** | 4.000 | **100 maná** |
+| *Summon Vampire* | Nether | Complex | 6 | **77.700** | 10.000 | — |
+
+**Cantidades invocadas, y son reveladoras**: *Summon Nymph* trae
+**1.700-2.400** ninfas (nivel 624), *Summon Unicorn* **887-1010**,
+*Summon Hydra* **700-800**, *Summon Vampire* **~295**. El coste **no
+escala con el número de unidades sino con el poder total invocado**: un
+vampiro vale por muchas ninfas.
+
+**Confirmado — la invocación depende del nivel de hechizo** y de si el
+hechizo es de tu color: las cifras de arriba son a nivel alto y en color.
+
+**Confirmado — efectos con número**: *Regeneration* cura el **15%** de
+tus bajas en color, 5% fuera de color y 2% en la opuesta. *Plant Growth*
+da **+228%** de ataque, contraataque y vida a los treefolk a nivel 428.
+*Call Hurricane* cuesta **20.000** de maná. *Web of the Spider Woman*,
+**600**. *Sunray* mantiene **100 de maná** de upkeep.
+
+### 6.4. Verdant, en detalle
+
+**Confirmado** (guías de la wiki, 2026-09-21). Es la escuela que más
+documentación accesible tiene, y por eso es la que menos hay que
+inventar.
+
+**Hechizos nombrados**: *Summon Dryad*, *Summon Nymph*, *Regeneration*,
+*Wooden Soul*, *Rust Armor*, *Call Hurricane*, *Plant Growth*, *Weather
+Summoning*, *Summon Locust Swarm*, *Nature's Favor*, *Nature's Lore*,
+*Serenity*, *Sunray*, *Web of the Spider Woman*.
+
+**Unidades nombradas**: Dryad, Nymph, Treant, Elven Archer, Elven
+Magician, Druid, Griffon, Werebear, Mandrake, Gorilla, Creeping Vines,
+Earth Elemental, Faerie Dragon, Swanmay, Phoenix.
+
+**Confirmado — lo que un mago verde mantiene encantado**: *Plant Growth*,
+*Nature's Favor*, *Nature's Lore*, *Weather Summoning* y *Sunray*. Cinco
+encantamientos a la vez, que es lo que hace a Verdant **cara de
+mantener**: la wiki la describe como muy intensiva en maná.
+
+**Confirmado — identidad**: naturaleza, con treefolk, elfos y animales.
+*Treants* son el corazón de muchos ejércitos verdes; el *Phoenix* es una
+unidad mágica de mucho daño, inmune al fuego y con estallido al ser
+atacada.
+
 **Confirmado — tipos de efecto**: invocación, encantamiento, ofensivo,
 defensivo, utilidad/recursos, y hechizos que solo funcionan en batalla.
 

@@ -84,6 +84,41 @@ recurso** y **dos piezas de ornamento**.
 
 ---
 
+### Magia de la fase 2 — spec escrita, sin implementar
+
+**Spec y criterios de aceptación:
+[docs/SISTEMAS.md §7.1](docs/SISTEMAS.md).** Escrita el 2026-09-21 con
+`/spec`. La investigación que la sostiene, en
+[docs/ORIGINAL.md §6.1-6.4](docs/ORIGINAL.md).
+
+Qué cerró:
+
+- **Plain + Verdant**, elegida por ser **la escuela mejor documentada**
+  del original: catorce hechizos nombrados, quince unidades y fichas
+  completas de tres rangos. Menos documentación es más números
+  inventados, y aquí hay poco que inventar.
+- **La escala de costes por rango está publicada** y sale de fichas
+  reales: Simple 3.000 de maná, Average 7.900, Complex 30.000-77.700.
+  Solo Ultimate queda `[abierto]`, extrapolado.
+- **Los multiplicadores fuera de color**, publicados: un Complex de
+  escuela opuesta cuesta **6×**. La rueda deja de ser decorativa.
+- **La escala del nivel de hechizo**, publicada, con sus máximos por
+  servidor.
+- **Los ofensivos y los de batalla quedan fuera hasta la fase 3**, con
+  sus nombres reservados para que nadie los vuelva a «descubrir». Un
+  hechizo que apunta a otro mago no se puede comprobar sin otro mago.
+- **Once criterios de aceptación**, nueve de test del núcleo y dos de
+  simulación.
+
+**Lo que esta fase desbloquea**: los criterios 9 y 13 de
+`SISTEMAS §17.2` están aplazados desde la fase 1 porque **sin magia el
+maná no sirve para nada** y el reparto económico domina por definición.
+El criterio 10 de §7.1 es exactamente el que los reabre.
+
+Sin tareas todavía: las saca `/plan-tarea`.
+
+---
+
 ### Fase 1 — implementación
 
 **Specs**: la economía en [docs/SISTEMAS.md §17](docs/SISTEMAS.md), el
@@ -401,26 +436,38 @@ sin ningún asset.
 
 Gestionar un reino de verdad, solo. Sin magia y sin guerra.
 
-- [ ] Monorepo: pnpm workspaces, `packages/core`, `content`, `contract`,
+> **Cerrada el 2026-09-21**, salvo los assets. El detalle de cada tarea,
+> con lo que salió distinto de lo planeado, está en el bloque «Fase 1 —
+> implementación» de «En curso». **122 tests en verde, `tsc -b` en 0, y
+> 12/12 comprobaciones en navegador.**
+
+- [x] Monorepo: pnpm workspaces, `packages/core`, `content`, `contract`,
       `apps/server`, `apps/web`. `tsc -b` y Vitest funcionando en todos.
-- [ ] **El devengo de turnos** como función pura, con sus tests
+- [x] **El devengo de turnos** como función pura, con sus tests
       ([docs/SPECS.md §3](docs/SPECS.md)). Es la pieza de la que cuelga
       todo lo demás.
-- [ ] `apply()` y la forma de `MageState`
+- [x] `apply()` y la forma de `MageState`
       ([docs/SPECS.md §1-2](docs/SPECS.md)).
-- [ ] Tierra y los ocho edificios, con la fórmula de construcción por
+- [x] Tierra y los ocho edificios, con la fórmula de construcción por
       workshops y el acarreo de fracciones.
-- [ ] Economía: geld, maná, población y comida, con la curva de
+- [x] Economía: geld, maná, población y comida, con la curva de
       decrecimiento por porcentaje y los topes de efectividad.
-- [ ] Colapso por cada uno de los tres recursos, y el aviso previo en la
+      **Los topes de efectividad están como dato en `content`
+      (`EFFECT_CAPS`) pero todavía no los usa nadie**: solo importan en
+      defensa, que es la fase 3. Declarado, no olvidado.
+- [x] Colapso por cada uno de los tres recursos, y el aviso previo en la
       interfaz.
-- [ ] Explorar.
-- [ ] Reclutamiento de tropa básica (llega a lo largo de varios turnos).
-- [ ] Postgres, migraciones y persistencia del estado + eventos en una
+- [x] Explorar.
+- [x] Reclutamiento de tropa básica (llega a lo largo de varios turnos).
+- [x] Postgres, migraciones y persistencia del estado + eventos en una
       transacción.
-- [ ] Servidor Fastify: `GET /mage/me`, `POST /mage/me/actions`.
+- [x] Servidor Fastify: `GET /mage/me`, `POST /mage/me/actions`.
 - [ ] Cliente: portal, `/reino`, `/ejercito`, `/cronica`.
-- [ ] Simulador de temporada contra el núcleo, para calibrar los números
+      **Tres de cuatro.** `/reino`, `/ejercito` y `/cronica` están; **el
+      portal no**, porque no hay cuentas ni autenticación y no habría qué
+      poner en él. Se cierra cuando lleguen las cuentas
+      ([docs/ARQUITECTURA.md §9.6](docs/ARQUITECTURA.md)).
+- [x] Simulador de temporada contra el núcleo, para calibrar los números
       abiertos.
 
 ## Fase 2 — Magia
