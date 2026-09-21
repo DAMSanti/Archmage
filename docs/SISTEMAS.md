@@ -1199,24 +1199,57 @@ veinte mil.
 tiene varios tipos, y una **debilidad mete −50%** en esa media. El
 ejemplo de la fuente es literal: `Fire Ranged = (30% + 75%) / 2 = 52,5%`.
 
-Tres cosas que salen de esa forma y que importan al jugar:
+**La media diluye**, y ahí está la decisión táctica: un ataque de dos
+tipos contra alguien que solo resiste uno le saca la mitad del provecho —
+el Treant, con 67% a melee, cae al 33,5% si el ataque es Melee+Fire. Por
+eso importa llevar **el tipo adecuado**, no llevar más tipos.
 
-- **La media diluye.** Un ataque de dos tipos contra alguien que solo
-  resiste uno le saca la mitad del provecho: el Treant, con 67% a melee,
-  cae al 33,5% si el ataque es Melee+Fire. Por eso llevar **el tipo
-  adecuado** es la decisión táctica, y no llevar más tipos.
-- **Una debilidad no es resistir 0%: son dos cosas.** El Treant resiste
-  0% al fuego **y además** es débil a él, y su ficha publicada dice las
-  dos. Resistir 0% deja el multiplicador en 1; ser débil lo sube a 1,5.
-- **La resistencia puede quedar negativa, y debe poder.** Es lo que hace
-  que una debilidad sirva contra quien ya no resistía ese tipo. Topearla
-  en cero la dejaría sin efecto justo donde más se usa.
+> **Corregido el 2026-09-21, el mismo día en que se escribió.** Aquí
+> ponía que una debilidad mete **−50 en esa media**, y que por tanto se
+> diluye como una resistencia. **Es falso**: la debilidad es un
+> **multiplicador defensivo de 2,0** ([ORIGINAL.md §9.1](ORIGINAL.md)),
+> y va con las habilidades, abajo. Se cazó al implementar las
+> habilidades defensivas, cuando apareció que la debilidad estaba en las
+> dos listas de la fuente.
+>
+> **Lo que cambia no es cosmético.** Como multiplicador **no se diluye**:
+> basta con que el ataque *contenga* el tipo, así que un Melee+Fire
+> aprovecha la debilidad del Treant **entera** mientras su resistencia al
+> melee sí se queda a medias. Y el tope pasa de ×1,5 a **×2,0**.
+
+**Las habilidades defensivas se multiplican entre sí** **[orig]**, no se
+suman:
+
+| Habilidad | Multiplicador | Cuándo |
+|---|---:|---|
+| Healing | 0,70 | siempre |
+| Scales | 0,75 | siempre |
+| Regeneration | 0,80 | siempre |
+| Charm | 0,50 | solo contra el ataque **primario** |
+| Large shield | 0,50 | solo contra ataques **a distancia** |
+| **Debilidad** | **2,00** | si el ataque **contiene** su tipo |
+
+Que sea un producto y no una resta es lo que las hace apilables sin
+romperse: las tres incondicionales juntas dejan el daño en **0,42**, y
+las cinco en **0,105**. Nunca llegan a cero, y una sola debilidad puede
+más que dos defensas — el mejor defensor posible recibe 945 bajas donde
+el neutro recibe 9.000, y el peor, 18.000.
 
 **El orden y el emparejamiento**: los stacks se ordenan por un
 multiplicador de tipo —1,0 a distancia, 1,5 el resto, 2,25 voladores—;
 los voladores y los de distancia pegan a cualquiera, los de melee solo a
 tierra y **se quedan sin objetivo** si no queda ninguna; y un stack solo
 es objetivo si **vale al menos el 10%** del que ataca.
+
+El multiplicador **solo decide el orden y no mejora a nadie**, y depende
+**solo del tipo de unidad**: un stack de un volador va delante de veinte
+mil de melee.
+
+**[nuestro]** **La elección de objetivo es determinista**: de los que el
+atacante alcanza y valen el 10%, se coge **el primero del orden**. Podría
+ser al azar, pero entonces habría que guardar una semilla más para que la
+repetición de la batalla cuadrara ([SPECS.md §5](SPECS.md), invariante 3)
+— y no hace falta, porque el orden ya está fijado.
 
 **Quién gana**: pierde quien pierda **más porcentaje** de ejército, y el
 defensor necesita pasar del **10% de bajas** para perder tierra. Con un

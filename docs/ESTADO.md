@@ -19,15 +19,16 @@ El repositorio contiene, a día de hoy:
 | Documentos en `docs/` | 9 |
 | Comandos en `.claude/commands/` | 4 |
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
-| Tests | **287**, todos en verde |
+| Tests | **316**, todos en verde |
 | `tsc -b` | sale **0** |
 | Bundle del cliente | **225 KB**, **65 KB** comprimido |
 
 **La fase 1 está implementada: tareas 1 a 21 de 22.** Queda la **22**, la
 tanda de assets, que espera una sesión con el usuario. **La fase 2 está
-completa.** De la **fase 3** están hechas las tareas **1 a 7** de 22 — las fichas,
-la recalibración, la economía publicada y **el núcleo de la fórmula de
-daño** (daño, acierto y resistencias). La 4
+completa.** De la **fase 3** están hechas las tareas **1 a 9** de 22 — las fichas,
+la recalibración, la economía publicada y **la fórmula de daño entera**:
+daño, acierto, resistencias, habilidades defensivas y emparejamiento de
+stacks. Falta la fatiga para cerrar los términos. La 4
 cerró la decisión de balance que la 3 había dejado abierta, y lo hizo
 adoptando la **economía publicada** del original: la fórmula de geld, los
 topes de población y comida, y el crecimiento
@@ -44,8 +45,8 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-21) |
 |---|---|---|
-| La suite entera (287 tests) | — | **~2,8 s** |
-| `vitest packages/core` (178 tests) | milisegundos | **~430 ms** |
+| La suite entera (316 tests) | — | **~2,8 s** |
+| `vitest packages/core` (207 tests) | milisegundos | **~450 ms** |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (22 tests, hasta 2.000 turnos) | segundos | **~350 ms** |
 | `vitest apps/server` (20 tests, Postgres real) | segundos | **~0,7 s** |

@@ -716,7 +716,14 @@ Cada término, con sus números:
   secundarios **no** la bajan. Eso es la fatiga.
 - **resistencia_R** — la del defensor **al tipo de daño concreto**. Con
   varios tipos se hace la media: *«Fire Ranged = (30% + 75%) / 2 = 52,5%»*.
-  Una **debilidad** mete **−50%** en esa media.
+
+  > **Corregido el 2026-09-21.** Aquí decía además que «una **debilidad**
+  > mete **−50%** en esa media». **Es falso**, y se cazó al implementar
+  > las habilidades defensivas: la debilidad aparecía en las dos listas de
+  > esta misma sección. La página *Damage Formula* es explícita —
+  > `weakness (2.0 if the attack contains the attack type matching the
+  > weakness)`— y la media es **solo de resistencias**. La debilidad está
+  > abajo, entre las habilidades defensivas, y es donde estaba bien.
 - **habilidades defensivas** — se multiplican entre sí: *healing* 0,7,
   *scales* 0,75, *regeneration* 0,8, *charm* 0,5 (contra primarios),
   *large shield* 0,5 (contra a distancia), y **weakness 2,0** cuando el tipo

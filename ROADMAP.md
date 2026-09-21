@@ -352,13 +352,49 @@ fase 1.
       > *(`tsc` pilló que las fixtures del núcleo no tenían el campo
       > nuevo, cuando los 287 tests ya estaban en verde: vitest no
       > comprueba tipos. Es la razón de correr las dos cosas.)*
-- [ ] **8. Habilidades defensivas.** Healing 0,7, scales 0,75,
+- [x] **8. Habilidades defensivas.** Healing 0,7, scales 0,75,
       regeneration 0,8, charm 0,5, large shield 0,5, weakness 2,0,
       multiplicándose. *Test: cada una por separado y dos combinadas.*
-- [ ] **9. Orden de stacks y emparejamiento.** Multiplicadores
+
+      > **HECHO (2026-09-21).** `defensiveMultiplier(defensor, ataque)`,
+      > 14 tests: las cinco por separado, las tres condicionales, y
+      > combinadas de dos en dos y de cinco en cinco.
+      >
+      > **Y aquí se cazó un error mío de la tarea 7, de hace una hora.**
+      > El texto de la tarea dice «weakness 2,0» y yo la había
+      > implementado como **−50 en la media de resistencias**, que es como
+      > la resumía docs/ORIGINAL.md §9.1. Al ver que la debilidad estaba
+      > en **las dos listas** de la misma sección volví a la página
+      > *Damage Formula*, que es explícita: `weakness (2.0 if the attack
+      > contains the attack type matching the weakness)`. La media es solo
+      > de resistencias.
+      >
+      > **No era cosmético.** Como término de la media, la debilidad **se
+      > diluía** al mezclar tipos; como multiplicador basta con que el
+      > ataque *contenga* el tipo, así que un Melee+Fire aprovecha la
+      > debilidad del Treant **entera** mientras su resistencia al melee
+      > sí se queda a medias. Y el tope pasa de ×1,5 a ×2,0. Corregidos
+      > el código, los tests de la tarea 7, SISTEMAS §9.1 y ORIGINAL §9.1.
+      >
+      > Medido: el mejor defensor posible recibe **945** bajas donde el
+      > neutro recibe 9.000; el peor, **18.000**.
+- [x] **9. Orden de stacks y emparejamiento.** Multiplicadores
       1,0/1,5/2,25; voladores y distancia pegan a todo, melee solo a
       tierra; objetivo solo si vale ≥10%. *Test = criterio 5: melee puro
       contra voladores puros **no hace daño**.*
+
+      > **HECHO (2026-09-21).** `sortStacks()`, `canTarget()` y
+      > `chooseTarget()`, 15 tests. El criterio 5 sale tal cual: contra un
+      > ejército solo de voladores, el melee **no encuentra objetivo** —
+      > no es que pegue poco.
+      >
+      > **Una decisión que la fuente no cierra, declarada `[nuestro]`:**
+      > de los stacks que el atacante alcanza y que valen el 10%, se coge
+      > **el primero del orden**. Podría sortearse, pero entonces haría
+      > falta guardar una semilla más para que la repetición de la batalla
+      > cuadrase (invariante 3), y no hace falta: `sortStacks()` ya fija
+      > el orden y el multiplicador depende **solo del tipo de unidad**,
+      > así que un stack de un volador va delante de veinte mil de melee.
 - [ ] **10. Fatiga.** −15 por primario o contraataque, −10 con
       *Endurance*, los secundarios no. *Test = criterio 3, incluido que
       **un stack de 1 fatiga igual que uno de 20.000**.*
