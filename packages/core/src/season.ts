@@ -52,6 +52,7 @@ export interface Season {
 
 export type SealError =
   | { code: 'temporada_cerrada'; message: string }
+  | { code: 'no_sabes_armageddon'; message: string }
   | { code: 'ya_rompiste_uno'; message: string }
   | { code: 'demasiado_pronto'; message: string };
 
@@ -70,7 +71,13 @@ export function nextSealAt(season: Season): number | null {
 /**
  * Si un mago puede romper el siguiente sello **ahora**.
  *
- * Tres cosas, y las tres son del original:
+ * Cuatro cosas, y las cuatro son del original:
+ *  - **Hay que saber el hechizo.** Se investiga después de todos los demás
+ *    (docs/ORIGINAL.md §10.1), así que romper un sello es el último botón
+ *    del juego y hay que haberse ganado llegar a él. **Se olvidó al
+ *    escribir esto la primera vez, y lo enseñó la pasada de navegador**: la
+ *    pantalla ofrecía romper el sello a un mago que no lo había
+ *    investigado.
  *  - La temporada tiene que estar abierta.
  *  - **Un mago solo rompe uno.** Por eso hacen falta siete magos
  *    distintos, y por eso esto es una actividad de gremio y no de uno.
@@ -81,7 +88,16 @@ export function canBreakSeal(
   season: Season,
   mageId: string,
   now: number,
+  knowsArmageddon = true,
 ): { ok: true; index: number } | { error: SealError } {
+  if (!knowsArmageddon) {
+    return {
+      error: {
+        code: 'no_sabes_armageddon',
+        message: 'Primero hay que investigar Armageddon, y eso pide saber todo lo demás.',
+      },
+    };
+  }
   if (season.status !== 'open') {
     return { error: { code: 'temporada_cerrada', message: 'Esta temporada ya terminó.' } };
   }

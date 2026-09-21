@@ -33,16 +33,27 @@ import {
   spellbookFor,
   upkeep,
 } from '@archmage/core';
-import { closesAt, makeRandom as _makeRandom, minimumBid, resolveAttack } from '@archmage/core';
+import {
+  SEALS,
+  closesAt,
+  deadlineOf,
+  makeRandom as _makeRandom,
+  minimumBid,
+  nextSealAt,
+  resolveAttack,
+} from '@archmage/core';
 import { PILLAGE_MIN_POWER_SHARE } from '@archmage/core';
 import type { Ctx, MageState, RandomSource, ServerConfig } from '@archmage/core';
 import { CATALOG, ECONOMY, SERVERS, SERVERS_BY_ID, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import {
   actionRequestSchema,
+  allySchema,
   bidSchema,
   createLotSchema,
   createMageSchema,
   forgotSchema,
+  foundGuildSchema,
+  messageSchema,
   loginSchema,
   registerSchema,
   resetSchema,
@@ -70,10 +81,21 @@ import {
   listLots,
   listMages,
   listTargets,
+  activeAlliesOf,
   applyBid,
+  blockMage,
+  breakSeal,
   createAccount,
+  createAlliance,
   createLot,
   createSession,
+  ensureSeason,
+  foundGuild,
+  guildBoard,
+  guildOf,
+  inboxOf,
+  joinGuild,
+  leaveGuild,
   createToken,
   deleteSession,
   deleteSessionsOf,
@@ -82,8 +104,15 @@ import {
   markVerified,
   namesOf,
   outboxMailer,
+  postToGuild,
+  readGuild,
+  readSeasons,
+  requestBreak,
+  sendDirect,
   setPassword,
+  settleBrokenAlliances,
   settleLots,
+  settleSeasons,
   useToken,
   readBattle,
   readChronicle,
@@ -371,6 +400,161 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     });
   });
 
+  // --- Gremios, mensajes y temporada. Fase 5 ------------------------------
+
+  app.get('/api/guild', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const gid = await guildOf(deps.db, yo.id);
+    if (!gid) return reply.send({ guild: null });
+    const g = await readGuild(deps.db, gid);
+    const aliados = await activeAlliesOf(deps.db, yo.id, deps.now());
+    return reply.send({ guild: g, allies: aliados });
+  });
+
+  app.post('/api/guild', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const parsed = foundGuildSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    }
+    // **El que funda va dentro**, aunque no se liste: es el líder.
+    const fundadores = [...new Set([yo.id, ...parsed.data.founderIds])];
+    const r = await foundGuild(deps.db, yo.server.id, parsed.data.name, yo.id, fundadores, deps.now());
+    if ('error' in r) return reply.code(422).send({ error: r.error });
+    return reply.send({ guildId: r.id });
+  });
+
+  app.post('/api/guild/:id/members', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const r = await joinGuild(deps.db, (req.params as { id: string }).id, yo.id);
+    if ('error' in r) return reply.code(422).send({ error: r.error });
+    return reply.send({ ok: true });
+  });
+
+  app.delete('/api/guild/members/me', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const r = await leaveGuild(deps.db, yo.id);
+    if (r === null) return reply.code(404).send({ error: { code: 'sin_gremio', message: 'No estás en ningún gremio.' } });
+    if ('error' in r) return reply.code(422).send({ error: r.error });
+    return reply.send({ ok: true });
+  });
+
+  app.post('/api/alliances', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const parsed = allySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    }
+    const r = await createAlliance(deps.db, yo.server.id, yo.id, parsed.data.mageId, deps.now());
+    if ('error' in r) return reply.code(422).send({ error: r.error });
+    return reply.send({ allianceId: r.id });
+  });
+
+  app.post('/api/alliances/:id/break', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    // **Pedir romper no rompe.** Tarda 24 horas, y durante el plazo los
+    // refuerzos siguen yendo (docs/SISTEMAS.md §14.1).
+    await requestBreak(deps.db, (req.params as { id: string }).id, deps.now());
+    return reply.send({ breaksInHours: 24 });
+  });
+
+  app.get('/api/messages', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    // **Solo la suya.** El id sale de la sesión, así que no hay forma de
+    // pedir la bandeja de otro (invariante 13).
+    const inbox = await inboxOf(deps.db, yo.id);
+    const gid = await guildOf(deps.db, yo.id);
+    const board = gid ? await guildBoard(deps.db, gid) : [];
+    return reply.send({ inbox, board });
+  });
+
+  app.post('/api/messages', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const parsed = messageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    }
+    if (parsed.data.toGuild) {
+      const gid = await guildOf(deps.db, yo.id);
+      if (!gid) {
+        return reply
+          .code(422)
+          .send({ error: { code: 'sin_gremio', message: 'No estás en ningún gremio.' } });
+      }
+      await postToGuild(deps.db, yo.server.id, yo.id, gid, parsed.data.body, deps.now());
+      return reply.send({ ok: true });
+    }
+    if (!parsed.data.toId) {
+      return reply
+        .code(400)
+        .send({ error: { code: 'invalid_request', message: 'Falta el destinatario.' } });
+    }
+    await sendDirect(deps.db, yo.server.id, yo.id, parsed.data.toId, parsed.data.body, deps.now());
+    return reply.send({ ok: true });
+  });
+
+  app.post('/api/messages/block', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const parsed = allySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    }
+    await blockMage(deps.db, yo.id, parsed.data.mageId);
+    return reply.send({ ok: true });
+  });
+
+  /** La temporada: los sellos y la fecha tope, las dos cosas a la vez. */
+  app.get('/api/season', async (req: Pedido, reply) => {
+    const servidor = servidorDe(req);
+    const t = await ensureSeason(deps.db, servidor.id, deps.now());
+    const cerradas = await readSeasons(deps.db, servidor.id);
+    return reply.send({
+      season: {
+        id: t.id,
+        startedAt: t.startedAt,
+        seals: t.seals,
+        sealsNeeded: SEALS,
+        // **Las dos vías se enseñan juntas**: si solo se viera una, la
+        // otra parecería no existir (docs/INTERFAZ.md §3.9).
+        deadlineAt: deadlineOf(t),
+        nextSealAt: nextSealAt(t),
+      },
+      halls: cerradas.filter((x) => x.status === 'ended').map((x) => ({ id: x.id, halls: x.halls })),
+    });
+  });
+
+  app.post('/api/season/seal', async (req, reply) => {
+    const yo = await mageOf(deps, req);
+    if (!yo) return sinSesion(reply);
+    const r = await breakSeal(deps.db, yo.server.id, yo.id, deps.now());
+    if (r === null) {
+      return reply
+        .code(404)
+        .send({ error: { code: 'sin_temporada', message: 'No hay temporada abierta.' } });
+    }
+    if ('error' in r) return reply.code(422).send({ error: r.error });
+    return reply.send({ seal: r.index });
+  });
+
+  /** Cierra lo que toque: alianzas rotas y temporadas vencidas. */
+  app.post('/api/season/settle', async (req: Pedido, reply) => {
+    const servidor = servidorDe(req);
+    const rotas = await settleBrokenAlliances(deps.db, deps.now());
+    const t = await settleSeasons(deps.db, servidor.id, deps.now(), (f) =>
+      netPower(rowToState(f), CATALOG),
+    );
+    return reply.send({ alliancesBroken: rotas, ...t });
+  });
+
   // --- Mercado y ranking. Fase 4 -----------------------------------------
 
   /** Los lotes a la venta, con su cierre ya calculado. */
@@ -620,7 +804,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       starting: STARTING_KINGDOM,
       now,
     });
-    await insertMage(deps.db, nuevo, cuenta);
+    // **El mago nace dentro de una temporada**, y esa es la que lo
+    // jubilara al cerrar. Si no se abre ninguna, se abre aqui: el primer
+    // jugador de un servidor nuevo no deberia tener que esperar a un
+    // proceso programado para existir.
+    const temporada = await ensureSeason(deps.db, servidor.id, now);
+    await insertMage(deps.db, nuevo, cuenta, temporada.id);
     return reply.send({ mage: nuevo, derived: derive(nuevo, now, servidor), server: servidor });
   });
 

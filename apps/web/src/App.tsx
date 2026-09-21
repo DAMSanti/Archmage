@@ -24,8 +24,22 @@ import { Mercado } from './routes/Mercado.js';
 import { Ranking } from './routes/Ranking.js';
 import { Habilidades } from './routes/Habilidades.js';
 import { Portal } from './routes/Portal.js';
+import { Gremio } from './routes/Gremio.js';
+import { Mensajes } from './routes/Mensajes.js';
+import { Temporada } from './routes/Temporada.js';
 
-type Pantalla = 'reino' | 'ejercito' | 'magia' | 'guerra' | 'mercado' | 'ranking' | 'habilidades' | 'cronica';
+type Pantalla =
+  | 'reino'
+  | 'ejercito'
+  | 'magia'
+  | 'guerra'
+  | 'mercado'
+  | 'ranking'
+  | 'habilidades'
+  | 'gremio'
+  | 'mensajes'
+  | 'temporada'
+  | 'cronica';
 
 const PANTALLAS: { id: Pantalla; nombre: string }[] = [
   { id: 'reino', nombre: 'Reino' },
@@ -35,6 +49,9 @@ const PANTALLAS: { id: Pantalla; nombre: string }[] = [
   { id: 'mercado', nombre: 'Mercado' },
   { id: 'habilidades', nombre: 'Habilidades' },
   { id: 'ranking', nombre: 'Ranking' },
+  { id: 'gremio', nombre: 'Gremio' },
+  { id: 'mensajes', nombre: 'Mensajes' },
+  { id: 'temporada', nombre: 'Temporada' },
   { id: 'cronica', nombre: 'Crónica' },
 ];
 
@@ -143,6 +160,12 @@ export function App() {
             <Ejercito data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
           ) : pantalla === 'magia' ? (
             <Magia data={data} onAction={onAction} ocupado={ocupado} />
+          ) : pantalla === 'gremio' ? (
+            <Gremio data={data} />
+          ) : pantalla === 'mensajes' ? (
+            <Mensajes data={data} />
+          ) : pantalla === 'temporada' ? (
+            <Temporada data={data} />
           ) : pantalla === 'mercado' ? (
             <Mercado data={data} />
           ) : pantalla === 'ranking' ? (

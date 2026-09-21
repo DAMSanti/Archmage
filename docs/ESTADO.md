@@ -21,7 +21,7 @@ El repositorio contiene, a día de hoy:
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
 | Items del catálogo | **44**, todos publicados |
 | Habilidades | **10**, de 20 niveles |
-| Tests | **568**, todos en verde |
+| Tests | **674**, todos en verde — 447 de `core`, 143 de `content`, 71 de `server`, 13 de `web` |
 | `tsc -b` | sale **0** |
 | Bundle del cliente | **225 KB**, **65 KB** comprimido |
 
@@ -40,7 +40,20 @@ cerró la decisión de balance que la 3 había dejado abierta, y lo hizo
 adoptando la **economía publicada** del original: la fórmula de geld, los
 topes de población y comida, y el crecimiento
 ([ORIGINAL.md §4.2](ORIGINAL.md)). Con ella vuelven a cumplirse el
-criterio 11 de §17.2 y, **por primera vez**, el 10 de §7.1. Ver
+criterio 11 de §17.2 y, **por primera vez**, el 10 de §7.1.
+
+**Y la fase 5: las 22.** Hay **temporada** — gremios de cinco fundadores,
+alianzas con refuerzos automáticos que entran de verdad en la batalla,
+mensajería con bloqueo, **dos servidores** con temporadas independientes,
+los **siete sellos** de Armageddon y la fecha tope de 90 días, los dos
+Halls congelados al cerrar, y las pantallas de `/gremio`, `/mensajes` y
+`/temporada`. Lo único que deja fuera, y declarado, es **NAP y
+diplomacia**: sin tratados que romper, una lista de enemigos no cambiaría
+ninguna regla.
+
+La 5 enchufó además la capa de pre-batalla de la fase 4, que estaba
+**escrita, probada y sin llamar desde ningún sitio** — catorce familias
+de efectos que no llegaban a una batalla real. Ver
 [ROADMAP.md](../ROADMAP.md).
 
 ---
@@ -50,24 +63,31 @@ criterio 11 de §17.2 y, **por primera vez**, el 10 de §7.1. Ver
 Las expectativas son de [ARQUITECTURA.md §6](ARQUITECTURA.md); la
 columna de la derecha es lo que se midió al implementar.
 
-| Instrumento | Esperado | Medido (2026-09-21) |
+| Instrumento | Esperado | Medido (2026-09-22) |
 |---|---|---|
-| La suite entera (568 tests) | — | **~7 s** |
-| `vitest packages/core` (341 tests) | milisegundos | **~700 ms** |
+| La suite entera (674 tests) | — | **~14 s** |
+| `vitest packages/core` (447 tests) | milisegundos | **~3 s**, de los que **770 ms** son los tests |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (22 tests, hasta 2.000 turnos) | segundos | **~350 ms** |
-| `vitest apps/server` (48 tests, Postgres real) | segundos | **~3 s** |
+| `vitest apps/server` (71 tests, Postgres real) | segundos | **~8 s** |
 | `tsc -b` en todo el repo | segundos | **~3 s** |
 | `vite build` del cliente | ~1 min | **~0,7 s** |
 | Pasada de navegador (12 comprobaciones, 3 contextos) | minutos, turno exclusivo | **~12 s** |
 | Pasada de navegador de la guerra (18 comprobaciones) | minutos, turno exclusivo | **~25 s** |
 | Pasada de navegador del mundo (15 comprobaciones) | minutos, turno exclusivo | **~20 s** |
+| Pasada de navegador de la temporada (14 comprobaciones) | minutos, turno exclusivo | **~18 s** |
 
 **Casi todas las expectativas se quedaron cortas por el lado bueno.** La
 simulación de temporada se presupuestó en «segundos» y son **66
 milisegundos** para nueve escenarios de hasta 2.000 turnos; el build del
 cliente se presupuestó en un minuto y tarda **menos de uno**; la pasada de
 navegador se presupuestó en minutos y son **12 segundos**.
+
+**La que sí ha crecido es la del servidor**, y era de esperar: cada test
+levanta su propia base de datos y la fase 5 le añadió veintitrés. Ocho
+segundos para 71 tests contra Postgres real sigue siendo barato comparado
+con lo que compran — pero es **la mitad del reloj de la suite entera**, y
+es el primer sitio donde mirar si algún día molesta.
 
 Comprobar este proyecto es barato, así que **no hay excusa para discutir
 balance en vez de medirlo, ni para dar algo por bueno sin mirarlo**.

@@ -155,6 +155,7 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS mages_account_server_uniq
       ON mages (account_id, server_id) WHERE account_id IS NOT NULL;
 
+
     -- Fase 4. El mercado negro y el ranking. Aditivo.
     CREATE TABLE IF NOT EXISTS market_lots (
       id                serial PRIMARY KEY,
@@ -271,6 +272,20 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
 
     ALTER TABLE mages ADD COLUMN IF NOT EXISTS season_id text REFERENCES seasons(id);
     CREATE INDEX IF NOT EXISTS mages_season_idx ON mages (season_id);
+
+    -- Fase 5. **Y por TEMPORADA**, no para siempre.
+    --
+    -- El índice de arriba decía «un mago por cuenta y servidor» sin
+    -- fecha de caducidad, así que al cerrar una temporada la cuenta se
+    -- quedaba sin poder crear el mago de la siguiente: un 500 por clave
+    -- duplicada, no un error de juego. Lo enseñó el test del criterio 18.
+    --
+    -- Se sustituye, no se añade: dejar los dos haría que el viejo siguiera
+    -- mandando y el nuevo no cambiara nada.
+    DROP INDEX IF EXISTS mages_account_server_uniq;
+    CREATE UNIQUE INDEX IF NOT EXISTS mages_account_server_season_uniq
+      ON mages (account_id, server_id, season_id) WHERE account_id IS NOT NULL;
+
   `);
 }
 

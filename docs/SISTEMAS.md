@@ -2312,10 +2312,30 @@ acabar antes; la fecha garantiza que acaba.
 > aspiración, no un misterio.
 
 **[nuestro]** **El coste del hechizo no está publicado.** Se fija en
-**el doble del Ultimate más caro del catálogo**, porque romper un sello
-tiene que ser un esfuerzo de mago grande y no un trámite. Se valida con
-la simulación: un mago que llega al final de la temporada **puede
-pagarlo, y no dos veces seguidas**.
+**el doble del Ultimate más caro del catálogo — 320.000 de maná**, porque
+romper un sello tiene que ser un esfuerzo de mago grande y no un trámite.
+
+**Y la simulación corrigió cómo había que validarlo.** La primera versión
+de esta regla decía «un mago que llega al final de la temporada puede
+pagarlo». Medido el 2026-09-22, el mago de maná acaba la temporada con
+**94.522**: no llega. Pero no llega porque el simulador **gasta todo lo
+que gana** en encantamientos e invocaciones — el mismo reparto sin gastar
+en magia acaba con **689.000**, que es su almacén lleno y **más del doble
+del coste**.
+
+Así que lo que se valida es lo que de verdad pasa: **el sello se paga
+ahorrando a propósito.** Un mago que gasta todo lo que entra no rompe
+ningún sello, y eso es deseable — acabar el mundo debería costar dejar de
+crecer durante un tramo de la temporada.
+
+**Y de la medición salió una regla que conviene tener escrita**, porque
+nadie la decidió y sin embargo es cierta: el almacén de maná de un
+reparto **económico** son **123.000**, y el de **ejército**, 183.000.
+**No llegan a 320.000 ni ahorrando la temporada entera.** Romper un sello
+pide haber invertido en `nodes`: acabar el mundo es cosa de magos de
+maná, no de quien construyó granjas. Ata el final de la temporada a una
+decisión de reparto en vez de dejarlo suelto, que es mejor de lo que se
+pretendía.
 
 > **Criterio 14.** Hacen falta **siete magos distintos**: el mismo mago
 > no rompe dos sellos. *Test del núcleo.*

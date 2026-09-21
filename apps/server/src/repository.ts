@@ -16,19 +16,41 @@
 
 import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { accrue, apply, checkBid, settle } from '@archmage/core';
-import type { Lot } from '@archmage/core';
+import {
+  accrue,
+  apply,
+  canAlly,
+  canBreakSeal,
+  canFound,
+  canJoin,
+  canLeave,
+  checkBid,
+  endReason,
+  hallOfFame,
+  hallOfImmortals,
+  isActive,
+  settle,
+  shouldEnd,
+} from '@archmage/core';
+import type { Alliance, Lot, Season } from '@archmage/core';
 import type { Action, Ctx, GameEvent, MageState, Result, ServerConfig } from '@archmage/core';
 import type { ApplyTuning } from '@archmage/core';
 import {
   accounts,
+  alliances,
   authTokens,
   battles,
+  blocks,
   events,
+  guildMembers,
+  guilds,
   mages,
   marketLots,
+  messages,
   outbox,
   rankingSnapshots,
+  seals,
+  seasons,
   sessions,
 } from './schema.js';
 
@@ -107,8 +129,15 @@ export async function insertMage(
   db: Db,
   state: MageState,
   accountId?: string,
+  seasonId?: string,
 ): Promise<void> {
-  await db.insert(mages).values({ ...stateToRow(state), accountId: accountId ?? null });
+  // **La temporada se sella al nacer**, no se deduce al mirar: si se
+  // buscara «la abierta» cada vez, un mago creado en la temporada 1
+  // pasaria a ser de la 2 en cuanto la 1 cerrara, y el Hall of Fame de
+  // la 1 se quedaria sin el.
+  await db
+    .insert(mages)
+    .values({ ...stateToRow(state), accountId: accountId ?? null, seasonId: seasonId ?? null });
 }
 
 /**
@@ -388,11 +417,39 @@ export async function accountOfSession(db: Db, sessionId: string, now: Date) {
 }
 
 /** El mago que esa cuenta juega en ese servidor, si lo tiene. */
+/**
+ * **Un mago de una temporada cerrada es historia, no estado**
+ * (docs/SPECS.md §5, invariante 17).
+ *
+ * Se filtra por la temporada **del mago**, no por «la temporada abierta»:
+ * lo que lo saca del juego es que la suya cerrara. Un mago sin temporada
+ * —el de desarrollo, y los que existian antes de la fase 5— sigue vivo,
+ * porque nunca hubo una que le cerrara encima.
+ *
+ * Y se resuelve **en SQL, en la misma consulta**: hacerlo en memoria
+ * despues obligaria a acordarse en cada sitio que lista magos, y
+ * olvidarse no daria ningun error — solo un ranking con muertos dentro.
+ */
+const DE_TEMPORADA_VIVA = sql`(
+  ${mages.seasonId} is null
+  or exists (
+    select 1 from seasons
+    where seasons.id = ${mages.seasonId} and seasons.status = 'open'
+  )
+)`;
+
+/**
+ * El mago que esta cuenta juega **ahora** en este servidor.
+ *
+ * Si su temporada cerro, devuelve nada: la cuenta sigue, el mago no, y
+ * por eso `POST /api/mage` la deja crear uno nuevo sin decirle que ya
+ * tiene (criterio 18 de docs/SISTEMAS.md §14.1).
+ */
 export async function mageOfAccount(db: Db, accountId: string, serverId: string) {
   const filas = await db
     .select({ id: mages.id })
     .from(mages)
-    .where(and(eq(mages.accountId, accountId), eq(mages.serverId, serverId)));
+    .where(and(eq(mages.accountId, accountId), eq(mages.serverId, serverId), DE_TEMPORADA_VIVA));
   return filas[0]?.id;
 }
 
@@ -626,7 +683,10 @@ export async function settleLots(db: Db, serverId: string, now: number): Promise
 
 /** Todos los magos de un servidor, para el ranking. */
 export async function listMages(db: Db, serverId: string) {
-  return db.select().from(mages).where(eq(mages.serverId, serverId));
+  // **Los de la temporada cerrada no salen** (criterio 20): un ranking
+  // con los campeones del mundo anterior dentro le diria al recien
+  // llegado que ya perdio.
+  return db.select().from(mages).where(and(eq(mages.serverId, serverId), DE_TEMPORADA_VIVA));
 }
 
 /** Congela la clasificación del día. */
@@ -678,4 +738,378 @@ function entregar(state: MageState, content: Lot['content']): MageState {
         ],
       };
   }
+}
+
+
+// --- Gremios. Fase 5 -----------------------------------------------------
+
+/** En qué gremio está un mago, o `null`. */
+export async function guildOf(db: Db, mageId: string): Promise<string | null> {
+  const filas = await db
+    .select({ guildId: guildMembers.guildId })
+    .from(guildMembers)
+    .where(eq(guildMembers.mageId, mageId));
+  return filas[0]?.guildId ?? null;
+}
+
+export async function readGuild(db: Db, guildId: string) {
+  const g = (await db.select().from(guilds).where(eq(guilds.id, guildId)))[0];
+  if (!g) return null;
+  const miembros = await db
+    .select({ mageId: guildMembers.mageId, role: guildMembers.role, name: mages.name })
+    .from(guildMembers)
+    .innerJoin(mages, eq(mages.id, guildMembers.mageId))
+    .where(eq(guildMembers.guildId, guildId));
+  return { ...g, members: miembros };
+}
+
+/**
+ * Funda un gremio con sus cinco.
+ *
+ * **Todo en una transacción**: si el tercer fundador ya estuviera en otro
+ * gremio, no puede quedar un gremio a medio fundar con dos miembros.
+ */
+export async function foundGuild(
+  db: Db,
+  serverId: string,
+  name: string,
+  leaderId: string,
+  founderIds: readonly string[],
+  now: number,
+): Promise<{ id: string } | { error: { code: string; message: string } }> {
+  return db.transaction(async (tx) => {
+    const yaEn = await tx
+      .select({ mageId: guildMembers.mageId })
+      .from(guildMembers)
+      .where(inArray(guildMembers.mageId, [...founderIds]));
+    const r = canFound(founderIds, (id) => yaEn.some((x) => x.mageId === id));
+    if ('error' in r) return { error: r.error };
+
+    const id = `g_${now.toString(36)}_${leaderId.slice(0, 6)}`;
+    await tx.insert(guilds).values({ id, serverId, name, leaderId });
+    await tx.insert(guildMembers).values(
+      founderIds.map((mageId) => ({
+        guildId: id,
+        mageId,
+        role: mageId === leaderId ? 'leader' : 'member',
+      })),
+    );
+    return { id };
+  });
+}
+
+export async function joinGuild(
+  db: Db,
+  guildId: string,
+  mageId: string,
+): Promise<{ ok: true } | { error: { code: string; message: string } }> {
+  return db.transaction(async (tx) => {
+    const g = await readGuild(tx, guildId);
+    if (!g) return { error: { code: 'no_existe', message: 'No existe ese gremio.' } };
+    const ya = await guildOf(tx, mageId);
+    const r = canJoin(mageId, { ...g, enemies: g.enemies, serverId: g.serverId } as never, ya !== null);
+    if ('error' in r) return { error: r.error };
+    await tx.insert(guildMembers).values({ guildId, mageId, role: 'member' });
+    return { ok: true as const };
+  });
+}
+
+export async function leaveGuild(
+  db: Db,
+  mageId: string,
+): Promise<{ ok: true } | { error: { code: string; message: string } } | null> {
+  return db.transaction(async (tx) => {
+    const guildId = await guildOf(tx, mageId);
+    if (!guildId) return null;
+    const g = await readGuild(tx, guildId);
+    if (!g) return null;
+    const r = canLeave(mageId, { ...g, enemies: g.enemies } as never);
+    if ('error' in r) return { error: r.error };
+    await tx
+      .delete(guildMembers)
+      .where(and(eq(guildMembers.guildId, guildId), eq(guildMembers.mageId, mageId)));
+    // El último que sale se lleva el gremio con él: un gremio vacío no es
+    // nada, y dejarlo haría que el nombre quedara cogido para siempre.
+    const quedan = await tx
+      .select({ mageId: guildMembers.mageId })
+      .from(guildMembers)
+      .where(eq(guildMembers.guildId, guildId));
+    if (quedan.length === 0) await tx.delete(guilds).where(eq(guilds.id, guildId));
+    return { ok: true as const };
+  });
+}
+
+// --- Alianzas. Fase 5 ----------------------------------------------------
+
+function rowToAlliance(f: typeof alliances.$inferSelect): Alliance {
+  return {
+    id: f.id,
+    serverId: f.serverId,
+    a: f.mageA,
+    b: f.mageB,
+    breakRequestedAt: f.breakRequestedAt,
+  };
+}
+
+/** Las alianzas de un mago, rotas o no. */
+export async function alliancesOf(db: Db, mageId: string): Promise<Alliance[]> {
+  const filas = await db
+    .select()
+    .from(alliances)
+    .where(or(eq(alliances.mageA, mageId), eq(alliances.mageB, mageId)));
+  return filas.map(rowToAlliance);
+}
+
+/** Los aliados **activos ahora** de un mago. El plazo de ruptura cuenta. */
+export async function activeAlliesOf(db: Db, mageId: string, now: number): Promise<string[]> {
+  const todas = await alliancesOf(db, mageId);
+  return todas
+    .filter((a) => isActive(a, now))
+    .map((a) => (a.a === mageId ? a.b : a.a));
+}
+
+export async function createAlliance(
+  db: Db,
+  serverId: string,
+  a: string,
+  b: string,
+  now: number,
+): Promise<{ id: string } | { error: { code: string; message: string } }> {
+  return db.transaction(async (tx) => {
+    const mias = await activeAlliesOf(tx, a, now);
+    const suyas = await activeAlliesOf(tx, b, now);
+    const r = canAlly(a, b, mias.length, suyas.length, mias.includes(b), serverId);
+    if ('error' in r) return { error: r.error };
+    const id = `al_${now.toString(36)}_${a.slice(0, 4)}${b.slice(0, 4)}`;
+    await tx.insert(alliances).values({ id, serverId, mageA: a, mageB: b });
+    return { id };
+  });
+}
+
+/** Pide romper. **No la rompe**: eso lo hace el plazo. */
+export async function requestBreak(db: Db, allianceId: string, now: number) {
+  await db
+    .update(alliances)
+    .set({ breakRequestedAt: now })
+    .where(eq(alliances.id, allianceId));
+}
+
+/**
+ * Borra las alianzas cuyo plazo venció. **Idempotente**: las que siguen
+ * activas no se tocan, así que correrla mil veces no rompe ninguna de más.
+ */
+export async function settleBrokenAlliances(db: Db, now: number): Promise<number> {
+  const todas = await db.select().from(alliances);
+  let rotas = 0;
+  for (const f of todas) {
+    const a = rowToAlliance(f);
+    if (a.breakRequestedAt === null || isActive(a, now)) continue;
+    await db.delete(alliances).where(eq(alliances.id, a.id));
+    rotas++;
+  }
+  return rotas;
+}
+
+// --- Mensajes. Fase 5 ----------------------------------------------------
+
+export async function isBlocked(db: Db, blockerId: string, blockedId: string) {
+  const filas = await db
+    .select({ x: blocks.blockedId })
+    .from(blocks)
+    .where(and(eq(blocks.blockerId, blockerId), eq(blocks.blockedId, blockedId)));
+  return filas.length > 0;
+}
+
+export async function sendDirect(
+  db: Db,
+  serverId: string,
+  fromId: string,
+  toId: string,
+  body: string,
+  now: number,
+): Promise<{ ok: true }> {
+  // **El bloqueado no escribe, y el que bloquea no se entera de que lo
+  // intentó** (criterio 9). Por eso esto devuelve `ok` igualmente: decirle
+  // «te han bloqueado» convertiría el bloqueo en una notificación para
+  // quien acosa.
+  if (await isBlocked(db, toId, fromId)) return { ok: true };
+  await db.insert(messages).values({ serverId, fromId, toId, body, createdAt: now });
+  return { ok: true };
+}
+
+export async function postToGuild(
+  db: Db,
+  serverId: string,
+  fromId: string,
+  guildId: string,
+  body: string,
+  now: number,
+) {
+  await db.insert(messages).values({ serverId, fromId, guildId, body, createdAt: now });
+}
+
+/** La bandeja de un mago: **solo la suya**. */
+export async function inboxOf(db: Db, mageId: string, limit = 50) {
+  return db
+    .select({
+      id: messages.id,
+      fromId: messages.fromId,
+      body: messages.body,
+      createdAt: messages.createdAt,
+      readAt: messages.readAt,
+    })
+    .from(messages)
+    .where(eq(messages.toId, mageId))
+    .orderBy(sql`${messages.id} desc`)
+    .limit(limit);
+}
+
+export async function guildBoard(db: Db, guildId: string, limit = 50) {
+  return db
+    .select({
+      id: messages.id,
+      fromId: messages.fromId,
+      body: messages.body,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(eq(messages.guildId, guildId))
+    .orderBy(sql`${messages.id} desc`)
+    .limit(limit);
+}
+
+export async function blockMage(db: Db, blockerId: string, blockedId: string) {
+  try {
+    await db.insert(blocks).values({ blockerId, blockedId });
+  } catch {
+    // Ya estaba bloqueado. Bloquear dos veces no es un error.
+  }
+}
+
+// --- Temporadas y sellos. Fase 5 -----------------------------------------
+
+export async function currentSeason(db: Db, serverId: string): Promise<Season | null> {
+  const f = (
+    await db
+      .select()
+      .from(seasons)
+      .where(and(eq(seasons.serverId, serverId), eq(seasons.status, 'open')))
+  )[0];
+  if (!f) return null;
+  const s = await db.select().from(seals).where(eq(seals.seasonId, f.id));
+  return {
+    id: f.id,
+    serverId: f.serverId,
+    startedAt: f.startedAt,
+    seals: s
+      .map((x) => ({ index: x.idx, mageId: x.mageId, brokenAt: x.brokenAt }))
+      .sort((a, b) => a.index - b.index),
+    status: f.status as Season['status'],
+    endedAt: f.endedAt,
+  };
+}
+
+/** Abre una temporada si el servidor no tiene ninguna. Idempotente. */
+export async function ensureSeason(db: Db, serverId: string, now: number): Promise<Season> {
+  const ya = await currentSeason(db, serverId);
+  if (ya) return ya;
+
+  // **El id es el ordinal, no el reloj.** La primera version lo sacaba de
+  // `now`, y la temporada que se abre justo detras de una que acaba de
+  // cerrar nacia con el id de la anterior y reventaba contra la clave
+  // primaria — un 500, no un error de dominio. Lo enseño el test del
+  // criterio 18, que cierra y reabre con el reloj inyectado quieto.
+  const cuantas = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(seasons)
+    .where(eq(seasons.serverId, serverId));
+  const id = `t_${serverId}_${(cuantas[0]?.n ?? 0) + 1}`;
+
+  try {
+    await db.insert(seasons).values({ id, serverId, startedAt: now });
+  } catch {
+    // Dos peticiones abriendo temporada a la vez: la que pierde **relee**,
+    // que es lo que queria de entrada. Deja que la clave primaria decida
+    // en vez de preguntar antes, porque entre la pregunta y el insert
+    // cabe la otra.
+    const otra = await currentSeason(db, serverId);
+    if (otra) return otra;
+    throw new Error(`No se pudo abrir temporada en ${serverId}.`);
+  }
+  return { id, serverId, startedAt: now, seals: [], status: 'open', endedAt: null };
+}
+
+/**
+ * Rompe un sello.
+ *
+ * **La fila de la temporada va bloqueada**: dos magos rompiendo a la vez
+ * leerían el mismo número de sellos y los dos romperían el séptimo.
+ */
+export async function breakSeal(
+  db: Db,
+  serverId: string,
+  mageId: string,
+  now: number,
+): Promise<{ index: number } | { error: { code: string; message: string } } | null> {
+  return db.transaction(async (tx) => {
+    const t = await currentSeason(tx, serverId);
+    if (!t) return null;
+    await tx.select().from(seasons).where(eq(seasons.id, t.id)).for('update');
+
+    // **Hay que saber el hechizo.** Se lee del libro del mago, que es donde
+    // vive: el núcleo decide, el servidor aporta el dato.
+    const fila = await lockRow(tx, mageId);
+    const sabe = fila ? rowToState(fila).spellbook.known.includes('armageddon') : false;
+    const r = canBreakSeal(t, mageId, now, sabe);
+    if ('error' in r) return { error: r.error };
+    await tx.insert(seals).values({ seasonId: t.id, idx: r.index, mageId, brokenAt: now });
+    return { index: r.index };
+  });
+}
+
+/**
+ * Cierra las temporadas que tocan. **Idempotente** (docs/SPECS.md §3).
+ *
+ * **Cerrar es una escritura, no miles**: se marca la fila de la temporada y
+ * los magos se quedan como están, apuntando a ella. Es el invariante 17.
+ */
+export async function settleSeasons(
+  db: Db,
+  serverId: string,
+  now: number,
+  netPowerOf: (row: Row) => number,
+): Promise<{ ended: boolean; reason: string | null }> {
+  return db.transaction(async (tx) => {
+    const t = await currentSeason(tx, serverId);
+    if (!t || !shouldEnd(t, now)) return { ended: false, reason: null };
+
+    const filas = await tx
+      .select()
+      .from(mages)
+      .where(and(eq(mages.serverId, serverId), eq(mages.seasonId, t.id)));
+    const fame = hallOfFame(
+      filas.map((f) => ({ id: f.id, name: f.name, netPower: netPowerOf(f) })),
+    );
+    const immortals = hallOfImmortals(t);
+
+    await tx
+      .update(seasons)
+      .set({
+        status: 'ended',
+        endedAt: now,
+        endReason: endReason(t, now),
+        halls: { fame, immortals },
+      })
+      .where(eq(seasons.id, t.id));
+
+    return { ended: true, reason: endReason(t, now) };
+  });
+}
+
+export async function readSeasons(db: Db, serverId: string) {
+  return db
+    .select()
+    .from(seasons)
+    .where(eq(seasons.serverId, serverId))
+    .orderBy(sql`${seasons.startedAt} desc`);
 }

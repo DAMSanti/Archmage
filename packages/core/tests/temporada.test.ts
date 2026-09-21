@@ -183,3 +183,28 @@ describe('criterio 19 — los dos Halls', () => {
     expect(hallOfImmortals(temporada())).toEqual([]);
   });
 });
+
+describe('hay que saber el hechizo', () => {
+  test('sin investigar Armageddon no se rompe nada', () => {
+    // **Se olvidó al escribir esto la primera vez**, y lo enseñó la pasada
+    // de navegador: la pantalla ofrecía el botón a un mago que no lo había
+    // investigado. Un test no lo habría visto, porque no había test que
+    // preguntara por el libro de hechizos.
+    expect(canBreakSeal(temporada(), 'ana', T0, false)).toMatchObject({
+      error: { code: 'no_sabes_armageddon' },
+    });
+  });
+
+  test('y sabiéndolo, sí', () => {
+    expect(canBreakSeal(temporada(), 'ana', T0, true)).toEqual({ ok: true, index: 1 });
+  });
+
+  test('es lo primero que se comprueba, antes que la temporada cerrada', () => {
+    // El mensaje más útil es el que te dice qué te falta a ti, no qué le
+    // pasa al mundo.
+    const cerrada = temporada({ status: 'ended' });
+    expect(canBreakSeal(cerrada, 'ana', T0, false)).toMatchObject({
+      error: { code: 'no_sabes_armageddon' },
+    });
+  });
+});

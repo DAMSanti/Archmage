@@ -365,3 +365,81 @@ export const rankingRowSchema = z.object({
 });
 export type RankingRow = z.infer<typeof rankingRowSchema>;
 export const rankingResponseSchema = z.object({ rows: z.array(rankingRowSchema) });
+
+// --- Gremios, mensajes y temporada. Fase 5 ------------------------------
+
+/**
+ * Fundar un gremio. **No lleva quién funda**: el líder sale de la sesión
+ * (docs/SPECS.md §5, invariante 13); aquí solo van los otros cuatro.
+ */
+export const foundGuildSchema = z.object({
+  name: z.string().trim().min(3).max(40),
+  founderIds: z.array(z.string().min(1).max(64)).min(4).max(20),
+});
+
+/** Un mago al que se le hace algo: aliarse, bloquear. */
+export const allySchema = z.object({ mageId: z.string().min(1).max(64) });
+
+export const messageSchema = z.object({
+  /** A un mago, o al tablón del gremio. Uno de los dos. */
+  toId: z.string().min(1).max(64).optional(),
+  toGuild: z.boolean().optional(),
+  body: z.string().trim().min(1).max(2_000),
+});
+
+export const sealSchema = z.object({
+  index: z.number().int().min(1).max(7),
+  mageId: z.string(),
+  brokenAt: z.number().int(),
+});
+
+export const seasonResponseSchema = z.object({
+  season: z.object({
+    id: z.string(),
+    startedAt: z.number().int(),
+    seals: z.array(sealSchema),
+    sealsNeeded: z.number().int(),
+    deadlineAt: z.number().int(),
+    nextSealAt: z.number().int().nullable(),
+  }),
+  halls: z.array(z.object({ id: z.string(), halls: z.record(z.string(), z.unknown()) })),
+});
+
+export const guildResponseSchema = z.object({
+  guild: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      leaderId: z.string(),
+      members: z.array(z.object({ mageId: z.string(), role: z.string(), name: z.string() })),
+      enemies: z.array(z.string()),
+    })
+    .nullable(),
+  allies: z.array(z.string()).optional(),
+});
+
+export const messagesResponseSchema = z.object({
+  inbox: z.array(
+    z.object({
+      id: z.number().int(),
+      fromId: z.string(),
+      body: z.string(),
+      createdAt: z.number().int(),
+      readAt: z.number().int().nullable(),
+    }),
+  ),
+  board: z.array(
+    z.object({
+      id: z.number().int(),
+      fromId: z.string(),
+      body: z.string(),
+      createdAt: z.number().int(),
+    }),
+  ),
+});
+
+/** Los tipos que el cliente usa. **Salen del contrato**, no de `zod`: así
+ * `apps/web` no necesita la librería, solo los esquemas ya escritos. */
+export type GuildResponse = z.infer<typeof guildResponseSchema>;
+export type MessagesResponse = z.infer<typeof messagesResponseSchema>;
+export type SeasonResponse = z.infer<typeof seasonResponseSchema>;

@@ -294,6 +294,24 @@ protege; solo las protege saberlas.
     power final. Nada que se pueda gastar. Un juego por temporadas donde
     lo anterior te hace más fuerte no es un juego por temporadas.
 
+    **Cómo se cumple, implementado el 2026-09-22.** El filtro es una
+    condición SQL, `DE_TEMPORADA_VIVA`, y va **dentro de la consulta**,
+    no aplicado en memoria después: si fuera lo segundo, habría que
+    acordarse en cada sitio que lista magos, y olvidarse no daría ningún
+    error — solo un ranking con muertos dentro. Lo usan `mageOfAccount`
+    y `listMages`.
+
+    Se filtra por la temporada **del mago**, no por «la temporada
+    abierta»: lo que lo saca del juego es que la suya cerrara. Un mago
+    sin temporada —el de desarrollo— sigue vivo, porque nunca hubo una
+    que le cerrara encima.
+
+    **Y el índice único de «un mago por cuenta y servidor» lleva la
+    temporada dentro.** Sin ella decía «para siempre», y crear el mago de
+    la temporada siguiente era un **500 por clave duplicada**: la regla
+    de convivencia de la fase 4 se convertía, sin que nadie lo
+    escribiera, en una prohibición de volver a jugar.
+
 ---
 
 ## 6. API

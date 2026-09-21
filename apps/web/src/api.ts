@@ -12,8 +12,11 @@
 import {
   battleSchema,
   catalogResponseSchema,
+  guildResponseSchema,
   marketResponseSchema,
+  messagesResponseSchema,
   rankingResponseSchema,
+  seasonResponseSchema,
   targetsResponseSchema,
   mageResponseSchema,
   actionResponseSchema,
@@ -21,9 +24,12 @@ import {
   type ActionResponse,
   type CatalogResponse,
   type Battle,
+  type GuildResponse,
   type Lot,
+  type MessagesResponse,
   type MageResponse,
   type RankingRow,
+  type SeasonResponse,
   type Target,
 } from '@archmage/contract';
 
@@ -156,3 +162,38 @@ export async function fetchMarket(): Promise<Lot[]> {
 
 export const sendBid = (lotId: number, amount: number) =>
   post(`/api/market/lots/${lotId}/bids`, { amount }) as Promise<void>;
+
+// --- Gremios, mensajes y temporada. Fase 5 ------------------------------
+
+export type GuildInfo = GuildResponse;
+export type MessagesInfo = MessagesResponse;
+export type SeasonInfo = SeasonResponse;
+
+export async function fetchGuild(): Promise<GuildInfo> {
+  const res = await fetch('/api/guild');
+  if (!res.ok) return leerError(res);
+  return guildResponseSchema.parse(await res.json());
+}
+
+export async function fetchMessages(): Promise<MessagesInfo> {
+  const res = await fetch('/api/messages');
+  if (!res.ok) return leerError(res);
+  return messagesResponseSchema.parse(await res.json());
+}
+
+export const enviarMensaje = (m: { toId?: string; toGuild?: boolean; body: string }) =>
+  post('/api/messages', m) as Promise<void>;
+
+export const bloquear = (mageId: string) =>
+  post('/api/messages/block', { mageId }) as Promise<void>;
+
+export async function fetchSeason(): Promise<SeasonInfo> {
+  // Se cierra lo que toque al mirar: es idempotente, así que llamarla de
+  // más no hace daño y evita un proceso periódico (docs/SPECS.md §3).
+  await fetch('/api/season/settle', { method: 'POST' }).catch(() => undefined);
+  const res = await fetch('/api/season');
+  if (!res.ok) return leerError(res);
+  return seasonResponseSchema.parse(await res.json());
+}
+
+export const romperSello = () => post('/api/season/seal') as Promise<void>;

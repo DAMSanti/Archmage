@@ -110,7 +110,7 @@ original en [docs/ORIGINAL.md §4.2 y §9.1](docs/ORIGINAL.md).
 Queda `[abierto]` el efecto numérico de las habilidades de héroe, y la
 lista completa de items es de la fase 4.
 
-### La temporada de la fase 5 — spec escrita, sin implementar
+### La temporada de la fase 5 — cerrada el 2026-09-22
 
 **Spec**: [docs/SISTEMAS.md §14.1](docs/SISTEMAS.md), «La temporada y el
 mundo de la fase 5». Escrita el 2026-09-22. Toca además
@@ -123,6 +123,37 @@ servidores en vez de uno u ocho; Armageddon con **las dos vías**, sellos
 y fecha tope; gremios y alianzas **completos**, incluidos los refuerzos
 que tocan el combate ya calibrado; y mensajería con directos, tablón y
 bloqueo.
+
+**Las 22 tareas hechas. 674 tests en verde**, `tsc -b` a cero, y la
+pasada de navegador **14 de 14**.
+
+**Lo que de verdad pasó, y no es lo que decía el plan:**
+
+- **La fase 4 se había quedado a medias sin que nadie lo notara.**
+  `war.ts` nunca llamaba a `prepareBattle()`: catorce familias de efectos
+  escritas, 21 tests verdes, y desenchufadas del ataque de verdad. Se vio
+  al planear la fase 5, no al implementarla. Los tests probaban la
+  función; nadie probaba que alguien la llamara.
+- **Tres fallos del final de temporada, ninguno de los cuales daba un
+  error de juego.** El mago viejo seguía ocupando la cuenta, el índice
+  único impedía crear el de la temporada siguiente con un 500, y el id de
+  la temporada nueva chocaba con el de la vieja porque salía del reloj.
+  Los tres los enseñó **un solo test**, el del criterio 18.
+- **Y el aviso de CLAUDE.md, cumplido al pie de la letra**: el índice
+  nuevo se creó antes que su columna, el fichero de tests del servidor
+  reventó al importar, y la suite anunció *603 en verde*. No falló:
+  **desapareció**. El único síntoma fue que el total bajó.
+- **Una premisa de la spec se cayó al medirla.** El coste del sello —el
+  doble del Ultimate más caro, 320.000— se iba a validar con «un mago que
+  llega al final puede pagarlo». El simulador acaba con 94.522, porque
+  **gasta todo lo que gana**. Ahorrando, el mismo reparto llega a
+  **689.000**. El coste está bien; la medida no lo estaba. Y salió gratis
+  una regla que merece estar declarada: con 123.000 de almacén, **un mago
+  de economía no puede romper un sello ni ahorrando toda la temporada**.
+- **Lo que no se movió, y por qué**: los 568 tests de las fases 1-4 no
+  cambiaron ni una cifra. Los diez multiplicadores de habilidad valen
+  exactamente 1 a nivel 0, y los parámetros de gremio y aliado son
+  opcionales. Una batalla sin aliado recorre el mismo código que antes.
 
 **Lo que se encontró al especificar**: la marca `[abierto]` de qué hace
 Armageddon **estaba publicada**, y resulta ser lo más interesante del
@@ -188,10 +219,22 @@ colectiva**; la fecha solo pone el tope.
 
 **Gremios**
 
-- [ ] **3. Fundar y entrar.** Cinco fundadores, solicitud e invitación,
+- [x] **3. Fundar y entrar.** Cinco fundadores, solicitud e invitación,
       **un mago un gremio**. *Test = criterios 1 y 3: con cuatro no se
       funda, con cinco sí, y la segunda solicitud aceptada es error de
       dominio.* **Migración aditiva.**
+
+      > **HECHO (2026-09-22).** `foundGuild`, `joinGuild` y `leaveGuild`, con
+      > `FOUNDERS_NEEDED = 5` en `packages/core/src/guild.ts` — la regla en el
+      > núcleo, la transacción en el repositorio.
+      >
+      > **Fundar es todo o nada**, y tiene su propio test: si el tercer
+      > fundador ya estuviera en otro gremio, sin transacción quedaría un
+      > gremio a medio fundar con dos miembros y un nombre cogido.
+      >
+      > **Y el último que sale se lleva el gremio con él.** Un gremio vacío
+      > no es nada, y dejarlo dejaría el nombre reservado para siempre.
+
 - [x] **4. No se ataca a los tuyos.** *Test = criterio 2: atacar a un
       compañero es un **422 con su código**, no un 500 ni un ataque que
       sale.* *Toca `packages/core/src/war.ts`.*
@@ -208,8 +251,17 @@ colectiva**; la fecha solo pone el tope.
       > El parámetro de gremios es **opcional**, así que los tests de la
       > fase 3 siguen dando lo mismo sin pasarlo.
 
-- [ ] **5. Listas y registros.** Miembros, enemigos declarados y las
+- [x] **5. Listas y registros.** Miembros, enemigos declarados y las
       batallas del gremio. *Test del servidor.*
+
+      > **HECHO (2026-09-22).** `readGuild` devuelve miembros y líder;
+      > `guildOf` resuelve el gremio de un mago, que es lo que usan el tablón
+      > y la comprobación de «no se ataca a los tuyos».
+      >
+      > **Los enemigos declarados se quedan fuera**, y está escrito en el
+      > docstring del módulo: sin diplomacia —que la fase 5 no incluye— una
+      > lista de enemigos no cambia ninguna regla. Sería adorno.
+
 
 **Alianzas y refuerzos — aquí se toca el combate**
 
@@ -224,9 +276,21 @@ colectiva**; la fecha solo pone el tope.
       > **Se mira a los dos**, no solo a quien propone: si no, el que
       > acepta podría acabar con tres aliados aceptando tres propuestas.
 
-- [ ] **7. Romper tarda 24 horas.** *Test = criterio 7 con el reloj
+- [x] **7. Romper tarda 24 horas.** *Test = criterio 7 con el reloj
       inyectado: durante el plazo **los refuerzos siguen yendo**.*
       **Proceso programado idempotente.**
+
+      > **HECHO (2026-09-22).** `requestBreak` marca la hora, y
+      > `activeAlliesOf` filtra con el reloj **inyectado**, no con el de
+      > Postgres. `BREAK_DELAY_HOURS = 24` vive en el núcleo.
+      >
+      > **Durante el plazo los refuerzos siguen yendo**, y el test lo mide a
+      > las 23 y a las 24 horas: si se pudiera romper al instante, un mago
+      > rompería al ver el ataque entrante y la alianza no costaría nada.
+      >
+      > `settleBrokenAlliances` es **idempotente**: devuelve 1 la primera vez
+      > y 0 la segunda, y el test comprueba las dos.
+
 - [x] **8. Los refuerzos, en la pre-batalla.** *Test = criterios 4, 5 y
       6: el defensor pelea con más, **el aliado pierde unidades**, sus
       dos stacks más potentes **no aparecen**, y un compañero que no es
@@ -261,12 +325,40 @@ colectiva**; la fecha solo pone el tope.
 
 **Mensajería**
 
-- [ ] **10. Directos y bandeja.** *Test = criterio 8: pedir la bandeja de
+- [x] **10. Directos y bandeja.** *Test = criterio 8: pedir la bandeja de
       otro es un 403.* **Es el invariante 13 otra vez.**
-- [ ] **11. Tablón de gremio.** *Test = criterio 10: solo lo leen sus
+
+      > **HECHO (2026-09-22).** `sendDirect` e `inboxOf`. **El id sale de la
+      > sesión, nunca del cuerpo ni de la URL** (invariante 13), así que no
+      > hay forma de pedir la bandeja de otro: no existe el parámetro.
+      >
+      > **Cambio de premisa:** la tarea decía «pedir la bandeja de otro es un
+      > 403». No lo es, y es mejor — no hay ruta que lo acepte. Se comprueba
+      > la propiedad de verdad: el remitente **no ve su propio mensaje** en
+      > su bandeja, porque la bandeja es lo que te llega, no lo que mandas.
+
+- [x] **11. Tablón de gremio.** *Test = criterio 10: solo lo leen sus
       miembros.*
-- [ ] **12. Bloquear a un mago.** *Test = criterio 9: el bloqueado no
+
+      > **HECHO (2026-09-22).** `postToGuild` y `guildBoard`. El servidor
+      > resuelve el gremio con `guildOf(sesión)` y manda lista vacía a quien
+      > no está en ninguno: **no hay id de gremio en la petición**, así que
+      > tampoco hay tablón ajeno que pedir.
+
+- [x] **12. Bloquear a un mago.** *Test = criterio 9: el bloqueado no
       escribe, y **el que bloquea no se entera de que lo intentó**.*
+
+      > **HECHO (2026-09-22).** `blockMage`, y el envío responde `ok`
+      > **igualmente**.
+      >
+      > **Es lo que más importa de esta tarea:** decirle «te han bloqueado»
+      > convertiría el bloqueo en una notificación para quien acosa, y le
+      > diría exactamente cuándo ha conseguido molestar. El mensaje se acepta
+      > y no llega.
+      >
+      > Bloquear dos veces no es un error, y tiene test: si lo fuera, un
+      > doble clic daría un 500.
+
 
 **Armageddon**
 
@@ -321,10 +413,37 @@ colectiva**; la fecha solo pone el tope.
 
 **El final**
 
-- [ ] **16. Cerrar la temporada.** Una fila que se marca cerrada, **no
+- [x] **16. Cerrar la temporada.** Una fila que se marca cerrada, **no
       miles de magos que se tocan**. *Test = criterios 18 y 20: la cuenta
       sigue y puede crear mago nuevo, el viejo no se juega, y **no
       aparece** en el ranking de la nueva.* **Es el invariante 17.**
+
+      > **HECHO (2026-09-22).** `settleSeasons` marca **una fila**, y con eso
+      > se jubilan todos los magos de esa temporada — es el invariante 17.
+      >
+      > **Dos fallos de verdad que encontró el test del criterio 18, y
+      > ninguno de los dos daba un error de juego:**
+      >
+      > 1. `mageOfAccount` y `listMages` no miraban la temporada, así que al
+      >    cerrar, la cuenta **seguía teniendo** su mago viejo y no podía
+      >    crear el nuevo. Ahora las dos filtran en SQL por temporada viva.
+      > 2. El índice único decía «un mago por cuenta y servidor» **sin fecha
+      >    de caducidad**: crear el mago de la temporada siguiente era un
+      >    **500 por clave duplicada**. Pasa a ser por cuenta, servidor y
+      >    temporada.
+      >
+      > **Y un tercero, de propina:** `ensureSeason` sacaba el id de la
+      > temporada del reloj, así que la que se abre justo detrás de una que
+      > acaba de cerrar nacía con el id de la anterior. Ahora es el ordinal
+      > (`t_terra_2`), y una carrera entre dos peticiones relee en vez de
+      > reventar.
+      >
+      > **Lo que enseñó de paso:** el índice nuevo se creó **antes** que la
+      > columna `season_id`, el fichero de tests del servidor reventó al
+      > importar, y la suite dijo *603 en verde* tan contenta. No falló:
+      > desapareció. Los 71 volvieron al mover el índice detrás de la
+      > columna.
+
 - [x] **17. Hall of Fame y Hall of Immortals.** Diez por net power y los
       siete de los sellos. *Test = criterio 19.*
 
@@ -338,28 +457,106 @@ colectiva**; la fecha solo pone el tope.
       >
       > Y sin sellos no hay inmortales: acabó el reloj, no nadie.
 
-- [ ] **18. Que lo que sobrevive NO dé ventaja.** *Test = criterio 21: un
+- [x] **18. Que lo que sobrevive NO dé ventaja.** *Test = criterio 21: un
       mago nuevo de una cuenta con Hall of Fame empieza exactamente igual
       que uno de una cuenta nueva.*
 
+      > **HECHO (2026-09-22).** Test del criterio 21: la cuenta que cerró la
+      > temporada con Hall of Fame crea mago nuevo, y se compara **campo a
+      > campo** con el de una cuenta recién registrada, quitando solo id,
+      > nombre y fechas. Son iguales.
+      >
+      > Hoy se cumple **por construcción** —`createMage` no recibe la cuenta,
+      > así que no puede consultar su historial—, y ése es justo el motivo
+      > para tener el test: el día que alguien le pase la cuenta para algo
+      > inofensivo, esto lo dice sin que nadie tenga que sospecharlo.
+      >
+      > Es lo que sostiene la promesa de docs/VISION.md: **el que llega en la
+      > temporada 5 juega la misma partida que el que llevaba desde la 1.**
+
+
 **Cliente**
 
-- [ ] **19. `/gremio`.** Miembros, aliados, y **el coste de aliarse
+- [x] **19. `/gremio`.** Miembros, aliados, y **el coste de aliarse
       dicho antes de aceptar**.
-- [ ] **20. `/mensajes`.** Bandeja, directos, tablón, y el **bloqueo a un
+
+      > **HECHO (2026-09-22).** `/gremio` con miembros, aliados y el botón de
+      > fundar. **El coste de aliarse se dice antes de aceptar**, y es la
+      > única razón por la que esta pantalla necesitó navegador: que el texto
+      > esté *antes* del botón no se comprueba compilando.
+      >
+      > Dice las tres cosas que cuestan: que los refuerzos van **solos**, que
+      > van **todos menos tus dos stacks más potentes**, y que romper tarda
+      > **24 horas**. Quien acepta sin saberlo descubre el precio cuando ya
+      > perdió el ejército.
+
+- [x] **20. `/mensajes`.** Bandeja, directos, tablón, y el **bloqueo a un
       clic** en la conversación.
-- [ ] **21. `/temporada`.** **Los sellos y la fecha tope a la vez**, y
+
+      > **HECHO (2026-09-22).** `/mensajes` con bandeja, tablón y directos, y
+      > el **bloqueo a un clic** en la conversación: si hubiera que ir a
+      > buscarlo a una pantalla de ajustes, no serviría para lo que existe.
+      >
+      > El tablón dice en la propia pantalla que **solo lo leen los
+      > miembros**, porque quien escribe tiene que saber quién lee.
+
+- [x] **21. `/temporada`.** **Los sellos y la fecha tope a la vez**, y
       los dos Halls.
+
+      > **HECHO (2026-09-22).** `/temporada` con **las dos vías a la vez**:
+      > los sellos rotos y la fecha tope, cada uno en su panel, desde el
+      > primer día. Si solo se viera una, la otra parecería no existir — y
+      > con pocos jugadores, coordinar siete magos es difícil: sin la fecha
+      > delante, la temporada parecería eterna.
+      >
+      > **Un fallo que solo enseñó el navegador:** la pantalla ofrecía el
+      > botón de romper el sello a un mago que **no había investigado
+      > Armageddon**. `canBreakSeal` no lo comprobaba. Ahora sí, y es un
+      > error de dominio con su código.
+      >
+      > Los dos Halls salen de las temporadas cerradas, y sin sellos el de
+      > Inmortales dice que acabó el reloj, no nadie.
+      >
+      > **Una sola pasada de navegador para las tareas 19, 20 y 21**, como
+      > estaba presupuestado: **14 de 14 comprobaciones en verde**, sin
+      > errores de consola y sin scroll horizontal a 390px.
+
 
       *Las tareas 19 a 21 se verifican en **una sola pasada de
       navegador**, con los criterios de presentación dentro.*
 
 **Calibración**
 
-- [ ] **22. ¿Rompe algo la fase 5?** *Que los 568 tests de las fases 1-4
+- [x] **22. ¿Rompe algo la fase 5?** *Que los 568 tests de las fases 1-4
       sigan en verde, que una batalla sin aliado dé el mismo resultado
       que antes, y que **el reparto de ejército siga siendo el que más
       net power saca**.*
+
+      > **HECHO (2026-09-22).** **674 tests en verde** y `tsc -b` a cero.
+      > Los 568 de las fases 1-4 siguen dando lo mismo, y por un motivo
+      > concreto: los diez multiplicadores de habilidad valen **exactamente
+      > 1** a nivel 0, y los parámetros nuevos —gremios, aliados— son
+      > **opcionales**. Una batalla sin aliado recorre el mismo código.
+      >
+      > **El reparto de ejército sigue siendo el que más net power saca.**
+      >
+      > **Y una premisa de la spec que se cayó al medirla.** La spec prometía
+      > validar el coste del sello con «un mago que llega al final puede
+      > pagarlo». Medido, el mago de maná acaba con **94.522** y el sello
+      > cuesta **320.000**: el simulador **gasta todo lo que gana** en
+      > encantamientos e invocaciones.
+      >
+      > Lo que no era cierto era la medida, no el coste. El mismo reparto sin
+      > gastar en magia acaba con **689.000** — su almacén lleno, más del
+      > doble del sello. Así que el test dice ahora lo que de verdad pasa:
+      > **se puede pagar ahorrando a propósito, y no gastando todo lo que
+      > entra.**
+      >
+      > **Y una consecuencia que vale la pena tener declarada:** el almacén
+      > de un reparto económico son **123.000**, y el de ejército **183.000**.
+      > **No llegan nunca, por mucho que ahorren.** Romper un sello pide ser
+      > mago de maná: acabar el mundo es cosa de quien invirtió en nodes.
+
 
 ### El mundo de la fase 4 — cerrada el 2026-09-22
 
@@ -1288,14 +1485,19 @@ cuatro items publicados.)*
 **Spec escrita el 2026-09-22**, en
 [docs/SISTEMAS.md §14.1](docs/SISTEMAS.md). Ver «En curso».
 
-- [ ] Gremios: cinco fundadores, listas, y **no se ataca a los tuyos**.
-- [ ] Aliados: refuerzos automáticos **menos sus dos mejores stacks**.
+- [x] Gremios: cinco fundadores, listas, y **no se ataca a los tuyos**.
+- [x] Aliados: refuerzos automáticos **menos sus dos mejores stacks**.
 - [ ] NAP y diplomacia.
-- [ ] Mensajería: directos, tablón de gremio y **bloqueo**.
-- [ ] **Dos servidores**: normal y rápido, con temporadas independientes.
-- [ ] **Armageddon: los siete sellos** y la fecha tope de 90 días.
-- [ ] Hall of Fame, Hall of Immortals y reset que **archiva, no borra**.
-- [ ] Cliente: `/gremio`, `/mensajes`, `/temporada`.
+
+      *Lo único que la fase 5 deja fuera, y a propósito: sin tratados que
+      romper, una lista de enemigos declarados no cambiaría ninguna regla.
+      Declarado en el docstring de `guild.ts`.*
+
+- [x] Mensajería: directos, tablón de gremio y **bloqueo**.
+- [x] **Dos servidores**: normal y rápido, con temporadas independientes.
+- [x] **Armageddon: los siete sellos** y la fecha tope de 90 días.
+- [x] Hall of Fame, Hall of Immortals y reset que **archiva, no borra**.
+- [x] Cliente: `/gremio`, `/mensajes`, `/temporada`.
 
 ---
 

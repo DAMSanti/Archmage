@@ -2,8 +2,30 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { createMage, resolveAttack } from '@archmage/core';
 import { CATALOG, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import { buildApp, DEV_MAGE_ID, makeRandom } from '../src/app.js';
+import { SESSION_COOKIE } from '../src/auth.js';
 import { connect, ensureSchema, truncateAll } from '../src/db.js';
-import { applyBattle, applyBid, insertMage, loadAccrued, settleLots } from '../src/repository.js';
+import {
+  activeAlliesOf,
+  applyBattle,
+  applyBid,
+  blockMage,
+  breakSeal,
+  createAlliance,
+  ensureSeason,
+  foundGuild,
+  guildBoard,
+  guildOf,
+  inboxOf,
+  insertMage,
+  leaveGuild,
+  loadAccrued,
+  postToGuild,
+  requestBreak,
+  sendDirect,
+  settleBrokenAlliances,
+  settleLots,
+  settleSeasons,
+} from '../src/repository.js';
 import type { FastifyInstance } from 'fastify';
 
 /**
@@ -1013,5 +1035,350 @@ describe('el invariante 16 — un mago solo ve su servidor', () => {
     // sitio, no a un 400.
     const res = await app.inject({ method: 'GET', url: '/api/ranking?server=inventado' });
     expect(res.statusCode).toBe(200);
+  });
+});
+
+
+// --- Gremios, mensajes y temporada. Fase 5 -------------------------------
+
+describe('gremios, alianzas y mensajes contra Postgres', () => {
+  /** Crea `n` magos sueltos y devuelve sus ids. */
+  async function magos(n: number, prefijo = 'm') {
+    const ids: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const id = `${prefijo}${i}`;
+      const base = createMage({
+        id,
+        name: `Mago ${prefijo}${i}`,
+        specialty: 'verdant',
+        server: TERRA,
+        starting: STARTING_KINGDOM,
+        now: 0,
+      });
+      await insertMage(conn.db, { ...base, turnsSpent: TERRA.protectionTurns + 1 });
+      ids.push(id);
+    }
+    return ids;
+  }
+
+  test('CRITERIO 1 — con cuatro no se funda, con cinco sí', async () => {
+    const ids = await magos(5);
+    const conCuatro = await foundGuild(conn.db, 'terra', 'Los Cuatro', ids[0]!, ids.slice(0, 4), ahora);
+    expect(conCuatro).toMatchObject({ error: { code: 'faltan_fundadores' } });
+
+    const conCinco = await foundGuild(conn.db, 'terra', 'Los Cinco', ids[0]!, ids, ahora);
+    expect(conCinco).toHaveProperty('id');
+  });
+
+  test('CRITERIO 3 — un mago, un gremio, y lo impide la base de datos', async () => {
+    const ids = await magos(6);
+    const g1 = await foundGuild(conn.db, 'terra', 'Primero', ids[0]!, ids.slice(0, 5), ahora);
+    expect(g1).toHaveProperty('id');
+
+    // El sexto funda otro con cuatro de los del primero: no puede.
+    const g2 = await foundGuild(conn.db, 'terra', 'Segundo', ids[5]!, [ids[5]!, ...ids.slice(0, 4)], ahora);
+    expect(g2).toMatchObject({ error: { code: 'ya_tienes_gremio' } });
+  });
+
+  test('fundar es todo o nada', async () => {
+    // Si el tercer fundador ya estuviera en otro gremio, no puede quedar un
+    // gremio a medio fundar con dos miembros.
+    const ids = await magos(6);
+    await foundGuild(conn.db, 'terra', 'Primero', ids[0]!, ids.slice(0, 5), ahora);
+    await foundGuild(conn.db, 'terra', 'Segundo', ids[5]!, [ids[5]!, ...ids.slice(0, 4)], ahora);
+    const cuantos = await conn.sql.unsafe('SELECT count(*)::int AS n FROM guilds');
+    expect(cuantos[0]!.n).toBe(1);
+  });
+
+  test('el último que sale se lleva el gremio con él', async () => {
+    // Un gremio vacío no es nada, y dejarlo haría que el nombre quedara
+    // cogido para siempre.
+    const ids = await magos(5);
+    await foundGuild(conn.db, 'terra', 'Efímero', ids[0]!, ids, ahora);
+    for (const id of ids.slice(1)) await leaveGuild(conn.db, id);
+    await leaveGuild(conn.db, ids[0]!);
+    const cuantos = await conn.sql.unsafe('SELECT count(*)::int AS n FROM guilds');
+    expect(cuantos[0]!.n).toBe(0);
+  });
+
+  test('CRITERIO 7 — romper una alianza tarda 24 horas', async () => {
+    const ids = await magos(2, 'al');
+    const a = await createAlliance(conn.db, 'terra', ids[0]!, ids[1]!, ahora);
+    expect(a).toHaveProperty('id');
+
+    // Sigue activa antes de pedir nada.
+    expect(await activeAlliesOf(conn.db, ids[0]!, ahora)).toEqual([ids[1]]);
+
+    await requestBreak(conn.db, (a as { id: string }).id, ahora);
+    const HORA = 60 * 60 * 1000;
+    // **Durante el plazo los refuerzos siguen yendo.**
+    expect(await activeAlliesOf(conn.db, ids[0]!, ahora + 23 * HORA)).toEqual([ids[1]]);
+    expect(await activeAlliesOf(conn.db, ids[0]!, ahora + 24 * HORA)).toEqual([]);
+
+    // Y la resolución es idempotente.
+    expect(await settleBrokenAlliances(conn.db, ahora + 25 * HORA)).toBe(1);
+    expect(await settleBrokenAlliances(conn.db, ahora + 26 * HORA)).toBe(0);
+  });
+
+  test('CRITERIO 8 — la bandeja es solo tuya', async () => {
+    const ids = await magos(2, 'msg');
+    await sendDirect(conn.db, 'terra', ids[0]!, ids[1]!, 'hola', ahora);
+    expect(await inboxOf(conn.db, ids[1]!)).toHaveLength(1);
+    // **El remitente no ve su propio mensaje en su bandeja**: la bandeja es
+    // lo que te llega, no lo que mandas.
+    expect(await inboxOf(conn.db, ids[0]!)).toHaveLength(0);
+  });
+
+  test('CRITERIO 9 — el bloqueado no escribe, y el que bloquea no se entera', async () => {
+    const ids = await magos(2, 'blk');
+    await blockMage(conn.db, ids[0]!, ids[1]!);
+    // Responde `ok` igualmente: decirle «te han bloqueado» convertiría el
+    // bloqueo en una notificación para quien acosa.
+    const r = await sendDirect(conn.db, 'terra', ids[1]!, ids[0]!, 'déjame', ahora);
+    expect(r).toEqual({ ok: true });
+    expect(await inboxOf(conn.db, ids[0]!)).toHaveLength(0);
+  });
+
+  test('bloquear dos veces no es un error', async () => {
+    const ids = await magos(2, 'blk2');
+    await blockMage(conn.db, ids[0]!, ids[1]!);
+    await expect(blockMage(conn.db, ids[0]!, ids[1]!)).resolves.toBeUndefined();
+  });
+
+  test('CRITERIO 10 — el tablón solo lo leen sus miembros', async () => {
+    const ids = await magos(6, 'tab');
+    const g = await foundGuild(conn.db, 'terra', 'Con Tablón', ids[0]!, ids.slice(0, 5), ahora);
+    const gid = (g as { id: string }).id;
+    await postToGuild(conn.db, 'terra', ids[0]!, gid, 'plan de ataque', ahora);
+    expect(await guildBoard(conn.db, gid)).toHaveLength(1);
+    // El sexto no está en el gremio, así que la ruta no le dará tablón:
+    // `guildOf` devuelve null y el servidor manda una lista vacía.
+    expect(await guildOf(conn.db, ids[5]!)).toBeNull();
+  });
+});
+
+describe('la temporada contra Postgres', () => {
+  async function siete() {
+    const ids: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const id = `sello${i}`;
+      const base = createMage({
+        id,
+        name: `Sello ${i}`,
+        specialty: 'verdant',
+        server: TERRA,
+        starting: STARTING_KINGDOM,
+        now: 0,
+      });
+      // **Con Armageddon investigado.** Sin el hechizo no se rompe un
+      // sello, y eso lo enseñó la pasada de navegador: la pantalla ofrecía
+      // el botón a un mago que no lo había investigado.
+      await insertMage(conn.db, {
+        ...base,
+        spellbook: { ...base.spellbook, known: ['armageddon'] },
+      });
+      ids.push(id);
+    }
+    return ids;
+  }
+
+  const DIA = 24 * 60 * 60 * 1000;
+
+  test('abrir la temporada es idempotente', async () => {
+    const a = await ensureSeason(conn.db, 'terra', ahora);
+    const b = await ensureSeason(conn.db, 'terra', ahora + 1_000);
+    expect(a.id).toBe(b.id);
+  });
+
+  test('CRITERIO 14 y 15 — siete magos distintos, uno cada 24 horas', async () => {
+    const ids = await siete();
+    await ensureSeason(conn.db, 'terra', ahora);
+
+    expect(await breakSeal(conn.db, 'terra', ids[0]!, ahora)).toEqual({ index: 1 });
+    // El mismo, no.
+    expect(await breakSeal(conn.db, 'terra', ids[0]!, ahora + DIA)).toMatchObject({
+      error: { code: 'ya_rompiste_uno' },
+    });
+    // Otro, pero demasiado pronto, tampoco.
+    expect(await breakSeal(conn.db, 'terra', ids[1]!, ahora + 1_000)).toMatchObject({
+      error: { code: 'demasiado_pronto' },
+    });
+    // Otro y a las 24 horas, sí.
+    expect(await breakSeal(conn.db, 'terra', ids[1]!, ahora + DIA)).toEqual({ index: 2 });
+  });
+
+  test('CRITERIO 17 — el séptimo sello acaba la temporada', async () => {
+    const ids = await siete();
+    await ensureSeason(conn.db, 'terra', ahora);
+    await conn.sql.unsafe("UPDATE mages SET season_id = (SELECT id FROM seasons LIMIT 1)");
+    for (let i = 0; i < 7; i++) {
+      const r = await breakSeal(conn.db, 'terra', ids[i]!, ahora + i * DIA);
+      expect(r).toEqual({ index: i + 1 });
+    }
+    const fin = await settleSeasons(conn.db, 'terra', ahora + 7 * DIA, () => 1_000);
+    expect(fin).toMatchObject({ ended: true, reason: 'seals' });
+
+    // **Idempotente**: cerrarla otra vez no hace nada.
+    expect(await settleSeasons(conn.db, 'terra', ahora + 8 * DIA, () => 1_000)).toMatchObject({
+      ended: false,
+    });
+  });
+
+  test('y también acaba sola a los 90 días', async () => {
+    await siete();
+    await ensureSeason(conn.db, 'terra', ahora);
+    await conn.sql.unsafe("UPDATE mages SET season_id = (SELECT id FROM seasons LIMIT 1)");
+    expect(await settleSeasons(conn.db, 'terra', ahora + 89 * DIA, () => 1)).toMatchObject({
+      ended: false,
+    });
+    expect(await settleSeasons(conn.db, 'terra', ahora + 90 * DIA, () => 1)).toMatchObject({
+      ended: true,
+      reason: 'deadline',
+    });
+  });
+
+  test('CRITERIO 19 — los dos Halls se congelan al cerrar', async () => {
+    const ids = await siete();
+    await ensureSeason(conn.db, 'terra', ahora);
+    await conn.sql.unsafe("UPDATE mages SET season_id = (SELECT id FROM seasons LIMIT 1)");
+    for (let i = 0; i < 7; i++) await breakSeal(conn.db, 'terra', ids[i]!, ahora + i * DIA);
+    await settleSeasons(conn.db, 'terra', ahora + 7 * DIA, (f) => (f.id === 'sello3' ? 9_999 : 1));
+
+    const fila = await conn.sql.unsafe('SELECT halls FROM seasons LIMIT 1');
+    const halls = fila[0]!.halls as { fame: { mageId: string }[]; immortals: { seal: number }[] };
+    // El de más net power, primero.
+    expect(halls.fame[0]!.mageId).toBe('sello3');
+    // Y los siete inmortales, en orden de sello.
+    expect(halls.immortals).toHaveLength(7);
+    expect(halls.immortals[0]!.seal).toBe(1);
+  });
+});
+
+describe('lo que sobrevive a la temporada, y lo que no', () => {
+  const DIA = 24 * 60 * 60 * 1000;
+
+  /** Registra una cuenta, entra, y devuelve su cookie de sesion. */
+  /** Una app propia **sin mago de desarrollo**: aqui la identidad tiene
+   *  que salir de la cuenta, que es justo lo que se esta comprobando. */
+  async function nuevaApp() {
+    const a = buildApp({
+      db: conn.db,
+      now: () => ahora,
+      random: () => makeRandom(1),
+      allowDevMage: false,
+    });
+    await a.ready();
+    return a;
+  }
+
+  /** Registrarse **no** da sesion: el registro manda un correo, y la
+   *  cookie sale de entrar. */
+  async function cuenta(app: FastifyInstance, correo: string) {
+    const clave = 'doceletras1';
+    const r = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: { email: correo, password: clave },
+    });
+    expect(r.statusCode).toBe(200);
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: correo, password: clave },
+    });
+    return login.cookies.find((c) => c.name === SESSION_COOKIE)!.value;
+  }
+
+  async function crearMago(app: FastifyInstance, sid: string, nombre: string) {
+    return app.inject({
+      method: 'POST',
+      url: '/api/mage',
+      cookies: { [SESSION_COOKIE]: sid },
+      payload: { name: nombre, specialty: 'verdant', serverId: 'terra' },
+    });
+  }
+
+  test('CRITERIO 18 — la cuenta sobrevive, el mago no', async () => {
+    const app = await nuevaApp();
+    const sid = await cuenta(app, 'temporada@ejemplo.com');
+
+    const primero = await crearMago(app, sid, 'El Primero');
+    expect(primero.statusCode).toBe(200);
+
+    // Con la temporada abierta, la cuenta ya tiene mago y no puede otro.
+    const repetido = await crearMago(app, sid, 'El Repetido');
+    expect(repetido.statusCode).toBe(422);
+    expect(repetido.json().error.code).toBe('ya_tienes_mago');
+
+    // Se cierra la temporada por la fecha tope.
+    await conn.sql.unsafe(
+      `UPDATE seasons SET started_at = started_at - ${91 * DIA} WHERE status = 'open'`,
+    );
+    const fin = await app.inject({ method: 'POST', url: '/api/season/settle' });
+    expect(fin.json()).toMatchObject({ ended: true, reason: 'deadline' });
+
+    // **Y ahora si**: la cuenta sigue, el mago se quedo en su mundo.
+    const segundo = await crearMago(app, sid, 'El Segundo');
+    expect(segundo.statusCode).toBe(200);
+    expect(segundo.json().mage.id).not.toBe(primero.json().mage.id);
+
+    // El viejo ya no se juega: la sesion resuelve al nuevo.
+    const yo = await app.inject({
+      method: 'GET',
+      url: '/api/mage/me',
+      cookies: { [SESSION_COOKIE]: sid },
+    });
+    expect(yo.json().mage.id).toBe(segundo.json().mage.id);
+    await app.close();
+  });
+
+  test('CRITERIO 20 — el campeon de la temporada cerrada no sale en el ranking', async () => {
+    const app = await nuevaApp();
+    const sid = await cuenta(app, 'ranking@ejemplo.com');
+    const viejo = await crearMago(app, sid, 'El Campeon');
+
+    const antes = await app.inject({ method: 'GET', url: '/api/ranking' });
+    expect(antes.json().rows.map((r: { id: string }) => r.id)).toContain(viejo.json().mage.id);
+
+    await conn.sql.unsafe(
+      `UPDATE seasons SET started_at = started_at - ${91 * DIA} WHERE status = 'open'`,
+    );
+    await app.inject({ method: 'POST', url: '/api/season/settle' });
+
+    const despues = await app.inject({ method: 'GET', url: '/api/ranking' });
+    expect(despues.json().rows.map((r: { id: string }) => r.id)).not.toContain(
+      viejo.json().mage.id,
+    );
+    await app.close();
+  });
+
+  test('CRITERIO 21 — un Hall of Fame no vale un solo geld en la temporada siguiente', async () => {
+    const app = await nuevaApp();
+
+    // Una cuenta con historia: su mago cierra la temporada y entra en el Hall.
+    const conHistoria = await cuenta(app, 'campeon@ejemplo.com');
+    await crearMago(app, conHistoria, 'El Ilustre');
+    await conn.sql.unsafe(
+      `UPDATE seasons SET started_at = started_at - ${91 * DIA} WHERE status = 'open'`,
+    );
+    await app.inject({ method: 'POST', url: '/api/season/settle' });
+    const halls = await conn.sql.unsafe("SELECT halls FROM seasons WHERE status = 'ended'");
+    expect((halls[0]!.halls as { fame: unknown[] }).fame.length).toBeGreaterThan(0);
+
+    // Y una cuenta que llega ahora, sin nada detras.
+    const reciente = await cuenta(app, 'novato@ejemplo.com');
+
+    const veterano = (await crearMago(app, conHistoria, 'El Ilustre II')).json();
+    const novato = (await crearMago(app, reciente, 'El Novato')).json();
+
+    // **Exactamente igual**, campo a campo, salvo el nombre y el id. Si
+    // algun dia se colara una ventaja por historial, este test lo dice
+    // sin que nadie tenga que sospecharlo.
+    const comparable = (m: Record<string, unknown>) => {
+      const { id: _id, name: _name, createdAt: _c, lastAccrualAt: _l, ...resto } = m;
+      return resto;
+    };
+    expect(comparable(veterano.mage)).toEqual(comparable(novato.mage));
+    await app.close();
   });
 });
