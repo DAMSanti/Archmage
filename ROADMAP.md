@@ -284,14 +284,74 @@ fase 1.
 
 **El combate, pieza a pieza**
 
-- [ ] **5. La fórmula de daño.** *Test = criterio 1 de §9.1, con el
+- [x] **5. La fórmula de daño.** *Test = criterio 1 de §9.1, con el
       número exacto: 1.000 Treants contra Dríades matan **9.000**.*
-- [ ] **6. El acierto.** Base 30, **20 en asedio**, y la fórmula a tramos
+
+      > **HECHO (2026-09-21).** `packages/core/src/combat.ts` con
+      > `casualties()`, los siete términos, **un solo `floor` al final**
+      > y el criterio clavado: 9.000. 13 tests.
+      >
+      > **Y apareció un fallo que ningún test habría pillado después.**
+      > Los multiplicadores defensivos del original —0,7, 0,75, 0,8— casi
+      > nunca son representables en binario: *healing* × *scales* debería
+      > dar 0,525 y da 0,52499999999999997, con lo que `Math.floor`
+      > devolvía **4.724** donde la cuenta exacta da **4.725**. Un entero
+      > de menos, **sin dar error**, en un número que el jugador ve en la
+      > previsión y otra vez en el resultado — exactamente el fallo que
+      > el invariante 7 existe para evitar. Se arregló pegándose al
+      > entero solo cuando la distancia es error de representación, con
+      > media docena de multiplicadores reales fijados en un test.
+- [x] **6. El acierto.** Base 30, **20 en asedio**, y la fórmula a tramos
       para los modificadores. *Test = criterio 2: el asedio hace
       exactamente dos tercios del daño.*
-- [ ] **7. Resistencias por tipo de daño.** Media con varios tipos, y la
+
+      > **HECHO (2026-09-21).** `accuracyFor(modificador, asedio)`, 16
+      > tests. El criterio sale exacto: 9.000 bajas en regular, 6.000 en
+      > asedio.
+      >
+      > **La fórmula publicada tenía dos ambigüedades y las dos están
+      > declaradas**, una resuelta midiendo y la otra decidida:
+      >
+      > - **El signo `[orig]`.** La fuente escribe `30 − A` con `A`
+      >   negativo, que daría *más* acierto al penalizar. Se lee con
+      >   valor absoluto, y **no es conjetura**: es la única lectura con
+      >   la que los tres tramos **empalman** en sus fronteras (15 = 15 y
+      >   6 = 6). Anotado también en docs/ORIGINAL.md §9.1.
+      > - **La base 20 `[nuestro]`.** La fuente **no dice** cómo pasa la
+      >   curva al asedio. Se reescribió en función de la base (24 y 12
+      >   son 0,8B y 0,4B; los cortes, B/2 y B), lo que deja un punto de
+      >   castigo costando un punto. La alternativa —multiplicar la curva
+      >   por B/30— daba dos tercios exactos siempre, pero hacía que un
+      >   castigo de 15 puntos costase 10 en asedio.
+      >
+      > **Consecuencia declarada:** los dos tercios son exactos sin
+      > modificadores, que es lo que pide el criterio; con castigo la
+      > proporción se mueve, y las curvas cruzan el cero en 2×base — 40
+      > en asedio y 60 en regular.
+- [x] **7. Resistencias por tipo de daño.** Media con varios tipos, y la
       debilidad metiendo −50%. *Test = criterio 4: el Treant recibe tres
       veces más daño de fuego que de melee.*
+
+      > **HECHO (2026-09-21).** `resistanceAgainst(unidad, tipos)`, 10
+      > tests, incluido el ejemplo literal de la fuente
+      > (`Fire Ranged = (30 + 75) / 2 = 52,5`).
+      >
+      > **Faltaba un campo en la ficha:** `weaknesses`. Una debilidad
+      > **no es lo mismo que resistir 0%**, y el Treant tiene las dos —su
+      > ficha publicada lo dice y nosotros solo teníamos la resistencia,
+      > con la debilidad escrita en el texto de `source` y en ningún
+      > sitio donde el código pudiera verla. Añadido a `UnitSpec` y a las
+      > 20 unidades.
+      >
+      > **Y el criterio resultó estar redondeado al hablar:** «tres veces
+      > más» es en realidad **100/33 = 3,0303**, y en bajas sale 3,06
+      > porque el truncado de 49,5 a 49 se come medio punto. El test fija
+      > **los dos números**, 49 y 150, en vez del cociente — que es lo
+      > que hace que el día que cambie se sepa cuál cambió.
+      >
+      > *(`tsc` pilló que las fixtures del núcleo no tenían el campo
+      > nuevo, cuando los 287 tests ya estaban en verde: vitest no
+      > comprueba tipos. Es la razón de correr las dos cosas.)*
 - [ ] **8. Habilidades defensivas.** Healing 0,7, scales 0,75,
       regeneration 0,8, charm 0,5, large shield 0,5, weakness 2,0,
       multiplicándose. *Test: cada una por separado y dos combinadas.*

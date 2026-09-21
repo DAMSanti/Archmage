@@ -1159,6 +1159,31 @@ bajas de R = N_A × ataque_A × (acierto/100) × azar × eficiencia
 ataque regular, **20 en asedio** —ésa es la penalización de asedio, en
 números—, y su propia fórmula a tramos para los modificadores.
 
+**[nuestro]** **Cómo se lee esa fórmula a tramos**, porque la fuente deja
+dos cosas sin decidir y las dos se resolvieron al implementarla
+(2026-09-21):
+
+1. **El signo.** La fuente escribe el segundo tramo como `30 − A` con `A`
+   negativo, lo que daría *más* acierto al penalizar. Se lee con **valor
+   absoluto**, y no es una elección: es la única lectura con la que **los
+   tres tramos empalman** en sus fronteras (en 15 los dos dan 15; en 30
+   los dos dan 6). Comprobado con un test.
+2. **Cómo pasa a la base 20 del asedio.** Los números de la fórmula
+   —24 y 12— son `0,8×30` y `0,4×30`, y los cortes son `30/2` y `30`: la
+   curva está escrita **en función de su base**, así que se reescribe con
+   ella. Un punto de castigo cuesta un punto en los dos casos.
+
+   La alternativa era multiplicar la curva entera por `base/30`, que
+   daría dos tercios exactos con cualquier modificador, pero haría que un
+   castigo de 15 puntos costase **solo 10** en asedio. Un modificador de
+   acierto está en puntos de acierto y no puede valer distinto según el
+   tipo de ataque.
+
+   **Consecuencia declarada:** los dos tercios del criterio 2 son
+   exactos **sin modificadores**, que es de lo que habla el criterio. Con
+   castigo la proporción se mueve, y las dos curvas cruzan el cero en
+   `2×base` — 40 en asedio y 60 en regular.
+
 **El azar**: entre **0,25 y 0,75**, y **fijo en 0,5** para Magic y
 Psychic. Sale del `RandomSource` y **la semilla se guarda**
 ([SPECS.md §5](SPECS.md), invariante 3): toda batalla se puede repetir
@@ -1171,7 +1196,21 @@ bajan. **No depende del tamaño del stack**: una unidad fatiga igual que
 veinte mil.
 
 **Las resistencias son por tipo de daño**, con media cuando el ataque
-tiene varios tipos, y una **debilidad mete −50%** en esa media.
+tiene varios tipos, y una **debilidad mete −50%** en esa media. El
+ejemplo de la fuente es literal: `Fire Ranged = (30% + 75%) / 2 = 52,5%`.
+
+Tres cosas que salen de esa forma y que importan al jugar:
+
+- **La media diluye.** Un ataque de dos tipos contra alguien que solo
+  resiste uno le saca la mitad del provecho: el Treant, con 67% a melee,
+  cae al 33,5% si el ataque es Melee+Fire. Por eso llevar **el tipo
+  adecuado** es la decisión táctica, y no llevar más tipos.
+- **Una debilidad no es resistir 0%: son dos cosas.** El Treant resiste
+  0% al fuego **y además** es débil a él, y su ficha publicada dice las
+  dos. Resistir 0% deja el multiplicador en 1; ser débil lo sube a 1,5.
+- **La resistencia puede quedar negativa, y debe poder.** Es lo que hace
+  que una debilidad sirva contra quien ya no resistía ese tipo. Topearla
+  en cero la dejaría sin efecto justo donde más se usa.
 
 **El orden y el emparejamiento**: los stacks se ordenan por un
 multiplicador de tipo —1,0 a distancia, 1,5 el resto, 2,25 voladores—;
@@ -1191,6 +1230,18 @@ dos **el atacante se queda un tercio**.
 contradicen —el *Beginner's Guide* dice 2,5 y 5; *Battle Mechanics* dice
 50 con un ejemplo aritmético que cuadra— y **nos quedamos con 50**,
 porque viene con la cuenta hecha ([ORIGINAL.md §9.3](ORIGINAL.md)).
+
+**[nuestro]** **El redondeo de la fórmula se protege del binario.** Las
+bajas se truncan **una sola vez, al final** (invariante 7 de
+[SPECS.md §5](SPECS.md)), pero los multiplicadores del original —0,7,
+0,75, 0,8— casi nunca son representables en coma flotante: *healing* ×
+*scales* debería dar 0,525 y da 0,52499999999999997, y con eso el
+truncado devolvía **4.724** donde la cuenta exacta da **4.725**. Un
+entero de menos, sin dar error, en un número que el jugador ve dos veces
+—en la previsión y en el resultado—, que es precisamente el fallo que el
+invariante existe para evitar. Se pega al entero **solo cuando la
+distancia es error de representación**; media baja sigue siendo cero
+bajas.
 
 **[nuestro]** **Iniciativa 0-5.** Las fuentes dan 0-7, 0-6 y «1-5
 típicamente»; las fichas reales que hemos visto usan 1, 3 y 5. Se adopta

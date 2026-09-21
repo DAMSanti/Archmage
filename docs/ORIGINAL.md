@@ -733,6 +733,17 @@ A ≥ 0        → acierto = 30 + A
 A < −30      → acierto = 12 − (1/5)·A
 ```
 
+> **Cómo hay que leerla, comprobado el 2026-09-21.** Tal cual está
+> escrita, los tres últimos tramos usan `A` negativo y darían **más**
+> acierto al penalizar. La lectura buena es con **|A|**, y no es una
+> conjetura: es la única con la que **los tramos empalman** en sus
+> fronteras — con |A| = 15 los dos primeros dan 15, y con |A| = 30 los dos
+> últimos dan 6. Es una curva continua de castigo decreciente, no tres
+> reglas sueltas.
+>
+> Lo que la fuente **no** dice es cómo pasa esta curva a la base 20 del
+> asedio. Eso es decisión nuestra y está en [SISTEMAS.md §9.1](SISTEMAS.md).
+
 ### 9.2. Cómo se ordena y se empareja
 
 **Confirmado.** Los stacks se ordenan por un multiplicador **que depende

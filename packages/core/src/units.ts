@@ -106,6 +106,16 @@ export interface UnitSpec {
   hitPoints: number;
   abilities: readonly Ability[];
   resistances: Resistances;
+  /**
+   * Tipos de daño a los que la unidad es **débil**.
+   *
+   * No es lo mismo que resistir 0%: una debilidad mete **−50** en la media
+   * de resistencia (docs/ORIGINAL.md §9.1), así que la deja en negativo y
+   * el defensor recibe **más** daño del normal. El Treant resiste 0% al
+   * fuego **y además** es débil a él: las dos cosas están en su ficha
+   * publicada, y son dos cosas.
+   */
+  weaknesses: readonly DamageType[];
   spellResistances: SpellResistances;
   /**
    * Lo que vale en net power. **Publicado en la ficha del original**

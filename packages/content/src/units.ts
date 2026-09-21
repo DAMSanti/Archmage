@@ -43,6 +43,7 @@ function unidad(u: Partial<UnitSpec> & Pick<UnitSpec, 'id' | 'name' | 'source'>)
     hitPoints: 1,
     abilities: [],
     resistances: {},
+    weaknesses: [],
     spellResistances: {},
     powerRank: 1,
     cost: 0,
@@ -316,6 +317,9 @@ const VERDANT: UnitSpec[] = [
       paralyse: 75, psychic: 75, magic: 50, holy: 50,
       fire: 0, breath: 0, lightning: 0,
     },
+    // Resiste 0% al fuego **y además** es débil a él: la ficha publicada
+    // dice las dos cosas, y son dos cosas distintas (docs/ORIGINAL.md §9.1).
+    weaknesses: ['fire'],
     spellResistances: { phantasm: 80 },
     powerRank: 423,
     upkeepMana: 63,
