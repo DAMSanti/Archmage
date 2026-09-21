@@ -130,22 +130,93 @@ fase 1.
 
 **Las fichas, y la deuda de atrás**
 
-- [ ] **1. La ficha de combate de una unidad.** Ataque, contraataque,
+- [x] **1. La ficha de combate de una unidad.** Ataque, contraataque,
       ataque extra, HP, iniciativa, tipos de daño, habilidades, tabla de
       resistencias y `powerRank`. Y el **upkeep en punto fijo**, porque
       los valores publicados son fraccionarios.
       *Test: la ficha del Treant sale clavada — 4.200/1.680/2.500/4.200,
       iniciativa 1, powerRank 423.* **Cambia el contrato.**
       *Toca `packages/core` y `packages/content`.*
-- [ ] **2. Las veinte unidades con sus números reales.** Las 15
+
+      > **HECHO (2026-09-21).** `packages/core/src/units.ts` con
+      > `UnitSpec` entero: ataque, ataque extra con su propia iniciativa,
+      > contraataque, HP, 12 tipos de daño, 19 habilidades como lista
+      > cerrada, resistencias por tipo y por escuela, y `powerRank`. El
+      > upkeep va en **centésimas** y `upkeep()` redondea **una sola vez**
+      > al sumar el ejército entero. Test: la ficha del Treant sale
+      > clavada (4.200/1.680/2.500/4.200, iniciativa 1, rank 423).
+      >
+      > **Lo que apareció y no estaba previsto:** `netPower()` dejaba el
+      > ejército fuera **porque este `powerRank` estaba `[abierto]`** —lo
+      > decía en su propio docstring—. Cerrarlo aquí obligaba a
+      > arreglarlo, y resultó ser lo que más movió la recalibración de la
+      > tarea 3. Se cambió la firma a `netPower(state, catalog)` con el
+      > catálogo **obligatorio**, no opcional, y eso es ahora el
+      > invariante 12 de docs/SPECS.md.
+
+- [x] **2. Las veinte unidades con sus números reales.** Las 15
       invocables de Verdant y las 5 de barracks. *Test: los upkeeps son
       los publicados — Dríade 0,01 de maná, Treant 0,63, Fénix 60 — y
       **ya no los que me inventé**.*
-- [ ] **3. Recalibrar las fases 1 y 2.** Rehacer la simulación de §17.2
+
+      > **HECHO (2026-09-21).** Veinte unidades en
+      > `packages/content/src/units.ts`: **siete con ficha publicada**
+      > (Milicia, Dríade, Ninfa, Arquero élfico, Druida, Treant, Fénix) y
+      > trece interpoladas con una regla escrita,
+      > `powerRank ≈ 6 × √(ataque × HP)`. 18 tests, y las siete
+      > publicadas se comprueban **número a número**.
+      >
+      > **Se cayeron dos premisas más, además de los upkeeps de maná:**
+      > la tropa de barracks también estaba mal (la Milicia cuesta **20**
+      > de geld, no 60, y **0,32** de upkeep, no 1), y **varias unidades
+      > invocadas cuestan geld además de maná** —el Arquero élfico, 1,04—,
+      > cosa que la fase 2 daba por imposible. Tres tests de las fases 1 y
+      > 2 afirmaban los números viejos y se corrigieron; el del colapso
+      > por geld **ya no se puede provocar con tropa barata**, porque una
+      > falange cuesta 0,60 y la población que la aloja rinde 0,75: hace
+      > falta caballería.
+
+- [x] **3. Recalibrar las fases 1 y 2.** Rehacer la simulación de §17.2
       con los upkeeps corregidos. *Criterio 12 de §9.1: los criterios 10,
       11 y 12 de §17.2 siguen cumpliéndose, o se dice cuál no y por qué.*
       **Va aquí y no al final**: si los upkeeps rompen la economía, mejor
       saberlo antes de construir el combate encima.
+
+      > **HECHO (2026-09-21).** Rehecha la simulación. Resultado completo
+      > en docs/SISTEMAS.md §17.2; el resumen, en §9.1, «Lo que la
+      > recalibración midió, y lo que dejó abierto».
+      >
+      > **Tres veredictos cambiaron, y ninguno por el upkeep en sí:**
+      >
+      > - **Criterio 13, desbloqueado y cumpliendo.** Estaba aplazado
+      >   desde la fase 1 porque el net power era ~98% tierra. Con el
+      >   ejército dentro va del **50%** de tierra (reparto de ejército)
+      >   al **79%** (guías): ya distingue estrategias.
+      > - **«Invocar es una trampa» era falso**, y lo era **por
+      >   construcción**: sin `powerRank`, lo invocado no podía sumar, así
+      >   que ninguna medición podía salir de otra forma. Corregido, el
+      >   reparto de ejército es **el que más net power saca** de los
+      >   cuatro (2.531.586 contra 2.188.345 del económico).
+      > - **Criterio 11, roto.** El ejército sostenible a 600 turnos pasa
+      >   de **13.636** a **29.838**, fuera de las 10.000-20.000 del
+      >   original; con milicia pura, **85.225**.
+      >
+      > **El criterio 12 sigue cumpliendo**, y ahora también medido
+      > jugando con magia, que antes no se comprobaba.
+      >
+      > **La causa del 11 no es el upkeep**, que es `[orig]`: es que el
+      > ingreso de la fase 1 se calibró contra un upkeep medio de **2
+      > geld inventado** cuando el real es **0,914**. El ingreso quedó
+      > **2,19 veces generoso**. Se arregló de paso un número obsoleto
+      > que lo escondía: `sustainableArmy` dividía por ese 2 a mano, y
+      > ahora sale del catálogo.
+      >
+      > **Se para aquí**, como estaba decidido. Qué se mueve —bajar el
+      > ingreso, subir el coste de recluta, o aceptar ejércitos mayores—
+      > está `[abierto]` en §9.1 con las tres salidas y sus
+      > consecuencias, y es decisión del usuario.
+      >
+      > Suite: **233 tests en verde** (eran 212), `tsc -b` en 0.
 
 **El combate, pieza a pieza**
 

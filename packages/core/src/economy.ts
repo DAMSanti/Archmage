@@ -160,21 +160,29 @@ export function income(state: MageState, catalog: Catalog, tuning: EconomyTuning
 export function upkeep(state: MageState, catalog: Catalog): Upkeep {
   let geld = 0;
   let mana = 0;
-  let population = 0;
+  const population = 0;
 
+  // Los edificios cuestan enteros.
   for (const b of BUILDINGS) {
     const spec = catalog.buildings[b];
     geld += state.buildings[b] * spec.upkeepGeld;
     mana += state.buildings[b] * spec.upkeepMana;
   }
 
+  // Las unidades cuestan **centésimas**: los valores publicados son
+  // fraccionarios (la Dríade, 0,01 de maná) y los recursos son enteros. Se
+  // acumula en centésimas y **se redondea una sola vez**, abajo
+  // (docs/SPECS.md §5, invariante 7).
+  let geldCent = 0;
+  let manaCent = 0;
   for (const stack of state.army) {
     const spec = catalog.units[stack.unitId];
     if (!spec) continue;
-    geld += stack.count * spec.upkeepGeld;
-    mana += stack.count * spec.upkeepMana;
-    population += stack.count * spec.upkeepPopulation;
+    geldCent += stack.count * spec.upkeepGeld;
+    manaCent += stack.count * spec.upkeepMana;
   }
+  geld += Math.floor(geldCent / 100);
+  mana += Math.floor(manaCent / 100);
 
   for (const ench of state.enchantments) mana += ench.upkeepMana;
 

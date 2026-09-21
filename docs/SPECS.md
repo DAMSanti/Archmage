@@ -199,6 +199,22 @@ protege; solo las protege saberlas.
     error**: el mago seguiría jugando con acres que no existen. Va
     comprobado con un test de propiedad sobre secuencias de acciones.
 
+12. **Una medida que depende del catálogo lo recibe como parámetro
+    obligatorio.** Añadido el 2026-09-21 (fase 3). `netPower()` vivía con
+    una sola firma, `netPower(state)`, y dejaba el ejército fuera porque
+    el rango de poder de cada unidad todavía no se conocía. Cuando se
+    conoció, la tentación era añadir un catálogo **opcional** para no
+    romper a nadie — y eso habría dejado a quien lo olvidara con un net
+    power sin ejército **y sin enterarse**. Es el fallo de la clase que
+    esta lista recoge: no da error, solo da un número más pequeño.
+
+    La regla: si una función del núcleo necesita el catálogo para dar un
+    resultado completo, **lo pide y rompe la compilación**. Los dos
+    únicos sitios que la llamaban se arreglaron en un minuto; el fallo
+    silencioso habría durado una fase entera. Ya pasó una vez: el
+    ejército no contaba desde la fase 1, y la fase 2 dedujo de ahí que
+    invocar era una trampa ([SISTEMAS.md §7.1](SISTEMAS.md)).
+
 ---
 
 ## 6. API

@@ -221,34 +221,14 @@ export interface BuildingSpec {
   upkeepMana: number;
 }
 
-/**
- * La **mitad económica** de una unidad, y solo la mitad: ataque, defensa, HP
- * e iniciativa son de la fase 3 y no existen todavía
- * (docs/ARQUITECTURA.md §9.3).
- */
-export interface UnitEconomySpec {
-  id: UnitId;
-  name: string;
-  specialty: Specialty;
-  /** Geld por unidad al reclutar. */
-  cost: number;
-  upkeepGeld: number;
-  /**
-   * Maná por turno. La tropa de barracks no cuesta maná; **las unidades
-   * invocadas sí**, y es lo que hace a las escuelas de invocación intensivas
-   * en maná (docs/ORIGINAL.md §6.4).
-   */
-  upkeepMana: number;
-  upkeepPopulation: number;
-  /** Espacio de población que ocupa una unidad. */
-  populationSpace: number;
-  /** Unidades por turno y por barracks. */
-  recruitPerBarracks: number;
-}
-
 export interface Catalog {
   buildings: Record<Building, BuildingSpec>;
-  units: Record<UnitId, UnitEconomySpec>;
+  /**
+   * La ficha **completa** de cada unidad. Hasta la fase 2 era solo la mitad
+   * económica; la de combate está publicada y se adoptó en la fase 3
+   * (docs/SISTEMAS.md §9.1). El tipo vive en `units.ts`.
+   */
+  units: Record<UnitId, import('./units.js').UnitSpec>;
   /** Fase 2. El tipo vive en `spells.ts` para no cruzar los módulos. */
   spells: Record<SpellId, import('./spells.js').SpellSpec>;
   /** Nivel de hechizo máximo de **este** catálogo. Escala las invocaciones. */

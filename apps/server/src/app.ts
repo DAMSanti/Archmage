@@ -75,7 +75,7 @@ function derive(state: MageState, now: number) {
     net,
     manaStorage: manaStorage(state.buildings.nodes, TUNING.manaStoragePerNode),
     populationCapacity: populationCapacity(state, TUNING),
-    netPower: netPower(state),
+    netPower: netPower(state, CATALOG),
     msToNextTurn: msToNextTurn(state.turns, now, TERRA),
     turnsAtCap: state.turns.current >= TERRA.turnCap,
     protectedUntilTurn: isProtected(state, TERRA) ? TERRA.protectionTurns : 0,

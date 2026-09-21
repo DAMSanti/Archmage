@@ -96,7 +96,9 @@ describe('upkeep', () => {
       army: [{ unitId: 'phalanx', count: 1_000 }],
     });
     const sinEjercito = upkeep(mageWith({ towns: 100, farms: 300 }, 1_000), CATALOG).geld;
-    expect(upkeep(m, CATALOG).geld).toBe(sinEjercito + 2_000);
+    // 1.000 falanges a **0,60** de geld = 600. Era 2.000 hasta la fase 3,
+    // cuando el upkeep me lo había inventado (docs/SISTEMAS.md §9.1).
+    expect(upkeep(m, CATALOG).geld).toBe(sinEjercito + 600);
   });
 
   test('una unidad desconocida no revienta el cálculo', () => {

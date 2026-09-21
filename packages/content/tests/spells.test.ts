@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { RANKS, canResearch, isCastable, isEnchantment, spellLevelOf } from '@archmage/core';
 import type { SpellRank } from '@archmage/core';
-import { SPELLS, SPELLS_BY_ID, SUMMONED_UNITS } from '../src/spells.js';
+import { SPELLS, SPELLS_BY_ID } from '../src/spells.js';
+import { UNITS_BY_ID } from '../src/units.js';
 
 /**
  * El catálogo de Plain y Verdant. Spec en docs/SISTEMAS.md §7.1.
@@ -72,7 +73,7 @@ describe('la forma del catálogo', () => {
   test('toda invocación apunta a una unidad que existe', () => {
     for (const s of SPELLS) {
       if (s.effect.kind === 'summon') {
-        expect(SUMMONED_UNITS[s.effect.unitId], s.id).toBeDefined();
+        expect(UNITS_BY_ID[s.effect.unitId], s.id).toBeDefined();
         expect(s.effect.max).toBeGreaterThan(s.effect.min);
       }
     }
@@ -129,28 +130,6 @@ describe('la escala por rango', () => {
     const barata = ordenadas[0]!;
     const cara = ordenadas[ordenadas.length - 1]!;
     expect(cara.max).toBeLessThan(barata.max);
-  });
-});
-
-describe('las unidades invocadas', () => {
-  test('cuestan maná de mantener, no geld', () => {
-    // Es lo que hace a Verdant «muy intensiva en maná» (ORIGINAL §6.4) y lo
-    // que da sentido a volcar la tierra en nodes.
-    for (const u of Object.values(SUMMONED_UNITS)) {
-      expect(u.upkeepMana, u.id).toBeGreaterThan(0);
-      expect(u.upkeepGeld, u.id).toBe(0);
-    }
-  });
-
-  test('todas son de Verdant y ocupan espacio de población', () => {
-    for (const u of Object.values(SUMMONED_UNITS)) {
-      expect(u.specialty).toBe('verdant');
-      expect(u.populationSpace).toBeGreaterThan(0);
-    }
-  });
-
-  test('las quince tienen nombre confirmado en el original', () => {
-    expect(Object.keys(SUMMONED_UNITS)).toHaveLength(15);
   });
 });
 

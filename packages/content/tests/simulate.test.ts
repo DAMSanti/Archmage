@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { exploreYield, landIsConsistent } from '@archmage/core';
 import { ECONOMY } from '../src/index.js';
-import { MIXES, mixStrategy, simulateSeason } from '../src/simulate.js';
+import { AVG_UPKEEP_CENT, MIXES, mixStrategy, simulateSeason } from '../src/simulate.js';
 
 /**
  * Calibración: docs/SISTEMAS.md §17.2.
@@ -44,10 +44,30 @@ describe('criterio 10 — la curva de crecimiento se parece a la del original', 
 });
 
 describe('criterio 11 — el geld sostiene un ejército del orden del original', () => {
-  test('el reparto que recomiendan las guías sostiene 10.000-20.000 unidades', () => {
+  /**
+   * **Este criterio dejó de cumplirse en la fase 3, y el test lo dice.**
+   *
+   * Cumplía con un upkeep medio de 2 geld **que me inventé**. La ficha
+   * publicada de la Milicia (docs/ORIGINAL.md §9.5) dice 0,32, y la media
+   * real de la tropa reclutable es 0,914: 2,19 veces más barata. El mismo
+   * ingreso sostiene ahora 29.838 unidades en vez de 13.636.
+   *
+   * No se arregla aquí. El upkeep es `[orig]` y no se toca; lo que sobra es
+   * ingreso, y moverlo es una decisión del usuario (docs/SISTEMAS.md §17.2).
+   */
+  test('la media de upkeep sale del catálogo, no de una constante inventada', () => {
+    expect(AVG_UPKEEP_CENT).toBeCloseTo(91.4, 1);
+  });
+
+  test('con los upkeeps reales el ejército sostenible SE SALE de la banda', () => {
     const r = simulateSeason(mixStrategy(MIXES.guia!, 1_250), 600);
-    expect(r.sustainableArmy).toBeGreaterThanOrEqual(10_000);
-    expect(r.sustainableArmy).toBeLessThanOrEqual(20_000);
+    expect(r.sustainableArmy).toBe(29_838);
+    expect(r.sustainableArmy).toBeGreaterThan(20_000); // la banda del original
+  });
+
+  test('y con milicia pura se dispara a 85.225', () => {
+    const r = simulateSeason(mixStrategy(MIXES.guia!, 1_250), 600);
+    expect(Math.floor(r.netGeld / 0.32)).toBe(85_225);
   });
 });
 

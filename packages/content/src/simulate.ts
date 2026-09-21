@@ -151,7 +151,12 @@ export interface SeasonResult {
   netGeld: number;
   netMana: number;
   netPower: number;
-  /** Cuántas unidades sostiene el ingreso neto, a 2 geld de upkeep medio. */
+  /**
+   * Cuántas unidades sostiene el ingreso neto, al upkeep medio **real** de
+   * la tropa reclutable. Hasta la fase 3 dividía por 2 geld inventados; el
+   * medio de verdad es 0,914, así que el número sale 2,19 veces mayor
+   * (docs/SISTEMAS.md §17.2, criterio 11).
+   */
   sustainableArmy: number;
   /** Fase 2. */
   spellsKnown: number;
@@ -205,8 +210,8 @@ export function simulateSeason(strategy: Strategy, turns: number, seed = 1): Sea
     mana: state.resources.mana,
     netGeld: net.geld,
     netMana: net.mana,
-    netPower: netPower(state),
-    sustainableArmy: Math.max(0, Math.floor(net.geld / 2)),
+    netPower: netPower(state, CATALOG),
+    sustainableArmy: Math.max(0, Math.floor(net.geld / (AVG_UPKEEP_CENT / 100))),
     spellsKnown: state.spellbook.known.length,
     spellLevel: state.spellbook.level,
     enchantments: state.enchantments.length,
@@ -216,6 +221,18 @@ export function simulateSeason(strategy: Strategy, turns: number, seed = 1): Sea
 }
 
 /** Repartos de referencia, incluidos los que recomiendan las guías del original. */
+/**
+ * Upkeep medio de la tropa reclutable, en **centésimas** de geld: 91,4.
+ *
+ * Se calcula del catálogo a propósito. La cifra vivía a mano como «2 geld» —
+ * un número que me inventé en la fase 1 y que la ficha publicada de la
+ * Milicia (0,32) desmintió en la fase 3.
+ */
+export const AVG_UPKEEP_CENT = (() => {
+  const reclutables = Object.values(CATALOG.units).filter((u) => u.recruitPerBarracks > 0);
+  return reclutables.reduce((a, u) => a + u.upkeepGeld, 0) / reclutables.length;
+})();
+
 export const MIXES: Record<string, Mix> = {
   // docs/ORIGINAL.md §4.1: lo que recomiendan las guías.
   guia: { nodes: 0.3, towns: 0.1, farms: 0.3, workshops: 0.12, guilds: 0.1, barracks: 0.05 },

@@ -20,7 +20,8 @@ import { z } from 'zod';
 import { BUILDINGS, SPECIALTIES } from '@archmage/core';
 import type { Building, Catalog, ServerConfig } from '@archmage/core';
 import type { StartingKingdom } from '@archmage/core';
-import { MAX_SPELL_LEVEL, SPELLS_BY_ID, SUMMONED_UNITS } from './spells.js';
+import { MAX_SPELL_LEVEL, SPELLS_BY_ID } from './spells.js';
+import { UNITS_BY_ID } from './units.js';
 
 // --- Esquemas -------------------------------------------------------------
 
@@ -32,18 +33,6 @@ export const buildingSpecSchema = z.object({
   upkeepMana: positiveInt,
 });
 
-export const unitEconomySchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  specialty: z.enum(SPECIALTIES),
-  cost: positiveInt,
-  upkeepGeld: positiveInt,
-  upkeepMana: positiveInt,
-  upkeepPopulation: positiveInt,
-  populationSpace: z.number().int().positive(),
-  recruitPerBarracks: z.number().int().positive(),
-});
-
 export const catalogSchema = z.object({
   buildings: z.object(
     Object.fromEntries(BUILDINGS.map((b) => [b, buildingSpecSchema])) as Record<
@@ -51,7 +40,6 @@ export const catalogSchema = z.object({
       typeof buildingSpecSchema
     >,
   ),
-  units: z.record(z.string(), unitEconomySchema),
 });
 
 // --- Edificios ------------------------------------------------------------
@@ -83,82 +71,11 @@ export const BUILDING_SPECS: Catalog['buildings'] = {
 
 // --- Unidades -------------------------------------------------------------
 
-/**
- * docs/SISTEMAS.md §8.1 [nuestro]. **Solo la mitad económica.**
- *
- * Derivado el 2026-09-21 del ancla del original: un mago del turno 120, con
- * ~1.250 acres, sostiene **10.000-20.000 unidades**
- * (docs/ORIGINAL.md §4.1, confianza alta). Con el ingreso neto que producen
- * los números de §4.2 a ese tamaño —25.800 geld/turno—, un upkeep medio de
- * **2 geld por unidad** sitúa el ejército sostenible en **12.900**, dentro de
- * la banda documentada.
- *
- * Las cinco son tropa básica de barracks, sin escuela (`plain`):
- * docs/ORIGINAL.md §7, confianza alta.
- */
-export const UNIT_SPECS: Catalog['units'] = {
-  militia: {
-    id: 'militia',
-    name: 'Milicia',
-    specialty: 'plain',
-    cost: 60,
-    upkeepGeld: 1,
-    upkeepMana: 0,
-    upkeepPopulation: 0,
-    populationSpace: 1,
-    recruitPerBarracks: 5,
-  },
-  phalanx: {
-    id: 'phalanx',
-    name: 'Falange',
-    specialty: 'plain',
-    cost: 100,
-    upkeepGeld: 2,
-    upkeepMana: 0,
-    upkeepPopulation: 0,
-    populationSpace: 1,
-    recruitPerBarracks: 3,
-  },
-  pikemen: {
-    id: 'pikemen',
-    name: 'Piqueros',
-    specialty: 'plain',
-    cost: 120,
-    upkeepGeld: 2,
-    upkeepMana: 0,
-    upkeepPopulation: 0,
-    populationSpace: 1,
-    recruitPerBarracks: 3,
-  },
-  archers: {
-    id: 'archers',
-    name: 'Arqueros',
-    specialty: 'plain',
-    cost: 150,
-    upkeepGeld: 2,
-    upkeepMana: 0,
-    upkeepPopulation: 0,
-    populationSpace: 1,
-    recruitPerBarracks: 2,
-  },
-  cavalry: {
-    id: 'cavalry',
-    name: 'Caballería',
-    specialty: 'plain',
-    cost: 250,
-    upkeepGeld: 4,
-    upkeepMana: 0,
-    upkeepPopulation: 0,
-    populationSpace: 2,
-    recruitPerBarracks: 1,
-  },
-};
-
 export const CATALOG: Catalog = {
   buildings: BUILDING_SPECS,
   // La tropa de barracks y las unidades invocables, en el mismo sitio: para
   // `upkeep()` una unidad es una unidad, venga de donde venga.
-  units: { ...UNIT_SPECS, ...SUMMONED_UNITS },
+  units: UNITS_BY_ID,
   spells: SPELLS_BY_ID,
   maxSpellLevel: MAX_SPELL_LEVEL,
 };
@@ -241,3 +158,4 @@ export const STARTING_KINGDOM: StartingKingdom = {
   population: 4_500,
 };
 export * from './spells.js';
+export * from './units.js';

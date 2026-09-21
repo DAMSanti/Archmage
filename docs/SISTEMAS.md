@@ -602,6 +602,33 @@ comprobar.
     > Un jugador que invoque en la fase 2 empeora su maná neto sin ganar
     > nada. Está medido con un test, y la interfaz **no lo va a avisar**
     > (docs/INTERFAZ.md §1): aquí el juego está incompleto, no oculto.
+
+    > ### ⚠ Corregido en la fase 3 (2026-09-21): esto era falso
+    >
+    > **Invocar no era una trampa; nuestros números lo eran.** La
+    > recalibración de §9.1 encontró dos errores nuestros, no de balance:
+    >
+    > 1. **Los upkeeps de maná estaban inventados**, entre 40 y 100 veces
+    >    más caros que los publicados: le puse 1 de maná a la Dríade y su
+    >    ficha dice **0,01**; 24 al Treant, y son **0,63**.
+    > 2. **`netPower()` no contaba el ejército**, porque el `powerRank`
+    >    estaba `[abierto]`. Una unidad invocada pagaba upkeep y **no
+    >    sumaba nada** en la única medida que dice quién es grande. Con
+    >    eso, «invocar no paga» era cierto **por construcción**: ninguna
+    >    medición podía salir de otra forma.
+    >
+    > Corregidos los dos con la ficha publicada (§9.1), a 2.000 turnos el
+    > reparto volcado a ejército pasa a ser **el mejor de los cuatro**
+    > (2.531.586 de net power, contra 2.188.345 del económico), y el maná
+    > neto de invocar es **+1.436**, no negativo.
+    >
+    > **Lo que sí sobrevive**: el criterio 10 de §7.1 sigue sin cumplirse
+    > —el reparto volcado a *nodes* sigue por debajo del económico, y por
+    > más margen que antes—, pero **por otra razón**: no le falta maná,
+    > le faltan **turnos**. Gasta los suyos manteniendo encantamientos e
+    > invocando, y se queda en nivel 20 de hechizo mientras el económico
+    > llega a 207. Eso es una cuestión de qué hace la estrategia
+    > simulada, no de cuánto vale el maná.
 11. **La progresión de investigación dura lo que debe.** Aprender el
     catálogo completo de Verdant y Plain lleva un número de turnos del
     orden que documenta el original para investigarlo todo —1.500-3.000
@@ -772,14 +799,33 @@ Steal Life, Fear, Flying, Swift, Regeneration, Piercing, Paralyze,
 Clumsiness*—, modificadores de velocidad de reclutamiento, y
 **debilidades** a tipos de daño concretos.
 
-**[abierto]** Los números **de combate**: ataque, defensa, HP e
-iniciativa. La wiki no los publica, y son de la fase 3.
+**[orig]** **Cerrado el 2026-09-21** (fase 3, tarea 1). Decía que la wiki
+no publicaba los números de combate. **Sí los publica**: la ficha completa
+de cada unidad —ataque, contraataque, ataque extra, HP, iniciativa, tipos
+de daño, habilidades, tabla de resistencias y `Power Rank`— está en
+[ORIGINAL.md §9.5](ORIGINAL.md), confianza alta. Se copian tal cual para
+las **siete** unidades con ficha publicada (Milicia, Dríade, Ninfa,
+Arquero élfico, Druida, Treant, Fénix) y se interpolan las trece
+restantes con una regla escrita: `powerRank ≈ 6 × √(ataque × HP)`.
+
+**Y trajo una corrección.** Las fichas desmintieron los upkeeps y los
+costes que §8.1 había supuesto —la Milicia cuesta **20** de geld, no 60, y
+**0,32** de upkeep, no 1—, y revelaron que **varias unidades invocadas
+cuestan geld además de maná**, que la fase 2 daba por imposible. Las
+consecuencias están medidas en §9.1 y §17.2.
 
 ### 8.1. La mitad económica de una unidad **[nuestro]** **[F1]**
 
 Cerrado el **2026-09-21** al implementar la fase 1: reclutar es de la
 fase 1, así que **coste, upkeep, espacio y ritmo** hacían falta ya. Lo de
 combate sigue abierto arriba.
+
+> **Corregido el 2026-09-21 (fase 3).** Los números de abajo **se
+> sustituyeron por las fichas publicadas** donde las hay. El razonamiento
+> que sigue se conserva porque explica de dónde salió el upkeep medio de
+> **2 geld**, y ese 2 resultó ser **2,19 veces** el real (0,914): es el
+> factor por el que el ingreso de la fase 1 quedó generoso, y el motivo
+> de que el criterio 11 de §17.2 dejara de cumplirse.
 
 **De dónde salen.** Del ancla del original: un mago del turno 120, con
 ~1.250 acres, sostiene **10.000-20.000 unidades**
@@ -850,6 +896,13 @@ power. Fuera de Armageddon.
 acierto y la fatiga ([ORIGINAL.md §9.1](ORIGINAL.md), confianza alta). La
 `[abierto]` que había aquí queda cerrada en §9.1.
 
+**[orig]** **El coeficiente de poder del ejército también estaba
+publicado**: es el `Power Rank` de la ficha de cada unidad
+([ORIGINAL.md §9.5](ORIGINAL.md)). Cerrado el 2026-09-21 (fase 3, tarea
+1), y con él `netPower()` cuenta el ejército —`número × rango de poder`—
+en vez de dejarlo fuera. Eso desbloqueó el criterio 13 de §17.2 y tumbó
+una conclusión de la fase 2 (§7.1, criterio 10).
+
 **[abierto]** Solo sigue sin publicarse **la curva del bonus de fort**
 entre el 0,67% y el 2,33% de la tierra.
 
@@ -866,9 +919,14 @@ Tres cosas que el juego necesita y hoy no tiene:
 1. **La tierra deja de tener techo.** Explorar se agota en 3.421 acres
    (§3); a partir de ahí **solo se crece atacando**. Sin guerra, el juego
    tiene un final silencioso.
-2. **El maná empieza a pagar.** Medido en la fase 2: de las tres cosas
-   que compra el maná, dos no pagan porque **invocar no sirve sin
-   combate** (§7.1, criterio 10). La fase 3 es la que lo arregla.
+2. **El maná empieza a pagar.** La fase 2 midió que de las tres cosas
+   que compra el maná dos no pagaban, porque **invocar no servía sin
+   combate**. **La tarea 3 de esta fase demostró que eso era un error
+   nuestro** —upkeeps inventados y un net power que no contaba el
+   ejército—, y corregido ya paga: el reparto de ejército es el que más
+   net power saca (§17.2, criterio 13). Lo que la guerra añade ahora no
+   es *que* pague, sino **para qué sirve** lo invocado: hoy un ejército
+   es un número en el ranking y nada más.
 3. **La elección de escuela pasa a tener consecuencias.** Las
    resistencias son por tipo de daño, así que llevar las unidades
    adecuadas contra las del rival **es** la decisión táctica del juego.
@@ -909,6 +967,53 @@ se guarda en punto fijo y **el total se redondea una sola vez**, al
 sumar el ejército entero. Con miles de unidades el total es un entero
 grande y la fracción deja de importar; con tres unidades, no cobrar nada
 es lo correcto.
+
+#### Lo que la recalibración midió, y lo que dejó abierto
+
+> **Hecho el 2026-09-21, tarea 3.** El resultado completo está en §17.2;
+> aquí va lo que hay que decidir.
+
+**Tres cosas cambiaron de veredicto, y ninguna por el upkeep en sí.**
+
+1. **Criterio 13 de §17.2, desbloqueado y cumpliendo.** El `powerRank`
+   estaba publicado, así que el ejército entra en el net power. Deja de
+   ser ~98% tierra y pasa a distinguir estrategias: del 50% de tierra en
+   el reparto de ejército al 79% en el de las guías.
+2. **«Invocar es una trampa» era falso**, y lo era por construcción: sin
+   `powerRank`, lo invocado no podía sumar. Corregido, el reparto de
+   ejército es **el que más net power saca** de los cuatro.
+3. **Criterio 11 de §17.2, roto.** Y es el que hay que decidir.
+
+**El criterio 11, en corto.** El ejército que el ingreso sostiene a 600
+turnos pasa de **13.636** a **29.838** unidades, contra la banda de
+10.000-20.000 que documenta el original. Con milicia pura, **85.225**.
+
+**Por qué, y de quién es la culpa.** No del upkeep: es `[orig]` y viene
+de la ficha. La media real de la tropa reclutable es **0,914** de geld y
+yo había supuesto **2**. Todo lo que se calibró contra ese 2 —la
+producción de farms y towns, el `geldPerPopulation`— quedó **2,19 veces
+generoso**. El error estaba en el ingreso desde la fase 1; la ficha solo
+lo ha sacado a la luz.
+
+**[abierto] Qué se mueve, y no se decide aquí.** Hay tres salidas y
+ninguna es obviamente la buena:
+
+- **Bajar el ingreso un 2,19.** Devuelve el criterio 11 a la banda y deja
+  el upkeep intacto. Es lo más fiel al original, y **rehace la
+  calibración entera de la fase 1**: los cuadros de §4.2, la curva de
+  crecimiento y los tiempos de §17.2.
+- **Subir el coste de reclutar en vez del upkeep.** El coste de recluta
+  también está publicado (Milicia 20), así que tocarlo es separarse del
+  original igual, pero en un sitio que no arrastra la economía entera.
+- **No mover nada y aceptar ejércitos más grandes.** Es defendible: las
+  10.000-20.000 del original son de confianza *media* y de una fase del
+  juego que aquí no existe todavía. Pero entonces hay que decirlo en el
+  criterio, no dejarlo como fallo.
+
+**Esta decisión va antes de construir el combate encima.** Un ejército
+2,19 veces mayor del previsto cambia cuánta tierra se toma por ataque,
+cuánto dura una guerra y qué se siente al perder. Calibrar el daño contra
+un tamaño de ejército que luego se mueve es hacerlo dos veces.
 
 #### El combate, regla a regla
 
@@ -1397,6 +1502,18 @@ Estos no son de calibración: si fallan, hay un fallo.
 
 ### 17.2. Lo que se calibra con la simulación de temporada
 
+> **Segunda pasada, 2026-09-21 (fase 3, tarea 3).** Se rehízo con los
+> upkeeps **publicados** en vez de los que me inventé, y con el ejército
+> contando en el net power. **Dos criterios cambian de veredicto**: el 11
+> deja de cumplirse y el 13 se desbloquea y cumple. El 12 sigue en pie.
+> El relato está en cada criterio; el resumen, en §9.1.
+>
+> **Lo que lo movió todo no fue el upkeep, fue el net power.** `netPower()`
+> dejaba el ejército fuera porque el `powerRank` estaba `[abierto]`: una
+> unidad pagaba y no sumaba. Con la ficha publicada (§9.1) el ejército
+> cuenta, y el reparto volcado a ejército pasa de ser el tercero a ser
+> **el mejor de los cuatro**.
+
 > **Primera pasada de calibración, 2026-09-21.** El simulador existe
 > (`packages/content/src/simulate.ts`) y **los números aguantan**: no se
 > movió ninguno. Lo que sí cambió es **qué se puede juzgar todavía**, y
@@ -1441,25 +1558,62 @@ Aquí es donde los siete números de §4.2 y los coeficientes de §5.3 y
     *(Explorando los 120 turnos seguidos se llega a 1.951 acres, por
     encima de la banda. No es un fallo de la curva: es que ningún jugador
     real hace eso, porque no tendría con qué explotar la tierra.)*
-11. **El geld no es ni gratis ni asfixiante.** ✅ **Cumple, con el punto
-    de medida corregido.** El reparto de las guías, a 600 turnos y 1.253
-    acres, sostiene **13.636 unidades**: dentro de las 10.000-20.000 del
-    original.
+11. **El geld no es ni gratis ni asfixiante.** ❌ **Ya no cumple, y es
+    el hallazgo de la fase 3.** El reparto de las guías, a 600 turnos y
+    1.253 acres, sostiene **29.838 unidades**: por encima de las
+    10.000-20.000 del original, y **85.225 si son todas milicia**.
 
-    **Lo que cambió**: este criterio decía «a 5.000 acres», y **5.000
-    acres son inalcanzables en la fase 1** — la exploración se agota en
-    **3.421** (§3), y pasar de ahí exige atacar, que es la fase 3. El
-    cuadro de §4.2 sigue valiendo como comprobación de escala, pero **no
-    como estado alcanzable** hasta que haya PvP.
-12. **Ningún reparto es una trampa.** ✅ **Cumple.** Ninguno de los
-    cuatro repartos simulados —guías, maná, economía, ejército— acaba con
-    ingreso neto negativo de geld ni de maná a 600 turnos. Un reparto
-    puede ser peor que otro; ninguno puede arruinarte por seguirlo.
-13. **Net Power cuadra con la intuición.** ⏸ **Fase 3.** Sin el
-    coeficiente de poder del ejército, el net power de un mago es **~98%
-    tierra**, así que hoy no distingue estrategias. El ancla de §5.7
-    sigue valiendo para calibrar precios; como ranking, se juzga cuando
-    exista el combate.
+    **Por qué cambió.** Cumplía con un upkeep medio de **2 geld que me
+    inventé**. La ficha publicada de la Milicia (§9.1, confianza alta)
+    dice **0,32**, y la media real de la tropa reclutable es **0,914**:
+    2,19 veces más barata. El mismo ingreso paga 2,19 veces más tropa.
+
+    **Dónde está el error, y dónde no.** El upkeep es `[orig]` y no se
+    toca: viene de la ficha. Lo que sobra es **ingreso** — nuestro
+    `geldPerPopulation` y la producción de farms y towns se calibraron
+    contra un upkeep inventado, así que el 2,19 es el factor por el que
+    el ingreso quedó generoso. Mover eso es una decisión de balance con
+    consecuencias en toda la fase 1, **y está sin tomar a propósito**:
+    ver §9.1, «Lo que la recalibración dejó abierto».
+
+    *(Lo anterior sigue siendo cierto y se mantiene: este criterio decía
+    «a 5.000 acres», y **5.000 acres son inalcanzables en la fase 1** —
+    la exploración se agota en **3.421** (§3), y pasar de ahí exige
+    atacar. El cuadro de §4.2 vale como comprobación de escala, no como
+    estado alcanzable hasta que haya PvP.)*
+12. **Ningún reparto es una trampa.** ✅ **Sigue cumpliendo**, remedido
+    en la fase 3 con los upkeeps reales y **también jugando con magia**,
+    que antes no se comprobaba. Ninguno de los cuatro repartos —guías,
+    maná, economía, ejército— acaba con ingreso neto negativo de geld ni
+    de maná a 600 turnos, con magia o sin ella. El más ajustado es el de
+    las guías con magia: **+843 de geld**. Un reparto puede ser peor que
+    otro; ninguno puede arruinarte por seguirlo.
+
+    Y cae con él **una trampa que sí existía**: la fase 2 midió que
+    *invocar* hundía el maná y lo llamó «trampa hasta la fase 3». Era
+    verdad por dos errores nuestros —upkeeps inventados 40-100 veces más
+    caros, y un net power que no contaba el ejército—, no por balance.
+    Corregidos los dos, invocar es **la jugada más fuerte** de las
+    medidas (§9.1).
+13. **Net Power cuadra con la intuición.** ✅ **Cumple, y se
+    desbloqueó en la fase 3** — estaba aplazado desde la fase 1 con el
+    motivo escrito: sin el coeficiente de poder del ejército el net power
+    era **~98% tierra** y no distinguía estrategias.
+
+    El `powerRank` estaba publicado en la ficha de cada unidad (§9.1), no
+    había que inventarlo. Con el ejército dentro, a 2.000 turnos y con
+    magia, el net power **sí** distingue el reparto:
+
+    | Reparto | Net power | Tierra | Ejército | Libro |
+    |---|---:|---:|---:|---:|
+    | Ejército | 2.531.586 | 50% | 48% | 1% |
+    | Economía | 2.188.345 | 58% | 30% | 9% |
+    | Maná | 1.720.914 | 74% | 24% | 1% |
+    | Guías | 1.611.634 | 79% | 19% | 1% |
+
+    El ancla de §5.7 sigue valiendo para calibrar precios. Como ranking,
+    queda **pendiente de la prueba de verdad**: que el que más net power
+    tiene gane las batallas. Eso es la tarea 21 de la fase 3.
 
 ### 17.3. Fuera del alcance de esta spec
 

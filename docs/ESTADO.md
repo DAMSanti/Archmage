@@ -19,12 +19,15 @@ El repositorio contiene, a día de hoy:
 | Documentos en `docs/` | 9 |
 | Comandos en `.claude/commands/` | 4 |
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
-| Tests | **212**, todos en verde |
+| Tests | **233**, todos en verde |
 | `tsc -b` | sale **0** |
 | Bundle del cliente | **225 KB**, **65 KB** comprimido |
 
 **La fase 1 está implementada: tareas 1 a 21 de 22.** Queda la **22**, la
-tanda de assets, que espera una sesión con el usuario. Ver
+tanda de assets, que espera una sesión con el usuario. **La fase 2 está
+completa.** De la **fase 3** están hechas las tareas **1 a 3**; se paró
+ahí a propósito, porque la recalibración dejó una decisión de balance
+sobre la mesa ([SISTEMAS.md §9.1](SISTEMAS.md)). Ver
 [ROADMAP.md](../ROADMAP.md).
 
 ---
@@ -36,11 +39,11 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-21) |
 |---|---|---|
-| La suite entera (212 tests) | — | **~3 s** |
-| `vitest packages/core` (68 tests) | milisegundos | **~90 ms** |
+| La suite entera (233 tests) | — | **~2,7 s** |
+| `vitest packages/core` (126 tests) | milisegundos | **~380 ms** |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
-| Simulación de temporada (9 tests, hasta 2.000 turnos) | segundos | **66 ms** |
-| `vitest apps/server` (15 tests, Postgres real) | segundos | **~0,6 s** |
+| Simulación de temporada (22 tests, hasta 2.000 turnos) | segundos | **~350 ms** |
+| `vitest apps/server` (20 tests, Postgres real) | segundos | **~0,7 s** |
 | `tsc -b` en todo el repo | segundos | **~3 s** |
 | `vite build` del cliente | ~1 min | **~0,7 s** |
 | Pasada de navegador (12 comprobaciones, 3 contextos) | minutos, turno exclusivo | **~12 s** |

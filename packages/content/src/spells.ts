@@ -29,7 +29,7 @@
  * no lanzables hasta la fase 3.
  */
 
-import type { SpellSpec, UnitEconomySpec } from '@archmage/core';
+import type { SpellSpec } from '@archmage/core';
 
 // --- Plain: magia neutra y de utilidad -----------------------------------
 //
@@ -474,63 +474,14 @@ export const SPELLS_BY_ID: Record<string, SpellSpec> = Object.fromEntries(
   SPELLS.map((s) => [s.id, s]),
 );
 
-// --- Las unidades invocables ---------------------------------------------
-//
-// **Solo la mitad económica**, como la tropa reclutada (SISTEMAS §8.1):
-// upkeep, espacio y escuela ahora; ataque, defensa, HP e iniciativa en la
-// fase 3.
-//
-// Las invocadas cuestan **maná** de mantener, no geld: es lo que hace a
-// Verdant «muy intensiva en maná» como dice el original (ORIGINAL §6.4), y
-// lo que da sentido a volcar la tierra en nodes.
-
-function invocada(
-  id: string,
-  name: string,
-  upkeepMana: number,
-  populationSpace: number,
-): UnitEconomySpec {
-  return {
-    id,
-    name,
-    specialty: 'verdant',
-    // No se reclutan en barracks: se invocan. El coste es el del hechizo.
-    cost: 0,
-    upkeepGeld: 0,
-    upkeepPopulation: 0,
-    populationSpace,
-    recruitPerBarracks: 1,
-    upkeepMana,
-  };
-}
-
-export const SUMMONED_UNITS: Record<string, UnitEconomySpec> = Object.fromEntries(
-  [
-    invocada('dryad', 'Dríade', 1, 1),
-    invocada('creeping_vines', 'Enredaderas', 1, 1),
-    invocada('gorilla', 'Gorila', 2, 1),
-    invocada('nymph', 'Ninfa', 2, 1),
-    invocada('elven_archer', 'Arquero élfico', 3, 1),
-    invocada('werebear', 'Oso licántropo', 5, 2),
-    invocada('swanmay', 'Doncella cisne', 4, 1),
-    invocada('elven_magician', 'Mago élfico', 6, 1),
-    invocada('druid', 'Druida', 9, 2),
-    invocada('griffon', 'Grifo', 10, 2),
-    invocada('mandrake', 'Mandrágora', 7, 1),
-    invocada('earth_elemental', 'Elemental de tierra', 18, 3),
-    invocada('treant', 'Treant', 24, 4),
-    invocada('faerie_dragon', 'Dragón feérico', 38, 4),
-    invocada('phoenix', 'Fénix', 55, 5),
-  ].map((u) => [u.id, u]),
-);
+// Las unidades invocables viven en `units.ts` desde la fase 3, con su ficha
+// completa. Aquí solo quedan los hechizos que las traen.
 
 /**
  * El nivel de hechizo máximo de **este** catálogo: 207.
  *
  * Medido el 2026-09-21 y comprobado con un test. Es el que escala las
  * invocaciones (docs/SISTEMAS.md §7.1) — **no el 624 del original**, que
- * corresponde a un mago con las seis escuelas investigadas. Cuando se añadan
- * más escuelas, este número sube solo y las invocaciones se recalibran con
- * él.
+ * corresponde a un mago con las seis escuelas investigadas.
  */
 export const MAX_SPELL_LEVEL = 207;

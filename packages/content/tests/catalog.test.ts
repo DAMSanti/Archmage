@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { BUILDINGS } from '@archmage/core';
-import { BUILDING_SPECS, CATALOG, ECONOMY, STARTING_KINGDOM, UNIT_SPECS, catalogSchema } from '../src/index.js';
+import { BUILDING_SPECS, CATALOG, ECONOMY, STARTING_KINGDOM, catalogSchema } from '../src/index.js';
 
 describe('el catálogo', () => {
   test('valida entero contra su esquema', () => {
@@ -25,18 +25,6 @@ describe('el catálogo', () => {
       if (name === 'barriers') expect(spec.upkeepMana).toBeGreaterThan(0);
       else expect(spec.upkeepMana).toBe(0);
     }
-  });
-
-  test('el upkeep medio de una unidad es 2 geld', () => {
-    // El ancla de docs/SISTEMAS.md §8.1: con 2 de media, el ejército
-    // sostenible al turno 120 cae dentro de las 10.000-20.000 del original.
-    const units = Object.values(UNIT_SPECS);
-    const media = units.reduce((s, u) => s + u.upkeepGeld, 0) / units.length;
-    expect(media).toBeCloseTo(2.2, 1);
-  });
-
-  test('la tropa básica no tiene escuela', () => {
-    for (const u of Object.values(UNIT_SPECS)) expect(u.specialty).toBe('plain');
   });
 
   test('300 por town y 100 por farm igualan los topes en 3:1', () => {

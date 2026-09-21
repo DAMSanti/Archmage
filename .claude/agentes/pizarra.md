@@ -27,14 +27,3 @@ con `mkdir`.
 
 <!-- Los bloques van debajo de esta línea. Si no hay ninguno, nadie está
      trabajando y el repositorio está libre. -->
-
-## claude — /plan-tarea la magia de la fase 2
-tarea: plan técnico de la fase 2 y su lista de tareas
-toco: docs/SISTEMAS.md, ROADMAP.md
-puede que toque: docs/SPECS.md, docs/ARQUITECTURA.md
-
-## claude — /plan-tarea la guerra de la fase 3
-tarea: plan técnico de la fase 3 y su lista de tareas
-toco: docs/SISTEMAS.md, ROADMAP.md
-puede que toque: docs/SPECS.md, docs/ARQUITECTURA.md
-

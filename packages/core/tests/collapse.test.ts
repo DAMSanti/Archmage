@@ -22,14 +22,20 @@ describe('colapso de geld', () => {
   });
 
   test('las unidades desertan antes de perder edificios', () => {
+    // **Hace falta caballería**, y no valen falanges. Con los upkeeps reales
+    // de la fase 3, una falange cuesta 0,60 de geld y la población que la
+    // aloja rinde 0,75: un ejército de tropa barata **se paga solo**, por
+    // grande que sea. Arruinarse pide unidades que cuesten más que su
+    // espacio de población — la caballería, a 1,90 por 2 de espacio.
+    // Medido: ingreso 21.750, upkeep 24.100.
     const m = mageWith({ farms: 200, towns: 60 }, 1_000, {
       geld: 0,
-      population: 5_000,
-      army: [{ unitId: 'phalanx', count: 5_000 }],
+      population: 25_000,
+      army: [{ unitId: 'cavalry', count: 12_000 }],
     });
     const r = tick(m);
     const total = r.state.army.reduce((a, s) => a + s.count, 0);
-    expect(total).toBeLessThan(5_000);
+    expect(total).toBeLessThan(12_000);
     expect(r.state.buildings.farms).toBe(200); // no hizo falta tocarlos
   });
 

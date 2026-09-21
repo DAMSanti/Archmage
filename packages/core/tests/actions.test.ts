@@ -190,7 +190,7 @@ describe('reclutar', () => {
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.state.turns.current).toBe(m.turns.current);
-      expect(r.state.resources.geld).toBe(100_000 - 300 * 100);
+      expect(r.state.resources.geld).toBe(100_000 - 300 * 45); // 45, no 100: ficha real
       expect(r.state.recruiting).toEqual({ unitId: 'phalanx', remaining: 300, perTurn: 30 });
     }
   });
