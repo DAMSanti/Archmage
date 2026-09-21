@@ -167,7 +167,15 @@ export { makeRandom as seededRandom } from '../src/random.js';
 export function mageWith(
   buildings: Partial<Buildings>,
   land: number,
-  extra: Partial<{ population: number; geld: number; mana: number; army: Stack[] }> = {},
+  extra: Partial<{
+    population: number;
+    geld: number;
+    mana: number;
+    army: Stack[];
+    /** Fase 4: inventario y habilidades, para los tests que los necesiten. */
+    items: Record<string, number>;
+    skills: Record<string, number>;
+  }> = {},
 ): MageState {
   const b: Buildings = { ...emptyBuildings(), ...buildings };
   const construidos = Object.values(b).reduce((a, v) => a + v, 0);
@@ -192,7 +200,7 @@ export function mageWith(
     casting: null,
     enchantments: [],
     heroes: [],
-    items: {},
-    skills: {},
+    items: extra.items ?? {},
+    skills: extra.skills ?? {},
   };
 }

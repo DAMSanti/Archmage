@@ -19,7 +19,9 @@ El repositorio contiene, a día de hoy:
 | Documentos en `docs/` | 9 |
 | Comandos en `.claude/commands/` | 4 |
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
-| Tests | **430**, todos en verde |
+| Items del catálogo | **44**, todos publicados |
+| Habilidades | **10**, de 20 niveles |
+| Tests | **568**, todos en verde |
 | `tsc -b` | sale **0** |
 | Bundle del cliente | **225 KB**, **65 KB** comprimido |
 
@@ -27,7 +29,13 @@ El repositorio contiene, a día de hoy:
 tanda de assets, que espera una sesión con el usuario. **La fase 2 está
 completa.** **La fase 3 está completa: las 22 tareas.** Hay guerra — tres tipos de
 ataque, batallas repetibles con semilla guardada, tierra que cambia de
-manos, héroes, items, y las pantallas de `/guerra` y `/batalla/:id`. La 4
+manos, héroes, items, y las pantallas de `/guerra` y `/batalla/:id`.
+
+**Y la fase 4 también: las 25.** Hay **mundo** — cuentas con verificación
+por correo, 44 items reales copiados del original con su capa de
+pre-batalla, las diez habilidades, héroes que suben de nivel, el mercado
+negro como subasta entre jugadores, ranking, y las pantallas de `/`,
+`/mercado`, `/habilidades` y `/ranking`. La 4
 cerró la decisión de balance que la 3 había dejado abierta, y lo hizo
 adoptando la **economía publicada** del original: la fórmula de geld, los
 topes de población y comida, y el crecimiento
@@ -44,15 +52,16 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-21) |
 |---|---|---|
-| La suite entera (430 tests) | — | **~6 s** |
-| `vitest packages/core` (272 tests) | milisegundos | **~600 ms** |
+| La suite entera (568 tests) | — | **~7 s** |
+| `vitest packages/core` (341 tests) | milisegundos | **~700 ms** |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (22 tests, hasta 2.000 turnos) | segundos | **~350 ms** |
-| `vitest apps/server` (27 tests, Postgres real) | segundos | **~1,5 s** |
+| `vitest apps/server` (48 tests, Postgres real) | segundos | **~3 s** |
 | `tsc -b` en todo el repo | segundos | **~3 s** |
 | `vite build` del cliente | ~1 min | **~0,7 s** |
 | Pasada de navegador (12 comprobaciones, 3 contextos) | minutos, turno exclusivo | **~12 s** |
 | Pasada de navegador de la guerra (18 comprobaciones) | minutos, turno exclusivo | **~25 s** |
+| Pasada de navegador del mundo (15 comprobaciones) | minutos, turno exclusivo | **~20 s** |
 
 **Casi todas las expectativas se quedaron cortas por el lado bueno.** La
 simulación de temporada se presupuestó en «segundos» y son **66

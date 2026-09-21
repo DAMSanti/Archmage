@@ -213,6 +213,17 @@ export const catalogResponseSchema = z.object({
       abilities: z.array(z.string()),
     }),
   ),
+  // Fase 4: las diez habilidades, para que `/habilidades` diga qué cambian
+  // **en números** sin recalcular nada (docs/INTERFAZ.md §3.6).
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      target: z.string(),
+      ofSpecialty: z.boolean(),
+      reduces: z.boolean(),
+    }),
+  ),
 });
 export type CatalogResponse = z.infer<typeof catalogResponseSchema>;
 

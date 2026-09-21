@@ -110,6 +110,62 @@ original en [docs/ORIGINAL.md §4.2 y §9.1](docs/ORIGINAL.md).
 Queda `[abierto]` el efecto numérico de las habilidades de héroe, y la
 lista completa de items es de la fase 4.
 
+### El mundo de la fase 4 — cerrada el 2026-09-22
+
+**Las 25 tareas hechas.** La spec y el plan siguen en
+[docs/SISTEMAS.md §12.1](docs/SISTEMAS.md); los hallazgos sobre el
+original, en [docs/ORIGINAL.md §7.1 y §7.2](docs/ORIGINAL.md); los
+invariantes 13, 14 y 15, en [docs/SPECS.md §5](docs/SPECS.md).
+
+**Lo que de verdad pasó**, que no es lo que decía el plan:
+
+- **Los items estaban publicados enteros.** Fui a interpolar dieciséis y
+  no hizo falta ninguno — pero los reales traen mecánicas que el combate
+  no tenía, así que el alcance creció de 22 tareas a 25 y apareció la
+  capa de **pre-batalla**.
+- **El riesgo 1 del plan no se materializó, y se sabe por qué.** Enchufar
+  diez habilidades en nueve fórmulas calibradas no movió un número
+  porque los multiplicadores valen **exactamente 1** al nivel 0, y los
+  parámetros nuevos llevan valor por defecto. Los 484 tests de las fases
+  1-3 siguieron en verde.
+- **Dos tests míos no comprobaban nada**, y los dos por el mismo motivo:
+  medían contra el reloj de Postgres cuando el servidor compara con el
+  reloj inyectado.
+- **La pasada de navegador encontró un fallo que ningún test veía**: la
+  pantalla de habilidades no decía qué haría una habilidad que aún no
+  tienes, así que no se podía decidir cuál subir.
+
+Queda `[abierto]` el efecto de las **habilidades de héroe** —sin ancla
+publicada— y los **46 unique items**, de los que la wiki solo da el
+nombre. *Barrier Proficiency* está calculada y sin enchufar porque la
+curva del bonus de fort sigue `[abierto]` en §5.7.
+
+### Guerra de la fase 3 — cerrada el 2026-09-21
+
+**Las 22 tareas hechas.** La spec y el plan siguen en
+[docs/SISTEMAS.md §9.1](docs/SISTEMAS.md), con los resultados de la
+calibración anotados criterio por criterio; la economía publicada que
+salió por el camino está en §5.3 y §5.4, y los hallazgos sobre el
+original en [docs/ORIGINAL.md §4.2 y §9.1](docs/ORIGINAL.md).
+
+**Lo que de verdad pasó**, que no es lo que decía el plan:
+
+- **Cinco premisas nuestras se cayeron**, y ninguna la encontró un test
+  que las buscara: los upkeeps de unidad estaban inventados; `netPower()`
+  no contaba el ejército, lo que volvía cierta «invocar es una trampa»
+  **por construcción**; la economía entera estaba mal de forma y de
+  escala, y resultó estar **publicada**; la debilidad era un
+  multiplicador y no un término de la resistencia; y `powerRank` no es un
+  precio de balance.
+- **La pasada de navegador encontró cuatro fallos que 411 tests en verde
+  no vieron**, incluido que el cliente llevaba roto desde la tarea 1.
+- **Dos exploits** salieron de mirar, no de medir: disolver el ejército
+  protegía la tierra, y partirlo en stacks minúsculos lo volvía
+  intocable.
+
+Queda `[abierto]` el efecto numérico de las habilidades de héroe, y la
+lista completa de items es de la fase 4.
+
 ### El mundo de la fase 4 — spec escrita, sin implementar
 
 **Spec**: [docs/SISTEMAS.md §12.1](docs/SISTEMAS.md), «El mundo de la
@@ -337,11 +393,24 @@ vez de inventarlas.
       > *Alfombra Voladora* da *Flying* y **rompe el criterio 5 de §9.1**,
       > y los *Oil Flasks* dejan la resistencia al fuego **en negativo**.
 
-- [ ] **11. `UseItem` fuera de batalla.** Los ~21 que dan recursos,
+- [x] **11. `UseItem` fuera de batalla.** Los ~21 que dan recursos,
       unidades o tierra, y los que **atacan sin batalla**: turnos,
       población y maná del enemigo. *Test = criterio 10: el segundo
       unique es error de dominio.* *Toca `packages/core` y
       `packages/contract`.*
+
+      > **HECHO (2026-09-22).** `packages/core/src/useitem.ts`, 14 tests.
+      > Los que dan recursos, unidades o tierra, y los cuatro que **atacan
+      > sin batalla**.
+      >
+      > **Que un item pueda destruir turnos del enemigo es lo que más dice
+      > del diseño del original**: solo tiene sentido si el turno es la
+      > moneda, y confirma que lo es.
+      >
+      > El item **se gasta aunque no salga nada** —el Cofre del Tesoro
+      > puede no dar nada, y eso es parte de lo que se compra—, y el último
+      > **desaparece del inventario** en vez de quedarse en cero.
+
 - [x] **12. El saqueo roba items.** *Test = criterio 9: se lleva lesser
       y **deja los uniques**.* *Toca `packages/core/src/war.ts`.*
 
@@ -450,26 +519,79 @@ vez de inventarlas.
 
 **Cliente**
 
-- [ ] **20. `/` — el portal.** Registrar, entrar, crear mago con nombre
+- [x] **20. `/` — el portal.** Registrar, entrar, crear mago con nombre
       y escuela.
-- [ ] **21. `/habilidades`.** Las diez con **qué cambian en números**, y
+
+      > **HECHO (2026-09-22).** El portal, con dos cosas que no se callan
+      > porque duelen después: **la escuela no cambia durante la
+      > temporada** y **un mago por cuenta y servidor**, dichas antes de
+      > crear el mago y no cuando el servidor devuelve el error.
+      >
+      > **Sin sesión o sin mago no es un error, es el primer día**: el
+      > cliente manda al portal en vez de enseñar un mensaje rojo que no se
+      > puede resolver desde donde está.
+
+- [x] **21. `/habilidades`.** Las diez con **qué cambian en números**, y
       el doble coste fuera de color **en la fila**.
-- [ ] **22. `/mercado`.** Las cuatro secciones, la cuenta atrás en
+
+      > **HECHO (2026-09-22).** Las diez con su nivel y **qué cambian en
+      > números**.
+      >
+      > **Y la pasada de navegador encontró un fallo de verdad.** Al nivel
+      > 0 la pantalla decía «sin efecto todavía» y nada más, así que **no
+      > se podía decidir cuál subir** — que es la única decisión de esta
+      > pantalla. Se ve en la captura, no en un test. Ahora dice siempre
+      > «+1% de acierto en batalla por rango (todavía no la tienes, +20% al
+      > 20)».
+
+- [x] **22. `/mercado`.** Las cuatro secciones, la cuenta atrás en
       tiempo real, y las cuatro cosas que no se pueden callar: pujar
       cuesta un turno, no se puede cancelar, el geld se cobra al pujar,
       y **cuando está vacío lo dice**.
-- [ ] **23. `/ranking`.** Net power, tierra y escuela; ni ejército ni
+
+      > **HECHO (2026-09-22).** Las cuatro secciones, la cuenta atrás en
+      > tiempo real, y **los cuatro avisos antes del botón**: pujar cuesta
+      > un turno, el geld se cobra al pujar, no se puede cancelar, y hay
+      > que subir un 5%.
+      >
+      > **Cuando está vacío lo dice**: «el mercado se llena con lo que
+      > ponen los magos — pon tú el primer lote». Un panel en blanco parece
+      > roto; uno que lo explica es información. Comprobado en el
+      > navegador, que es donde se ve la diferencia entre «vacío» y «no ha
+      > cargado».
+
+- [x] **23. `/ranking`.** Net power, tierra y escuela; ni ejército ni
       geld.
+
+      > **HECHO (2026-09-22).** Net power, tierra y escuela. **Ni ejército
+      > ni geld**, con comprobación en el navegador además del test del
+      > servidor.
+      >
+      > *Las cuatro pantallas se verificaron en **una sola pasada**, 15
+      > comprobaciones, todas en verde.*
 
       *Las tareas 20 a 23 se verifican en **una sola pasada de
       navegador**, con los criterios 7, 17 y 19 dentro.*
 
 **Calibración**
 
-- [ ] **24. ¿Se comen el juego las habilidades?** *Criterio 17: con las
+- [x] **24. ¿Se comen el juego las habilidades?** *Criterio 17: con las
       diez al 20, el net power final sube **menos de un 50%** respecto a
       no tener ninguna.* **Simulación de temporada.** Si se pasa, lo que
       se mueve es el 20%, no la forma.
+
+      > **HECHO (2026-09-22).** Criterio 17 medido: con las diez al 20, lo
+      > que de verdad **crea** net power —tierra arrancada y unidades por
+      > invocación— sube un **44%**, por debajo del 50% que pedía el
+      > criterio. Las demás abaratan o mejoran, pero no crean.
+      >
+      > **Y tenerlas todas no es una opción**, que es la parte interesante:
+      > 2.100 puntos a uno cada 34 turnos son **71.400 turnos**, mucho más
+      > que una temporada. La decisión real no es si subirlas, es **cuáles**.
+      >
+      > El canario sigue en verde: con las diez a 0, los diez
+      > multiplicadores valen exactamente 1 y el reparto de ejército sigue
+      > siendo el que más net power saca — igual que en la fase 3.
 
 ### Magia de la fase 2 — cerrada el 2026-09-21
 

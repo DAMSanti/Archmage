@@ -21,3 +21,4 @@ export * from './magic.js';
 export * from './spells.js';
 export * from './casting.js';
 export * from './random.js';
+export * from './useitem.js';

@@ -25,6 +25,7 @@ describe('el catálogo pasa el esquema QUE USA EL CLIENTE', () => {
         ]),
       ),
       units: CATALOG.units,
+      skills: CATALOG.skills,
     };
     const r = catalogResponseSchema.safeParse(respuesta);
     expect(r.success, r.success ? '' : JSON.stringify(r.error.issues.slice(0, 3))).toBe(true);

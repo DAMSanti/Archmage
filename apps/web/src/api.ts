@@ -12,6 +12,8 @@
 import {
   battleSchema,
   catalogResponseSchema,
+  marketResponseSchema,
+  rankingResponseSchema,
   targetsResponseSchema,
   mageResponseSchema,
   actionResponseSchema,
@@ -19,11 +21,13 @@ import {
   type ActionResponse,
   type CatalogResponse,
   type Battle,
+  type Lot,
   type MageResponse,
+  type RankingRow,
   type Target,
 } from '@archmage/contract';
 
-export type { Battle, Target };
+export type { Battle, Lot, RankingRow, Target };
 
 export class DomainError extends Error {
   constructor(
@@ -108,3 +112,47 @@ export async function fetchBattle(id: number): Promise<Battle> {
   const body = (await res.json()) as { battle: unknown };
   return battleSchema.parse(body.battle);
 }
+
+// --- Cuentas, mercado y ranking. Fase 4 ---------------------------------
+
+async function post(url: string, body?: unknown): Promise<unknown> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    // `exactOptionalPropertyTypes` no deja pasar `undefined` como cuerpo, y
+    // tiene razón: una petición sin cuerpo y una con cuerpo `undefined` son
+    // dos cosas distintas para el servidor.
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  if (!res.ok) return leerError(res);
+  return res.json();
+}
+
+export const registrar = (email: string, password: string) =>
+  post('/api/auth/register', { email, password }) as Promise<void>;
+export const verificar = (token: string) => post('/api/auth/verify', { token }) as Promise<void>;
+export const entrar = (email: string, password: string) =>
+  post('/api/auth/login', { email, password }) as Promise<void>;
+export const salir = () => post('/api/auth/logout') as Promise<void>;
+export const recuperar = (email: string) => post('/api/auth/forgot', { email }) as Promise<void>;
+export const crearMago = (name: string, specialty: string) =>
+  post('/api/mage', { name, specialty }) as Promise<void>;
+
+export async function fetchRanking(): Promise<RankingRow[]> {
+  const res = await fetch('/api/ranking');
+  if (!res.ok) return leerError(res);
+  return rankingResponseSchema.parse(await res.json()).rows;
+}
+
+export async function fetchMarket(): Promise<Lot[]> {
+  // Se resuelven las subastas vencidas al mirar: es idempotente, así que
+  // llamarla de más no hace daño y evita un proceso periódico
+  // (docs/SPECS.md §3).
+  await fetch('/api/market/settle', { method: 'POST' }).catch(() => undefined);
+  const res = await fetch('/api/market');
+  if (!res.ok) return leerError(res);
+  return marketResponseSchema.parse(await res.json()).lots;
+}
+
+export const sendBid = (lotId: number, amount: number) =>
+  post(`/api/market/lots/${lotId}/bids`, { amount }) as Promise<void>;

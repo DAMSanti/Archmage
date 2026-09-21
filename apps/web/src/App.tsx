@@ -20,14 +20,21 @@ import { Cronica } from './routes/Cronica.js';
 import { Magia } from './routes/Magia.js';
 import { Guerra } from './routes/Guerra.js';
 import { Batalla } from './routes/Batalla.js';
+import { Mercado } from './routes/Mercado.js';
+import { Ranking } from './routes/Ranking.js';
+import { Habilidades } from './routes/Habilidades.js';
+import { Portal } from './routes/Portal.js';
 
-type Pantalla = 'reino' | 'ejercito' | 'magia' | 'guerra' | 'cronica';
+type Pantalla = 'reino' | 'ejercito' | 'magia' | 'guerra' | 'mercado' | 'ranking' | 'habilidades' | 'cronica';
 
 const PANTALLAS: { id: Pantalla; nombre: string }[] = [
   { id: 'reino', nombre: 'Reino' },
   { id: 'ejercito', nombre: 'Ejército' },
   { id: 'magia', nombre: 'Magia' },
   { id: 'guerra', nombre: 'Guerra' },
+  { id: 'mercado', nombre: 'Mercado' },
+  { id: 'habilidades', nombre: 'Habilidades' },
+  { id: 'ranking', nombre: 'Ranking' },
   { id: 'cronica', nombre: 'Crónica' },
 ];
 
@@ -35,6 +42,8 @@ export function App() {
   const [pantalla, setPantalla] = useState<Pantalla>('reino');
   // Qué batalla se está mirando. `null` = ninguna, y manda `pantalla`.
   const [batalla, setBatalla] = useState<number | null>(null);
+  /** Sin sesión o sin mago: se enseña el portal, no un error. */
+  const [sinMago, setSinMago] = useState(false);
   const [data, setData] = useState<MageResponse | null>(null);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [cronica, setCronica] = useState<ChronicleRow[]>([]);
@@ -43,11 +52,22 @@ export function App() {
 
   const recargar = useCallback(async () => {
     try {
-      const [m, c] = await Promise.all([fetchMage(), fetchCatalog()]);
-      setData(m);
+      const c = await fetchCatalog();
       setCatalog(c);
+      const m = await fetchMage();
+      setData(m);
+      setSinMago(false);
       setError(null);
     } catch (e) {
+      // **Sin sesión o sin mago no es un error, es el primer día.** Se manda
+      // al portal en vez de enseñar un mensaje rojo que no se puede
+      // resolver desde donde está (docs/INTERFAZ.md §1).
+      const code = e instanceof DomainError ? e.code : '';
+      if (code === 'sin_sesion' || code === 'sin_mago' || code === 'http_401' || code === 'http_404') {
+        setSinMago(true);
+        setError(null);
+        return;
+      }
       setError(e instanceof Error ? e.message : 'No se pudo cargar el reino.');
     }
   }, []);
@@ -113,7 +133,9 @@ export function App() {
         <main>
           {error && <p className="error">{error}</p>}
 
-          {!data || !catalog ? (
+          {sinMago ? (
+            <Portal onListo={() => void recargar()} />
+          ) : !data || !catalog ? (
             <p className="recurso__nota">Cargando el reino…</p>
           ) : pantalla === 'reino' ? (
             <Reino data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
@@ -121,6 +143,12 @@ export function App() {
             <Ejercito data={data} catalog={catalog} onAction={onAction} ocupado={ocupado} />
           ) : pantalla === 'magia' ? (
             <Magia data={data} onAction={onAction} ocupado={ocupado} />
+          ) : pantalla === 'mercado' ? (
+            <Mercado data={data} />
+          ) : pantalla === 'ranking' ? (
+            <Ranking data={data} />
+          ) : pantalla === 'habilidades' ? (
+            <Habilidades data={data} catalog={catalog} />
           ) : pantalla === 'guerra' ? (
             batalla !== null ? (
               <Batalla id={batalla} catalog={catalog} onVolver={() => setBatalla(null)} />
