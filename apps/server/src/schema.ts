@@ -176,3 +176,52 @@ export const outbox = pgTable('outbox', {
   body: text('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// --- Mercado y ranking. Fase 4 -------------------------------------------
+
+/**
+ * Los lotes del mercado negro.
+ *
+ * **Los instantes van en `bigint` y no en `timestamptz`** a propósito: las
+ * reglas de `packages/core/src/market.ts` trabajan con epoch en
+ * milisegundos, que es lo que el servidor inyecta con `deps.now()`. Guardar
+ * un `timestamptz` obligaría a convertir en cada lectura, y una conversión
+ * de zona horaria en medio de un plazo es un fallo esperando.
+ */
+export const marketLots = pgTable(
+  'market_lots',
+  {
+    id: serial('id').primaryKey(),
+    serverId: text('server_id').notNull(),
+    sellerId: text('seller_id')
+      .notNull()
+      .references(() => mages.id),
+    section: text('section').notNull(),
+    content: jsonb('content').$type<Record<string, unknown>>().notNull(),
+    minBid: bigint('min_bid', { mode: 'number' }).notNull(),
+    currentBid: bigint('current_bid', { mode: 'number' }),
+    currentBidderId: text('current_bidder_id').references(() => mages.id),
+    listedAt: bigint('listed_at', { mode: 'number' }).notNull(),
+    lastBidAt: bigint('last_bid_at', { mode: 'number' }),
+    status: text('status').notNull().default('open'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    abiertos: index('market_open_idx').on(t.serverId, t.status),
+  }),
+);
+
+/** La clasificación congelada de un día. */
+export const rankingSnapshots = pgTable(
+  'ranking_snapshots',
+  {
+    id: serial('id').primaryKey(),
+    serverId: text('server_id').notNull(),
+    takenAt: bigint('taken_at', { mode: 'number' }).notNull(),
+    rows: jsonb('rows').$type<Record<string, unknown>[]>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    porServidor: index('ranking_server_idx').on(t.serverId, t.takenAt),
+  }),
+);

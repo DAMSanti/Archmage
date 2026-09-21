@@ -33,12 +33,14 @@ import {
   spellbookFor,
   upkeep,
 } from '@archmage/core';
-import { makeRandom as _makeRandom, resolveAttack } from '@archmage/core';
+import { closesAt, makeRandom as _makeRandom, minimumBid, resolveAttack } from '@archmage/core';
 import { PILLAGE_MIN_POWER_SHARE } from '@archmage/core';
 import type { Ctx, MageState, RandomSource } from '@archmage/core';
 import { CATALOG, ECONOMY, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import {
   actionRequestSchema,
+  bidSchema,
+  createLotSchema,
   createMageSchema,
   forgotSchema,
   loginSchema,
@@ -65,8 +67,12 @@ import {
   applyBattle,
   insertMage,
   listBattles,
+  listLots,
+  listMages,
   listTargets,
+  applyBid,
   createAccount,
+  createLot,
   createSession,
   createToken,
   deleteSession,
@@ -77,6 +83,7 @@ import {
   namesOf,
   outboxMailer,
   setPassword,
+  settleLots,
   useToken,
   readBattle,
   readChronicle,
@@ -335,6 +342,112 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         log: fila.log,
       },
     });
+  });
+
+  // --- Mercado y ranking. Fase 4 -----------------------------------------
+
+  /** Los lotes a la venta, con su cierre ya calculado. */
+  app.get('/api/market', async (req, reply) => {
+    const yoId = await mageOf(deps, req);
+    const lotes = await listLots(deps.db, TERRA.id);
+    return reply.send({
+      lots: lotes.map((l) => ({
+        id: l.id,
+        section: l.section,
+        content: l.content,
+        minBid: l.minBid,
+        currentBid: l.currentBid,
+        // **La puja mínima va calculada aquí**, no en el cliente: es una
+        // regla y el cliente no recalcula reglas (docs/SPECS.md, invariante 5).
+        nextBid: minimumBid(l),
+        closesAt: closesAt(l),
+        mine: l.sellerId === yoId,
+        winning: l.currentBidderId === yoId,
+      })),
+    });
+  });
+
+  app.post('/api/market/lots', async (req, reply) => {
+    const yoId = await mageOf(deps, req);
+    if (!yoId) return sinSesion(reply);
+    const parsed = createLotSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply
+        .code(400)
+        .send({ error: { code: 'invalid_request', message: 'Datos inválidos.' } });
+    }
+    const now = deps.now();
+    const estado = await loadAccrued(deps.db, yoId, now, TERRA);
+    if (!estado) return reply.code(404).send({ error: { code: 'sin_mago', message: 'No tienes mago.' } });
+
+    // **Vender lo que no se tiene es un error de dominio**, no un 500.
+    const c = parsed.data.content;
+    if (c.kind === 'item' && (estado.items[c.itemId] ?? 0) < c.count) {
+      return reply
+        .code(422)
+        .send({ error: { code: 'no_lo_tienes', message: 'No tienes ese item.' } });
+    }
+    if (c.kind === 'units') {
+      const tiene = estado.army.find((st) => st.unitId === c.unitId)?.count ?? 0;
+      if (tiene < c.count) {
+        return reply
+          .code(422)
+          .send({ error: { code: 'no_lo_tienes', message: 'No tienes esas unidades.' } });
+      }
+    }
+
+    const id = await createLot(deps.db, TERRA.id, yoId, parsed.data.section, c, parsed.data.minBid, now);
+    return reply.send({ lotId: id });
+  });
+
+  app.post('/api/market/lots/:id/bids', async (req, reply) => {
+    const yoId = await mageOf(deps, req);
+    if (!yoId) return sinSesion(reply);
+    const id = Number((req.params as { id: string }).id);
+    const parsed = bidSchema.safeParse(req.body);
+    if (!Number.isInteger(id) || !parsed.success) {
+      return reply
+        .code(400)
+        .send({ error: { code: 'invalid_request', message: 'Puja inválida.' } });
+    }
+    const r = await applyBid(deps.db, id, yoId, parsed.data.amount, deps.now(), TERRA);
+    if (r === null) {
+      return reply.code(404).send({ error: { code: 'lote_no_existe', message: 'No existe ese lote.' } });
+    }
+    if ('error' in r) return reply.code(422).send({ error: r.error });
+    return reply.send({ lot: { id: r.lot.id, currentBid: r.lot.currentBid, closesAt: closesAt(r.lot) } });
+  });
+
+  /**
+   * Resuelve las subastas vencidas. **Idempotente**, así que se puede llamar
+   * mil veces (docs/SPECS.md §3). Sin cron todavía: la llama quien mira el
+   * mercado, que es lo que evita un proceso periódico que recorra magos.
+   */
+  app.post('/api/market/settle', async (_req, reply) => {
+    const n = await settleLots(deps.db, TERRA.id, deps.now());
+    return reply.send({ settled: n });
+  });
+
+  /** La clasificación del servidor. */
+  app.get('/api/ranking', async (_req, reply) => {
+    const filas = await listMages(deps.db, TERRA.id);
+    const rows = filas
+      .map((f) => {
+        const st = rowToState(f);
+        return {
+          id: st.id,
+          name: st.name,
+          specialty: st.specialty,
+          land: st.land.total,
+          // **Del núcleo, sin recalcular nada** (invariante 5).
+          netPower: netPower(st, CATALOG),
+          // **Un mago protegido aparece, marcado.** Esconderlo haría que la
+          // lista mintiera sobre cuánta gente hay jugando.
+          protected: isProtected(st, TERRA),
+        };
+      })
+      .sort((a, b) => b.netPower - a.netPower);
+    return reply.send({ rows });
   });
 
   // --- Cuentas. Fase 4 ---------------------------------------------------

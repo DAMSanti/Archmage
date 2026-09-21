@@ -3,7 +3,7 @@ import { createMage, resolveAttack } from '@archmage/core';
 import { CATALOG, STARTING_KINGDOM, TERRA } from '@archmage/content';
 import { buildApp, DEV_MAGE_ID, makeRandom } from '../src/app.js';
 import { connect, ensureSchema, truncateAll } from '../src/db.js';
-import { applyBattle, insertMage, loadAccrued } from '../src/repository.js';
+import { applyBattle, applyBid, insertMage, loadAccrued, settleLots } from '../src/repository.js';
 import type { FastifyInstance } from 'fastify';
 
 /**
@@ -686,5 +686,224 @@ describe('cuentas, sesión y el invariante 13', () => {
     const res = await cerrado.inject({ method: 'GET', url: '/api/mage/me' });
     expect(res.statusCode).toBe(401);
     await cerrado.close();
+  });
+});
+
+
+// --- Mercado y ranking. Fase 4 -------------------------------------------
+
+describe('el mercado negro, contra Postgres', () => {
+  const OTRO = 'rival-mercado';
+
+  async function dosMagos() {
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    const base = createMage({
+      id: OTRO,
+      name: 'Rival',
+      specialty: 'verdant',
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now: 0,
+    });
+    await insertMage(conn.db, { ...base, turnsSpent: TERRA.protectionTurns + 1 });
+    // **`turns_last_accrual_at` al reloj inyectado**, o el mago devenga
+    // turnos entre medias y el test mide otra cosa. Le pasó a la primera
+    // versión de este fichero: esperaba 49 y salía 179, que era el tope de
+    // turnos tras devengar desde el epoch 0.
+    await conn.sql.unsafe(
+      `UPDATE mages SET geld = 10000000, turns_current = 50,
+       turns_last_accrual_at = $1,
+       items = '{"sage_stone": 3}'::jsonb`,
+      [ahora],
+    );
+  }
+
+  async function ponerLote(minBid = 1_000) {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/market/lots',
+      payload: {
+        section: 'antique',
+        content: { kind: 'item', itemId: 'sage_stone', count: 1 },
+        minBid,
+      },
+    });
+    return res;
+  }
+
+  test('vender lo que no se tiene es un 422, no un 500', async () => {
+    await dosMagos();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/market/lots',
+      payload: {
+        section: 'antique',
+        content: { kind: 'item', itemId: 'no_lo_tengo', count: 1 },
+        minBid: 1_000,
+      },
+    });
+    expect(res.statusCode).toBe(422);
+    expect((res.json() as { error: { code: string } }).error.code).toBe('no_lo_tienes');
+  });
+
+  test('un lote sale en la lista con su puja mínima ya calculada', async () => {
+    await dosMagos();
+    expect((await ponerLote()).statusCode).toBe(200);
+    const res = await app.inject({ method: 'GET', url: '/api/market' });
+    const { lots } = res.json() as { lots: { nextBid: number; mine: boolean }[] };
+    expect(lots).toHaveLength(1);
+    // **La calcula el servidor**: el cliente no recalcula reglas.
+    expect(lots[0]!.nextBid).toBe(1_000);
+    expect(lots[0]!.mine).toBe(true);
+  });
+
+  test('criterio 3 — pujar cobra el geld y gasta un turno', async () => {
+    await dosMagos();
+    await ponerLote();
+    // El dueño del lote es el mago de desarrollo, así que puja el rival.
+    const antes = await conn.sql.unsafe(
+      'SELECT geld, turns_current FROM mages WHERE id = $1',
+      [OTRO],
+    );
+    const r = await applyBid(conn.db, 1, OTRO, 5_000, ahora, TERRA);
+    expect(r).toMatchObject({ ok: true });
+    const despues = await conn.sql.unsafe(
+      'SELECT geld, turns_current FROM mages WHERE id = $1',
+      [OTRO],
+    );
+    expect(Number(despues[0]!.geld)).toBe(Number(antes[0]!.geld) - 5_000);
+    expect(despues[0]!.turns_current).toBe(antes[0]!.turns_current - 1);
+  });
+
+  test('al superado se le devuelve TODO su geld', async () => {
+    await dosMagos();
+    await ponerLote();
+    await applyBid(conn.db, 1, OTRO, 5_000, ahora, TERRA);
+    const tras = await conn.sql.unsafe('SELECT geld FROM mages WHERE id = $1', [OTRO]);
+
+    // Otro mago supera la puja.
+    const tercero = createMage({
+      id: 'tercero',
+      name: 'Tercero',
+      specialty: 'verdant',
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now: 0,
+    });
+    await insertMage(conn.db, tercero);
+    await conn.sql.unsafe(
+      'UPDATE mages SET geld = 10000000, turns_current = 50, turns_last_accrual_at = $2 WHERE id = $1',
+      ['tercero', ahora],
+    );
+    await applyBid(conn.db, 1, 'tercero', 6_000, ahora, TERRA);
+
+    const devuelto = await conn.sql.unsafe('SELECT geld FROM mages WHERE id = $1', [OTRO]);
+    expect(Number(devuelto[0]!.geld)).toBe(Number(tras[0]!.geld) + 5_000);
+  });
+
+  test('criterio 4 — una puja que no sube el 5% es error de dominio', async () => {
+    await dosMagos();
+    await ponerLote();
+    await applyBid(conn.db, 1, OTRO, 5_000, ahora, TERRA);
+    const r = await applyBid(conn.db, 1, OTRO, 5_100, ahora, TERRA);
+    expect(r).toMatchObject({ error: { code: 'puja_baja' } });
+  });
+
+  test('CRITERIO 5 — dos pujas simultáneas no se pisan', async () => {
+    // **El invariante 14.** Sin bloquear la fila del lote, las dos leerían
+    // el mismo importe y la segunda pisaría a la primera sin que nada se
+    // queje — y el que perdió se quedaría además sin su geld.
+    await dosMagos();
+    await ponerLote();
+    const tercero = createMage({
+      id: 'tercero',
+      name: 'Tercero',
+      specialty: 'verdant',
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now: 0,
+    });
+    await insertMage(conn.db, tercero);
+    await conn.sql.unsafe(
+      'UPDATE mages SET geld = 10000000, turns_current = 50, turns_last_accrual_at = $2 WHERE id = $1',
+      ['tercero', ahora],
+    );
+
+    const [a, b] = await Promise.all([
+      applyBid(conn.db, 1, OTRO, 5_000, ahora, TERRA),
+      applyBid(conn.db, 1, 'tercero', 5_000, ahora, TERRA),
+    ]);
+    // Una gana y la otra recibe su error: nunca las dos.
+    const ganadas = [a, b].filter((r) => r && 'ok' in r).length;
+    expect(ganadas).toBe(1);
+
+    const lote = await conn.sql.unsafe('SELECT current_bid FROM market_lots WHERE id = 1');
+    expect(Number(lote[0]!.current_bid)).toBe(5_000);
+  });
+
+  test('criterio 6 — se adjudica 30 minutos después, y es IDEMPOTENTE', async () => {
+    await dosMagos();
+    await ponerLote();
+    await applyBid(conn.db, 1, OTRO, 5_000, ahora, TERRA);
+
+    // Antes de tiempo no pasa nada.
+    expect(await settleLots(conn.db, TERRA.id, ahora + 60_000)).toBe(0);
+
+    const tarde = ahora + 3 * 60 * 60 * 1000;
+    expect(await settleLots(conn.db, TERRA.id, tarde)).toBe(1);
+    // **Correrla otra vez no adjudica otra vez.**
+    expect(await settleLots(conn.db, TERRA.id, tarde)).toBe(0);
+
+    const comprador = await conn.sql.unsafe('SELECT items FROM mages WHERE id = $1', [OTRO]);
+    expect((comprador[0]!.items as Record<string, number>).sage_stone).toBeGreaterThan(0);
+  });
+
+  test('un lote sin pujas vuelve al vendedor y nadie paga', async () => {
+    await dosMagos();
+    await ponerLote();
+    const tarde = ahora + 3 * 60 * 60 * 1000;
+    expect(await settleLots(conn.db, TERRA.id, tarde)).toBe(1);
+    const fila = await conn.sql.unsafe('SELECT status FROM market_lots WHERE id = 1');
+    expect(fila[0]!.status).toBe('expired');
+  });
+});
+
+describe('el ranking', () => {
+  test('criterios 18 y 19 — ordena por net power y marca al protegido', async () => {
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    const bebe = createMage({
+      id: 'bebe-rank',
+      name: 'Bebé',
+      specialty: 'verdant',
+      server: TERRA,
+      starting: STARTING_KINGDOM,
+      now: 0,
+    });
+    await insertMage(conn.db, bebe); // turnsSpent 0 → protegido
+    await conn.sql.unsafe('UPDATE mages SET land_total = 5000 WHERE id = $1', ['dev']);
+
+    const res = await app.inject({ method: 'GET', url: '/api/ranking' });
+    expect(res.statusCode).toBe(200);
+    const { rows } = res.json() as {
+      rows: { id: string; netPower: number; protected: boolean }[];
+    };
+    // Orden descendente por net power.
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i - 1]!.netPower).toBeGreaterThanOrEqual(rows[i]!.netPower);
+    }
+    // **El protegido aparece, marcado.** Esconderlo haría que la lista
+    // mintiera sobre cuánta gente hay jugando.
+    const elBebe = rows.find((r) => r.id === 'bebe-rank');
+    expect(elBebe).toBeDefined();
+    expect(elBebe!.protected).toBe(true);
+  });
+
+  test('no enseña ejército ni geld', async () => {
+    // Saber con qué cuenta el rival convierte la guerra en aritmética.
+    await app.inject({ method: 'GET', url: '/api/mage/me' });
+    const res = await app.inject({ method: 'GET', url: '/api/ranking' });
+    const { rows } = res.json() as { rows: Record<string, unknown>[] };
+    expect(rows[0]).not.toHaveProperty('army');
+    expect(rows[0]).not.toHaveProperty('geld');
   });
 });

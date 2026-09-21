@@ -301,3 +301,50 @@ export const createMageSchema = z.object({
   name: z.string().trim().min(2).max(40),
   specialty: specialtySchema,
 });
+
+// --- Mercado y ranking. Fase 4 ------------------------------------------
+
+export const lotContentSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('item'), itemId: z.string().min(1).max(64), count: z.number().int().positive() }),
+  z.object({ kind: z.literal('hero'), level: z.number().int().min(1).max(30) }),
+  z.object({ kind: z.literal('spell'), spellId: z.string().min(1).max(64) }),
+  z.object({ kind: z.literal('units'), unitId: z.string().min(1).max(64), count: z.number().int().positive() }),
+]);
+
+export const createLotSchema = z.object({
+  section: z.enum(['antique', 'tavern', 'mageware', 'hatchery']),
+  content: lotContentSchema,
+  minBid: z.number().int().positive(),
+});
+
+/**
+ * Una puja. **No lleva quién puja**: eso sale de la sesión
+ * (docs/SPECS.md §5, invariante 13).
+ */
+export const bidSchema = z.object({ amount: z.number().int().positive() });
+
+export const lotSchema = z.object({
+  id: z.number().int(),
+  section: z.string(),
+  content: lotContentSchema,
+  minBid: z.number().int(),
+  currentBid: z.number().int().nullable(),
+  /** La mínima siguiente, **ya calculada por el servidor**. */
+  nextBid: z.number().int(),
+  closesAt: z.number().int(),
+  mine: z.boolean(),
+  winning: z.boolean(),
+});
+export type Lot = z.infer<typeof lotSchema>;
+export const marketResponseSchema = z.object({ lots: z.array(lotSchema) });
+
+export const rankingRowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  specialty: z.string(),
+  land: z.number().int(),
+  netPower: z.number().int(),
+  protected: z.boolean(),
+});
+export type RankingRow = z.infer<typeof rankingRowSchema>;
+export const rankingResponseSchema = z.object({ rows: z.array(rankingRowSchema) });

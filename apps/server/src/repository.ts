@@ -16,10 +16,21 @@
 
 import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { accrue, apply } from '@archmage/core';
+import { accrue, apply, checkBid, settle } from '@archmage/core';
+import type { Lot } from '@archmage/core';
 import type { Action, Ctx, GameEvent, MageState, Result, ServerConfig } from '@archmage/core';
 import type { ApplyTuning } from '@archmage/core';
-import { accounts, authTokens, battles, events, mages, outbox, sessions } from './schema.js';
+import {
+  accounts,
+  authTokens,
+  battles,
+  events,
+  mages,
+  marketLots,
+  outbox,
+  rankingSnapshots,
+  sessions,
+} from './schema.js';
 
 type Db = PostgresJsDatabase<Record<string, never>>;
 type Row = typeof mages.$inferSelect;
@@ -459,4 +470,209 @@ export function outboxMailer(db: Db) {
       await db.insert(outbox).values({ recipient: to, subject, body });
     },
   };
+}
+
+// --- Mercado negro. Fase 4 ----------------------------------------------
+
+function rowToLot(f: typeof marketLots.$inferSelect): Lot {
+  return {
+    id: f.id,
+    sellerId: f.sellerId,
+    section: f.section as Lot['section'],
+    content: f.content as unknown as Lot['content'],
+    minBid: f.minBid,
+    currentBid: f.currentBid,
+    currentBidderId: f.currentBidderId,
+    listedAt: f.listedAt,
+    lastBidAt: f.lastBidAt,
+    status: f.status as Lot['status'],
+  };
+}
+
+/** Los lotes abiertos de un servidor. */
+export async function listLots(db: Db, serverId: string) {
+  const filas = await db
+    .select()
+    .from(marketLots)
+    .where(and(eq(marketLots.serverId, serverId), eq(marketLots.status, 'open')))
+    .orderBy(marketLots.id);
+  return filas.map(rowToLot);
+}
+
+export async function createLot(
+  db: Db,
+  serverId: string,
+  sellerId: string,
+  section: string,
+  content: Record<string, unknown>,
+  minBid: number,
+  now: number,
+) {
+  const [fila] = await db
+    .insert(marketLots)
+    .values({ serverId, sellerId, section, content, minBid, listedAt: now })
+    .returning({ id: marketLots.id });
+  return fila!.id;
+}
+
+/**
+ * Puja por un lote.
+ *
+ * **La fila del lote va bloqueada** (docs/SPECS.md §5, invariante 14). Es el
+ * mismo problema que las dos filas de una batalla con otra cara: dos pujas
+ * simultáneas leen el mismo importe y la segunda pisa a la primera **sin que
+ * nada se queje** — y el que perdió la puja se queda además sin su geld.
+ *
+ * Y **cobrar, devolver y guardar son una transacción**, no tres.
+ */
+export async function applyBid(
+  db: Db,
+  lotId: number,
+  bidderId: string,
+  amount: number,
+  now: number,
+  server: ServerConfig,
+): Promise<{ ok: true; lot: Lot } | { error: { code: string; message: string } } | null> {
+  return db.transaction(async (tx) => {
+    const filas = await tx.select().from(marketLots).where(eq(marketLots.id, lotId)).for('update');
+    const fila = filas[0];
+    if (!fila) return null;
+    const lot = rowToLot(fila);
+
+    const pujador = await lockRow(tx, bidderId);
+    if (!pujador) return null;
+    const estado = rowToState(pujador);
+    const turnos = accrue(estado.turns, now, server).turns;
+
+    const r = checkBid(lot, bidderId, amount, estado.resources.geld, turnos.current, now);
+    if ('error' in r) return { error: r.error };
+
+    // Al que fue superado se le devuelve **todo** lo suyo.
+    if (r.refund) {
+      await tx
+        .update(mages)
+        .set({ geld: sql`${mages.geld} + ${r.refund.amount}` })
+        .where(eq(mages.id, r.refund.to));
+    }
+
+    await tx
+      .update(mages)
+      .set({
+        geld: estado.resources.geld - r.charge,
+        turnsCurrent: turnos.current - r.turns,
+        turnsSpent: estado.turnsSpent + r.turns,
+        turnsLastAccrualAt: turnos.lastAccrualAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(mages.id, bidderId));
+
+    await tx
+      .update(marketLots)
+      .set({ currentBid: amount, currentBidderId: bidderId, lastBidAt: now })
+      .where(eq(marketLots.id, lotId));
+
+    return { ok: true as const, lot: { ...lot, currentBid: amount, currentBidderId: bidderId, lastBidAt: now } };
+  });
+}
+
+/**
+ * Resuelve las subastas vencidas. **Idempotente**: solo lotes abiertos y
+ * vencidos, así que correrla mil veces adjudica una vez
+ * (docs/SPECS.md §3).
+ */
+export async function settleLots(db: Db, serverId: string, now: number): Promise<number> {
+  return db.transaction(async (tx) => {
+    const filas = await tx
+      .select()
+      .from(marketLots)
+      .where(and(eq(marketLots.serverId, serverId), eq(marketLots.status, 'open')))
+      .for('update');
+
+    let resueltos = 0;
+    for (const fila of filas) {
+      const lot = rowToLot(fila);
+      const s = settle(lot, now);
+      if (!s) continue;
+
+      if (s.winnerId) {
+        // El vendedor cobra. El comprador **ya pagó al pujar**, así que
+        // aquí no se le cobra otra vez: ése es el sentido de cobrar por
+        // delante.
+        await tx
+          .update(mages)
+          .set({ geld: sql`${mages.geld} + ${s.sellerGets}` })
+          .where(eq(mages.id, lot.sellerId));
+        // Y el comprador recibe lo comprado, **en la misma transacción**.
+        const ganador = await lockRow(tx, s.winnerId);
+        if (ganador) {
+          const estado = rowToState(ganador);
+          await tx
+            .update(mages)
+            .set({ ...stateToRow(entregar(estado, lot.content)), updatedAt: new Date() })
+            .where(eq(mages.id, s.winnerId));
+        }
+      }
+      await tx.update(marketLots).set({ status: s.status }).where(eq(marketLots.id, lot.id));
+      resueltos++;
+    }
+    return resueltos;
+  });
+}
+
+// --- Ranking. Fase 4 -----------------------------------------------------
+
+/** Todos los magos de un servidor, para el ranking. */
+export async function listMages(db: Db, serverId: string) {
+  return db.select().from(mages).where(eq(mages.serverId, serverId));
+}
+
+/** Congela la clasificación del día. */
+export async function saveRankingSnapshot(
+  db: Db,
+  serverId: string,
+  takenAt: number,
+  rows: Record<string, unknown>[],
+) {
+  await db.insert(rankingSnapshots).values({ serverId, takenAt, rows });
+}
+
+/**
+ * Mete en el estado del comprador lo que traía el lote.
+ *
+ * **Vive aquí y no en el núcleo** porque no es una regla de juego: es la
+ * entrega de una compra. La regla —quién gana y por cuánto— está en
+ * `market.ts` y es pura.
+ */
+function entregar(state: MageState, content: Lot['content']): MageState {
+  switch (content.kind) {
+    case 'item':
+      return {
+        ...state,
+        items: { ...state.items, [content.itemId]: (state.items[content.itemId] ?? 0) + content.count },
+      };
+    case 'units': {
+      const army = [...state.army];
+      const i = army.findIndex((s) => s.unitId === content.unitId);
+      if (i >= 0) army[i] = { ...army[i]!, count: army[i]!.count + content.count };
+      else army.push({ unitId: content.unitId, count: content.count });
+      return { ...state, army };
+    }
+    case 'spell':
+      // **No se duplica un hechizo**: en el original no se puede tener dos
+      // copias (docs/SISTEMAS.md §7). Comprar uno que ya sabes no hace nada,
+      // y eso es cosa del que puja.
+      if (state.spellbook.known.includes(content.spellId)) return state;
+      return {
+        ...state,
+        spellbook: { ...state.spellbook, known: [...state.spellbook.known, content.spellId] },
+      };
+    case 'hero':
+      return {
+        ...state,
+        heroes: [
+          ...state.heroes,
+          { id: `h_${Date.now().toString(36)}_${state.heroes.length}`, level: content.level, experience: 0 },
+        ],
+      };
+  }
 }

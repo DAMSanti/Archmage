@@ -12,6 +12,7 @@ export * from './mana.js';
 export * from './economy.js';
 export * from './tick.js';
 export * from './actions.js';
+export * from './market.js';
 export * from './netpower.js';
 export * from './prebattle.js';
 export * from './skilleffects.js';

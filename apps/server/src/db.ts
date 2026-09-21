@@ -154,10 +154,41 @@ export async function ensureSchema(sql: postgres.Sql): Promise<void> {
     -- alguien lo usa (docs/SISTEMAS.md §13).
     CREATE UNIQUE INDEX IF NOT EXISTS mages_account_server_uniq
       ON mages (account_id, server_id) WHERE account_id IS NOT NULL;
+
+    -- Fase 4. El mercado negro y el ranking. Aditivo.
+    CREATE TABLE IF NOT EXISTS market_lots (
+      id                serial PRIMARY KEY,
+      server_id         text NOT NULL,
+      seller_id         text NOT NULL REFERENCES mages(id),
+      section           text NOT NULL,
+      content           jsonb NOT NULL,
+      min_bid           bigint NOT NULL,
+      current_bid       bigint,
+      current_bidder_id text REFERENCES mages(id),
+      listed_at         bigint NOT NULL,
+      last_bid_at       bigint,
+      status            text NOT NULL DEFAULT 'open',
+      created_at        timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- El indice que usa la resolucion programada: solo lotes abiertos.
+    CREATE INDEX IF NOT EXISTS market_open_idx
+      ON market_lots (server_id, status);
+
+    CREATE TABLE IF NOT EXISTS ranking_snapshots (
+      id         serial PRIMARY KEY,
+      server_id  text NOT NULL,
+      taken_at   bigint NOT NULL,
+      rows       jsonb NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS ranking_server_idx
+      ON ranking_snapshots (server_id, taken_at);
   `);
 }
 
 /** Solo para los tests: vacía las tablas sin tocar el esquema. */
 export async function truncateAll(sql: postgres.Sql): Promise<void> {
-  await sql.unsafe('TRUNCATE outbox, auth_tokens, sessions, battles, events, mages, accounts RESTART IDENTITY CASCADE;');
+  await sql.unsafe('TRUNCATE ranking_snapshots, market_lots, outbox, auth_tokens, sessions, battles, events, mages, accounts RESTART IDENTITY CASCADE;');
 }

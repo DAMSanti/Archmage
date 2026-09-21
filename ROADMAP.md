@@ -355,35 +355,98 @@ vez de inventarlas.
 
 **Héroes que crecen**
 
-- [ ] **13. Experiencia y niveles.** Por turno y por liderar; subir
+- [x] **13. Experiencia y niveles.** Por turno y por liderar; subir
       cuesta 1.000 × nivel. *Test = criterio 13: liderar aporta más que
       el turno solo.*
-- [ ] **14. Calibrar el crecimiento.** *Criterio 12: un héroe de nivel 8
+
+      > **HECHO (2026-09-21).** 11 tests. **[nuestro]** 10 de experiencia
+      > por turno y **200 por batalla liderada**: liderar tiene que aportar
+      > **veinte veces más** que esperar. Un héroe que sube solo con el
+      > tiempo es un contador; uno que sube peleando es una razón para
+      > pelear.
+      >
+      > Sube **en bucle**, no un nivel por llamada: si una batalla larga da
+      > para dos niveles, se dan los dos. Lo contrario perdería experiencia
+      > sin avisar.
+
+- [x] **14. Calibrar el crecimiento.** *Criterio 12: un héroe de nivel 8
       que lidera una temporada llega a 12 o más, y no a 20.*
       **Simulación de temporada.**
 
+      > **HECHO (2026-09-21).** Criterio 12 medido: un héroe de nivel 8 que
+      > lidera 100 batallas en 2.000 turnos llega a **12 o más y no a 20**.
+      > Subir del 8 al 9 cuesta **800 turnos de espera o 40 batallas**.
+
 **El mercado**
 
-- [ ] **15. Las reglas de la subasta, puras.** Mínimo del +5%, un turno
+- [x] **15. Las reglas de la subasta, puras.** Mínimo del +5%, un turno
       por puja, cierre a los 30 minutos de la última, 2,5 horas mínimo.
       *Test = criterios 3 y 4, con el reloj **por parámetro**.* *Toca
       `packages/core`.*
-- [ ] **16. La tabla de lotes y la puja con bloqueo.** *Test = criterio
+
+      > **HECHO (2026-09-21).** `packages/core/src/market.ts`, 19 tests.
+      > Todos los números son los publicados.
+      >
+      > **El reloj entra por parámetro**, así que estos tests no dependen
+      > del día que se ejecuten (invariante 2). Y **manda el plazo más
+      > tardío** de los dos: sin el mínimo de 2,5 horas, pujar en el minuto
+      > uno cerraría la subasta en media hora y nadie más la vería.
+      >
+      > La puja mínima **redondea hacia arriba**: hacia abajo, una de 101
+      > aceptaría 106 y el +5% publicado dejaría de cumplirse.
+
+- [x] **16. La tabla de lotes y la puja con bloqueo.** *Test = criterio
       5 contra Postgres: **dos pujas simultáneas no se pisan**, gana una
       y la otra conserva su geld.* **Es el invariante 14.** **Migración
       aditiva.**
-- [ ] **17. La resolución programada.** Idempotente: solo lotes
+
+      > **HECHO (2026-09-21).** `applyBid()` con la fila del lote
+      > bloqueada. El test lanza **dos pujas a la vez** y comprueba que
+      > gana una y la otra conserva su geld: sin el bloqueo, las dos leen
+      > el mismo importe y la segunda pisa a la primera sin que nada se
+      > queje.
+      >
+      > **Cobrar, devolver y guardar son una transacción**, no tres. Y al
+      > superado se le devuelve **todo**, no la diferencia.
+
+- [x] **17. La resolución programada.** Idempotente: solo lotes
       abiertos y vencidos. *Test = criterio 6 con el reloj inyectado, y
       que correrla dos veces no adjudique dos veces.*
-- [ ] **18. Poner un lote a la venta, y las cuatro secciones.** Items,
+
+      > **HECHO (2026-09-21).** `settleLots()`, idempotente por
+      > construcción: solo mira lotes **abiertos y vencidos**, así que
+      > correrla mil veces adjudica una. El test la corre dos veces y la
+      > segunda devuelve 0.
+      >
+      > El comprador **ya pagó al pujar**, así que al adjudicar solo cobra
+      > el vendedor: ése es el sentido de cobrar por delante.
+
+- [x] **18. Poner un lote a la venta, y las cuatro secciones.** Items,
       hechizos, unidades invocables y taberna de héroes. *Test: vender
       lo que no se tiene es error de dominio.*
 
+      > **HECHO (2026-09-21).** Las cuatro secciones, y vender lo que no se
+      > tiene es un **422 con su código**, no un 500.
+      >
+      > La entrega vive en el servidor y no en el núcleo, **porque no es
+      > una regla de juego**: la regla —quién gana y por cuánto— está en
+      > `market.ts` y es pura. Un hechizo comprado que ya sabías **no se
+      > duplica**: en el original no se pueden tener dos copias.
+
 **Ranking**
 
-- [ ] **19. Ranking e instantánea diaria.** *Test = criterios 18 y 19:
+- [x] **19. Ranking e instantánea diaria.** *Test = criterios 18 y 19:
       ordena por `netPower()` sin recalcular nada, y **un mago protegido
       aparece marcado**.* *Toca `apps/server`.*
+
+      > **HECHO (2026-09-21).** Criterios 18 y 19. Ordena por `netPower()`
+      > **sin recalcular nada** (invariante 5), y **un mago protegido
+      > aparece marcado**: esconderlo haría que la lista mintiera sobre
+      > cuánta gente hay jugando, que es justo lo que un jugador nuevo mira
+      > para decidir si se queda.
+      >
+      > **Ni ejército ni geld**, con test: saber con qué cuenta el rival
+      > convierte la guerra en aritmética.
 
 **Cliente**
 

@@ -133,3 +133,53 @@ export function assignmentTriggers(
   if (ownPower <= 0) return enemyPower > 0;
   return enemyPower / ownPower >= thresholdShare;
 }
+
+// --- Experiencia y niveles. Fase 4 --------------------------------------
+
+/**
+ * Lo que cuesta subir del nivel `n` al `n+1`: **1.000 × nivel actual**.
+ * docs/ORIGINAL.md §7, confirmado.
+ */
+export function levelUpCost(level: number): number {
+  return 1_000 * Math.max(1, level);
+}
+
+/** Nivel en el que empiezan los héroes que se compran. docs/ORIGINAL.md §7. */
+export const HIRED_HERO_LEVEL = 8;
+
+/**
+ * Experiencia que gana un héroe **por turno gastado**.
+ *
+ * **[nuestro]** El original dice «por turno y por liderar» y no publica
+ * cuánto. Se pone **10 por turno** y **200 por batalla liderada**, y el
+ * porqué es una decisión de diseño explícita: **liderar tiene que aportar
+ * veinte veces más que esperar**. Un héroe que sube solo con el tiempo es
+ * un contador; uno que sube peleando es una razón para pelear.
+ *
+ * Con esto, subir del 8 al 9 —8.000 de experiencia— cuesta 800 turnos de
+ * espera **o 40 batallas**. Ver el criterio 12 de docs/SISTEMAS.md §12.1.
+ */
+export const HERO_XP_PER_TURN = 10;
+export const HERO_XP_PER_BATTLE = 200;
+
+export interface HeroProgress {
+  level: number;
+  experience: number;
+}
+
+/**
+ * Suma experiencia y sube los niveles que dé.
+ *
+ * Sube **en bucle**, no un nivel por llamada: si una batalla larga da para
+ * dos niveles, se dan los dos. Lo contrario haría que la experiencia se
+ * perdiera sin avisar.
+ */
+export function gainExperience(hero: HeroProgress, xp: number): HeroProgress {
+  let { level, experience } = hero;
+  experience += Math.max(0, xp);
+  while (experience >= levelUpCost(level)) {
+    experience -= levelUpCost(level);
+    level += 1;
+  }
+  return { level, experience };
+}
