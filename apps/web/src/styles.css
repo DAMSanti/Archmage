@@ -1,0 +1,517 @@
+/*
+ * docs/INTERFAZ.md §6.
+ *
+ * La regla que gobierna todo lo de aquí: **si hay que elegir entre que se vea
+ * bonito y que se lea, se lee.**
+ *
+ * La ilustración de fondo nunca va detrás del texto: va detrás y alrededor de
+ * los paneles, y los paneles son opacos (§6.5). El contraste se mide contra
+ * el panel, nunca contra la imagen.
+ */
+
+:root {
+  --fondo: #14100c;
+  --panel: #1e1813;
+  --panel-alto: #2a211a;
+  --marco: #6b5537;
+  --marco-luz: #8a6f47;
+  --texto: #ece0cb;
+  --texto-tenue: #a8987e;
+  --texto-apagado: #7a6d59;
+  --acento: #d4a638;
+  --positivo: #7fa66b;
+  --negativo: #d4605e;
+  --aviso: #d08b3c;
+
+  --escuela-ascendant: #f2ead8;
+  --escuela-verdant: #4e9e4a;
+  --escuela-eradication: #d1442c;
+  --escuela-phantasm: #3f7fc4;
+  --escuela-nether: #8574a0;
+
+  --display: 'Cinzel', 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --gutter: 16px;
+  --radio: 3px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* El color de respaldo: la interfaz funciona entera sin ilustración. */
+  background-color: var(--fondo);
+  color: var(--texto);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* La ilustración, detrás de todo y NUNCA bajo el texto. */
+.escena {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* Marcador de posición mientras no hay assets (docs/ASSETS.md). */
+.escena--marcador {
+  background-image: radial-gradient(
+    ellipse at 50% 20%,
+    #2a2018 0%,
+    #1a140f 45%,
+    var(--fondo) 100%
+  );
+}
+
+.envoltorio {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--gutter);
+}
+
+/* --- Cabecera ----------------------------------------------------------- */
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--marco);
+}
+
+.cabecera__titulo {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  color: var(--texto);
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 12px 0 0;
+}
+
+.nav__enlace {
+  font-family: var(--display);
+  letter-spacing: 0.06em;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  color: var(--texto-tenue);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  min-height: 40px;
+}
+
+.nav__enlace:hover {
+  color: var(--texto);
+}
+
+.nav__enlace[aria-current='page'] {
+  border-color: var(--marco);
+  color: var(--acento);
+}
+
+/* --- Paneles ------------------------------------------------------------ */
+
+/*
+ * Opacidad mínima del 92% (§6.5). Aquí son opacos del todo: la ilustración se
+ * ve por los bordes, que es donde §8 de ASSETS manda poner lo interesante.
+ */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  margin-bottom: var(--gutter);
+  padding: 14px 16px;
+  position: relative;
+}
+
+/* El ornamento es decoración: no lleva información y desaparece en móvil. */
+.panel::before,
+.panel::after {
+  border-color: var(--marco-luz);
+  border-style: solid;
+  content: '';
+  height: 10px;
+  position: absolute;
+  width: 10px;
+}
+
+.panel::before {
+  border-width: 1px 0 0 1px;
+  left: -1px;
+  top: -1px;
+}
+
+.panel::after {
+  border-width: 0 1px 1px 0;
+  bottom: -1px;
+  right: -1px;
+}
+
+.panel__titulo {
+  color: var(--texto-tenue);
+  font-family: var(--display);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+/* --- Datos -------------------------------------------------------------- */
+
+/*
+ * Cifras tabulares en TODA columna de números (§6.4). Este juego es una
+ * columna de cifras de siete dígitos que cambian cada turno: si los dígitos
+ * no ocupan lo mismo, la columna baila y deja de poder leerse de un vistazo.
+ */
+.cifra {
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.recursos {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.recurso {
+  background: var(--panel-alto);
+  border-radius: var(--radio);
+  padding: 10px 12px;
+}
+
+.recurso__nombre {
+  color: var(--texto-tenue);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.recurso__valor {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.recurso__neto {
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.neto--positivo {
+  color: var(--positivo);
+}
+
+.neto--negativo {
+  color: var(--negativo);
+}
+
+.neto--cero {
+  color: var(--texto-apagado);
+}
+
+.recurso__nota {
+  color: var(--texto-apagado);
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+/* --- Reparto de la tierra ----------------------------------------------- */
+
+/*
+ * Porcentaje y absoluto juntos (§4), y **sin marcar umbrales ni decir si eso
+ * es bueno** (§1): la interfaz contesta «¿cómo estoy?», no «¿qué debería
+ * hacer?».
+ */
+.reparto {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.reparto th,
+.reparto td {
+  border-bottom: 1px solid #2c241c;
+  padding: 7px 6px;
+  text-align: right;
+}
+
+.reparto th:first-child,
+.reparto td:first-child {
+  text-align: left;
+}
+
+.reparto th {
+  color: var(--texto-tenue);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reparto td {
+  font-variant-numeric: tabular-nums;
+}
+
+.reparto__libre td {
+  color: var(--texto-tenue);
+  font-style: italic;
+}
+
+/* --- Acciones ----------------------------------------------------------- */
+
+.acciones {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* Cada acción es una columna; los botones se alinean abajo aunque el texto
+   de encima tenga alturas distintas. */
+.accion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.accion .confirmacion {
+  flex: 1 0 auto;
+  margin-top: 0;
+}
+
+.accion__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.control {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* La etiqueta y su campo envuelven juntos: si no, «turnos» se queda
+   huérfano en una línea y el campo en la siguiente. */
+.control__grupo {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.control__grupo input[type='number'] {
+  width: 5.5rem;
+}
+
+.control select {
+  max-width: 100%;
+}
+
+label {
+  color: var(--texto-tenue);
+  font-size: 0.85rem;
+}
+
+select,
+input[type='number'] {
+  background: var(--panel-alto);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.boton {
+  background: var(--panel-alto);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  color: var(--acento);
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.boton:hover:not(:disabled) {
+  border-color: var(--marco-luz);
+  color: var(--texto);
+}
+
+.boton:disabled {
+  color: var(--texto-apagado);
+  cursor: not-allowed;
+}
+
+/* --- Avisos y errores --------------------------------------------------- */
+
+/*
+ * Los avisos son texto, así que van sobre --panel como todo lo demás
+ * (§6.5, criterio 5). La pasada de navegador del 2026-09-21 los pilló
+ * dibujándose directamente sobre la ilustración: eran el único texto de la
+ * página fuera de un panel.
+ */
+.aviso,
+.error {
+  background: var(--panel);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  margin-bottom: 10px;
+  padding: 10px 14px;
+}
+
+.aviso {
+  border-left: 3px solid var(--aviso);
+  color: var(--aviso);
+}
+
+.error {
+  border-left: 3px solid var(--negativo);
+  color: var(--negativo);
+}
+
+/* --- Crónica ------------------------------------------------------------ */
+
+.cronica {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cronica__linea {
+  border-bottom: 1px solid #2c241c;
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.cronica__tipo {
+  color: var(--texto-tenue);
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cronica__detalle {
+  color: var(--texto);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Confirmación ------------------------------------------------------- */
+
+.confirmacion {
+  background: var(--panel-alto);
+  border: 1px solid var(--marco-luz);
+  border-radius: var(--radio);
+  margin-top: 10px;
+  padding: 12px;
+}
+
+.confirmacion__linea {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Móvil --------------------------------------------------------------
+ * No es una adaptación: es el caso principal (§5).
+ */
+@media (max-width: 640px) {
+  .envoltorio {
+    padding: 12px var(--gutter);
+  }
+
+  /* El ornamento es lo primero que sobra (§6.6). */
+  .panel::before,
+  .panel::after {
+    display: none;
+  }
+
+  /* La ilustración no se ve bajo un panel que ocupa la pantalla (§6.5). */
+  .escena {
+    display: none;
+  }
+
+  .cabecera__titulo {
+    font-size: 1.2rem;
+  }
+
+  /* Las tablas densas se apilan en tarjetas, no hacen scroll lateral (§5). */
+  .reparto thead {
+    display: none;
+  }
+
+  .reparto,
+  .reparto tbody,
+  .reparto tr,
+  .reparto td {
+    display: block;
+    width: 100%;
+  }
+
+  .reparto tr {
+    border-bottom: 1px solid #2c241c;
+    padding: 6px 0;
+  }
+
+  .reparto td {
+    border: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    text-align: right;
+  }
+
+  .reparto td::before {
+    color: var(--texto-tenue);
+    content: attr(data-etiqueta);
+    font-size: 0.8rem;
+  }
+
+  /* El nombre del edificio es el título de la tarjeta, no un par
+     etiqueta/valor: repetir «Edificio» nueve veces es ruido. */
+  .reparto__nombre {
+    color: var(--acento);
+    font-family: var(--display);
+    justify-content: flex-start;
+    letter-spacing: 0.06em;
+  }
+
+  .reparto__nombre::before {
+    content: none;
+  }
+
+  /* Y lo que está a cero no se enseña: «En obra 0,00» nueve veces tampoco
+     dice nada. Descubierto mirando la captura de móvil el 2026-09-21. */
+  .reparto__vacio {
+    display: none;
+  }
+}

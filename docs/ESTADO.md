@@ -6,8 +6,7 @@ estimación: o está medido, o dice que no lo está.
 Sirve para dos cosas: que nadie tenga que adivinar cuánto tarda algo, y
 que se note cuando un documento afirma algo que ya no es cierto.
 
-**Última actualización: 2026-09-21** (tras implementar el núcleo de la
-fase 1, tareas 1 a 14).
+**Última actualización: 2026-09-21** (fase 1 implementada, tareas 1 a 21).
 
 ---
 
@@ -19,14 +18,14 @@ El repositorio contiene, a día de hoy:
 |---|---|
 | Documentos en `docs/` | 9 |
 | Comandos en `.claude/commands/` | 4 |
-| Paquetes | **2** — `core` y `content` |
-| Tests | **94**, todos en verde |
+| Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
+| Tests | **121**, todos en verde |
 | `tsc -b` | sale **0** |
+| Bundle del cliente | **217 KB**, **63 KB** comprimido |
 
-**La fase 1 va por la tarea 14 de 22.** El núcleo, el contenido y la
-calibración están hechos y comprobados; el servidor, la persistencia y el
-cliente (tareas 15 a 21) no están empezados, y los assets (22) esperan una
-sesión con el usuario. Ver [ROADMAP.md](../ROADMAP.md).
+**La fase 1 está implementada: tareas 1 a 21 de 22.** Queda la **22**, la
+tanda de assets, que espera una sesión con el usuario. Ver
+[ROADMAP.md](../ROADMAP.md).
 
 ---
 
@@ -37,18 +36,23 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-21) |
 |---|---|---|
-| La suite entera (94 tests) | — | **~0,6 s** |
+| La suite entera (121 tests) | — | **~2,5 s** |
 | `vitest packages/core` (68 tests) | milisegundos | **~90 ms** |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (9 tests, hasta 2.000 turnos) | segundos | **66 ms** |
-| `vitest apps/server` | segundos | — *(no existe aún)* |
-| `tsc -b` en todo el repo | segundos | **~2 s** |
-| Navegador | minutos, turno exclusivo | — *(no se ha abierto)* |
+| `vitest apps/server` (15 tests, Postgres real) | segundos | **~0,6 s** |
+| `tsc -b` en todo el repo | segundos | **~3 s** |
+| `vite build` del cliente | ~1 min | **~0,7 s** |
+| Pasada de navegador (12 comprobaciones, 3 contextos) | minutos, turno exclusivo | **~12 s** |
 
-**La expectativa se quedó corta por el lado bueno**: se presupuestaron
-«segundos» para la simulación de temporada y son **66 milisegundos** para
-nueve escenarios de hasta 2.000 turnos. Calibrar es barato, así que no hay
-excusa para discutir balance en vez de medirlo.
+**Casi todas las expectativas se quedaron cortas por el lado bueno.** La
+simulación de temporada se presupuestó en «segundos» y son **66
+milisegundos** para nueve escenarios de hasta 2.000 turnos; el build del
+cliente se presupuestó en un minuto y tarda **menos de uno**; la pasada de
+navegador se presupuestó en minutos y son **12 segundos**.
+
+Comprobar este proyecto es barato, así que **no hay excusa para discutir
+balance en vez de medirlo, ni para dar algo por bueno sin mirarlo**.
 
 > Cuando midas uno, **ponlo aquí con la fecha**, y si una expectativa
 > resultó falsa, dilo: la fila dice lo que se esperaba y lo que salió.
@@ -57,10 +61,13 @@ excusa para discutir balance en vez de medirlo.
 
 ## 3. Huecos entre lo escrito y lo que existe
 
-- `docs/` describe el juego entero por fases. **Está implementado el
-  núcleo de la fase 1**: turnos, tierra, los ocho edificios, la economía,
-  el colapso, las seis acciones y el simulador de calibración. **No hay
-  servidor, ni persistencia, ni cliente, ni un solo píxel.**
+- `docs/` describe el juego entero por fases. **La fase 1 está
+  implementada y se juega**: turnos, tierra, los ocho edificios, la
+  economía, el colapso, las seis acciones, persistencia en Postgres,
+  servidor y tres pantallas. **Las fases 2 a 5 no existen.**
+- **No hay cuentas ni autenticación**: la fase 1 trabaja con un mago fijo
+  de desarrollo. Es deuda declarada en
+  [ARQUITECTURA.md §9.6](ARQUITECTURA.md), no un olvido.
 - [SISTEMAS.md](SISTEMAS.md) tenía **catorce marcas `[abierto]`**; la
   spec de la economía del 2026-09-21 cerró las de economía, tierra,
   edificios y estado inicial. **Quedan siete**, y ninguna bloquea la
@@ -94,7 +101,7 @@ excusa para discutir balance en vez de medirlo.
 | Items | **0** |
 | Héroes | **0** |
 | Habilidades | 10 nombradas, **0 con efecto numérico** |
-| Assets | 26 especificados con su prompt (4 fondos, 6 escuelas, 8 edificios, 6 recursos, 2 ornamentos), **0 generados** |
+| Assets | 26 especificados con su prompt, **0 generados** — la interfaz corre con marcadores de posición |
 
 ---
 
@@ -133,8 +140,15 @@ excusa para discutir balance en vez de medirlo.
   ningún reparto es una trampa) y **dos quedaron aplazados a la fase 3**
   con el motivo escrito: sin magia ni combate, el maná no sirve para
   nada y el net power es ~98% tierra.
-- **Lo que NO se ha comprobado**: nada visual. Los criterios 4 a 10 de
-  `INTERFAZ.md §6.7` —sin imágenes se juega, ningún texto sobre la
-  ilustración, peso, cifras tabulares, móvil— **están escritos y no
-  ejecutados**, porque no hay cliente. **No se ha abierto un navegador en
-  ningún momento.**
+- **Los criterios visuales están ejecutados en navegador** (2026-09-21):
+  **12 de 12**, en tres contextos —escritorio 1280×900, móvil 360×740 y
+  con las imágenes bloqueadas—. Medido: sin scroll horizontal a 360px, el
+  área de datos ocupa el **91,1%** del ancho, todas las zonas de toque
+  pasan de 40px, cifras tabulares en todas las columnas, y ningún color de
+  escuela pintando la interfaz.
+
+  **La primera pasada falló dos**, y una era una violación de la propia
+  spec: los avisos se dibujaban fuera de panel, sobre la ilustración.
+- **Lo que sigue sin comprobarse**: nada de las fases 2 a 5, y el juego
+  **no se ha jugado una sesión larga de verdad**. El simulador cubre la
+  economía; que el bucle de quince minutos enganche, no lo sabe nadie aún.

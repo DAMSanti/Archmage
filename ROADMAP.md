@@ -330,17 +330,62 @@ sin ningún asset.
 
 **Cliente**
 
-- [ ] **18. Andamiaje y tokens.** React + Vite, y los tokens de color y
+- [x] **18. Andamiaje y tokens.** React + Vite, y los tokens de color y
       tipografía de `INTERFAZ.md §6.2-6.4`. *Test automatizable: los
       criterios 1, 2 y 3 de `INTERFAZ.md §6.7` se calculan sobre los
       tokens sin abrir el navegador.*
-- [ ] **19. `/reino`.** Recursos, ingreso neto, reparto de tierra,
+
+      > **HECHO (2026-09-21).** React 18 + Vite 5, y `tokens.ts` con la paleta
+      > y la tipografía. *12 tests que calculan los criterios 1, 2 y 3 de
+      > INTERFAZ §6.7 sobre los tokens, sin navegador.*
+      >
+      > **Un test tumbó una suposición**: `toLocaleString('es-ES')` **no separa
+      > los miles en números de cuatro cifras** —es la convención del
+      > español—, y en pantalla salía «almacén 20.000» junto a «5200» en el
+      > mismo panel. Se fuerza `useGrouping: 'always'`: la spec dice
+      > «separador de miles siempre» y esta interfaz es columnas de cifras que
+      > hay que comparar de un vistazo.
+- [x] **19. `/reino`.** Recursos, ingreso neto, reparto de tierra,
       construir, explorar — **sin marcar umbrales ni sugerir óptimos**
       (`INTERFAZ.md §1`).
-- [ ] **20. `/ejercito` y `/cronica`.**
-- [ ] **21. La piel.** Paneles, ornamento y fondos, y los criterios 4 a
+
+      > **HECHO (2026-09-21).** Recursos con ingreso **neto**, reparto de la
+      > tierra con porcentaje y absoluto, y las cinco acciones. *Verificado en
+      > navegador: explorar con 200 acres da 21, exactamente lo que predice la
+      > curva.*
+      >
+      > **Y salió un detalle emergente correcto**: al explorar, el geld neto
+      > **baja** (de +3.355 a +3.290), porque más tierra diluye tu porcentaje
+      > de towns. La interfaz lo enseña y **no lo explica**, que es justo lo
+      > que pide §1.
+- [x] **20. `/ejercito` y `/cronica`.**
+
+      > **HECHO (2026-09-21).** Ejército con upkeep total y previsión de
+      > reclutamiento; crónica que traduce los eventos a frases. *Verificadas
+      > en la misma pasada de navegador.*
+      >
+      > **Mirar la captura encontró dos cosas que ningún test veía**: la
+      > crónica decía «Gastaste 1 turnos en explore» —plural de robot y el
+      > nombre interno de la acción—, y en móvil la tabla repetía «En obra
+      > 0,00» nueve veces. Las dos corregidas.
+- [x] **21. La piel.** Paneles, ornamento y fondos, y los criterios 4 a
       10 de `INTERFAZ.md §6.7`. *Las tareas 19, 20 y 21 se verifican en
       **una sola pasada de navegador**.*
+
+      > **HECHO (2026-09-21).** Paneles, ornamento de esquinas, fondo de
+      > escena y la adaptación a móvil. *Una sola pasada de navegador para las
+      > tareas 19, 20 y 21, como estaba presupuestado: **12/12
+      > comprobaciones**, con capturas en `apps/web/tests/capturas/`.*
+      >
+      > **La primera pasada falló dos**, y una era una violación de mi propia
+      > spec: los avisos se dibujaban **fuera de panel, o sea sobre la
+      > ilustración**, que es exactamente lo que el criterio 5 prohíbe. Eran
+      > el único texto de la página sin panel debajo. Corregido.
+      >
+      > Medido: **sin scroll horizontal a 360px**, el área de datos ocupa el
+      > **91,1%** del ancho, todas las zonas de toque pasan de 40px, y **con
+      > las imágenes bloqueadas la pantalla se lee entera**. El build pesa
+      > **63 KB comprimido**, muy por debajo del presupuesto.
 
 **Assets**
 

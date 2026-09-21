@@ -112,8 +112,9 @@ aquí primero.
 
 ## 4. Reglas de datos
 
-- **Todos los recursos son enteros.** `geld`, `mana`, `population`,
-  `food`, `land`. En base de datos, `bigint`.
+- **Todos los recursos son enteros.** `geld`, `mana`, `population` y
+  `land`. En base de datos, `bigint`. *(`food` salió de la lista el
+  2026-09-21: es capacidad derivada, no un recurso guardado — ver §1.)*
 - **Las fracciones de construcción se guardan aparte**, en
   `construction`, y ahí sí hay decimales — en punto fijo, con 4
   decimales, no en coma flotante.
@@ -188,8 +189,30 @@ protege; solo las protege saberlas.
 
 ## 6. API
 
-**[abierto]** El detalle de rutas y mensajes se cierra al implementar la
-fase 1, y se escribe aquí. Las reglas que ya están fijadas:
+**Cerrado el 2026-09-21** al implementar la fase 1. Las rutas que hay:
+
+| Ruta | Qué hace |
+|---|---|
+| `GET /api/health` | Comprobación de vida. |
+| `GET /api/catalog` | El catálogo entero: ocho edificios y cinco tropas. |
+| `GET /api/mage/me` | El estado **ya devengado**, más `derived` y la configuración del servidor. |
+| `POST /api/mage/me/actions` | **Una** acción. Devuelve estado nuevo, `derived` y **los eventos**. |
+| `GET /api/mage/me/chronicle` | La crónica, de lo más reciente a lo más antiguo. |
+
+**`derived`** lleva todo lo que la interfaz necesita y **no debe recalcular
+por su cuenta**: ingreso, upkeep, ingreso neto, almacén de maná, capacidad
+de población, net power, y la cuenta atrás al siguiente turno. Si un día
+hace falta un número que no está ahí, **la función falta en
+`packages/core`** — no se calcula en el cliente.
+
+Códigos: **400** si la petición no valida contra el esquema Zod, **422**
+con su código si es un error de dominio, **404** si el mago no existe.
+
+**[abierto]** Autenticación y WebSocket. La fase 1 trabaja con **un mago
+fijo** de desarrollo, y no hay avisos en vivo porque todavía no hay nada
+que avisar. Los dos llegan con el PvP, en la fase 3.
+
+Las reglas que ya estaban fijadas y se han respetado:
 
 - **HTTP para el estado y las acciones.** `GET /mage/me` devuelve el
   estado **ya devengado** (§3). `POST /mage/me/actions` recibe **una**
