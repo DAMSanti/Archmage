@@ -553,6 +553,12 @@ input[type='number'] {
 .marco--arriba {
   top: 0;
   height: var(--marco-arriba);
+  /* **El fondo se repite, no se estira** (docs/ASSETS.md §8.1): la barra
+     mide lo que mida la ventana, y una filigrana estirada se ve estirada.
+     `auto 100%` la escala al alto de la barra y la repite a lo ancho. */
+  background-image: url('/iconos/marco-arriba.webp');
+  background-repeat: repeat-x;
+  background-size: auto 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -624,6 +630,9 @@ input[type='number'] {
 .marco--abajo {
   bottom: 0;
   height: var(--marco-abajo);
+  background-image: url('/iconos/marco-abajo.webp');
+  background-repeat: repeat-x;
+  background-size: auto 100%;
   display: flex;
   align-items: stretch;
   border-top: 1px solid var(--marco);
@@ -736,10 +745,15 @@ input[type='number'] {
   padding: var(--gutter);
   border: 1px solid var(--marco);
   border-radius: var(--radio);
-  /* Mientras no haya arte, el degradado hace de paisaje. La interfaz tiene
-     que funcionar entera sin ninguna ilustración (§6.5, regla 3), así que
-     esto es el estado normal, no una degradación. */
-  background: radial-gradient(ellipse at 50% 90%, #241c14 0%, #191310 70%, var(--fondo) 100%);
+  /* El paisaje, y **debajo el degradado**: si la imagen no carga, la escena
+     sigue teniendo fondo y las piezas se leen (§6.5, regla 3). El color no
+     es un respaldo teórico — es el estado normal con las imágenes
+     bloqueadas, y se comprueba en la pasada de navegador. */
+  background-color: #191310;
+  background-image: url('/escena/paisaje.webp'),
+    radial-gradient(ellipse at 50% 90%, #241c14 0%, #191310 70%, var(--fondo) 100%);
+  background-size: cover, auto;
+  background-position: center, center;
 }
 
 .escena__pieza {
@@ -761,17 +775,13 @@ input[type='number'] {
   height: 46px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--marco);
-  border-radius: var(--radio);
-  background: var(--panel-alto);
-  color: var(--texto-tenue);
-  font-family: var(--display);
-  font-size: 1.1rem;
+  /* **Sin recuadro ni fondo**: la pieza va pintada y puesta sobre el
+     paisaje. El marco de bronce era el marcador de cuando no había arte, y
+     ahora sería precisamente lo que hace que se vea pegada encima. */
 }
 
 .escena__pieza:hover .escena__figura {
-  border-color: var(--marco-luz);
-  color: var(--texto);
+  filter: brightness(1.25);
 }
 
 /*
@@ -791,7 +801,6 @@ input[type='number'] {
 }
 
 .escena__nota {
-  grid-column: 1 / -1;
   color: var(--texto-apagado);
   font-size: 0.75rem;
   margin: 0;
@@ -894,4 +903,15 @@ td .icono-escuela {
 .marco__etiqueta {
   display: inline-flex;
   align-items: center;
+}
+
+/* **En movil el fondo de las barras desaparece**, como el resto del
+   ornamento (INTERFAZ §5): a 360px la barra es casi toda zona de toque, y
+   cobrar por una filigrana que no se ve es cobrar por nada. Queda el color
+   de --panel, que es lo que garantiza el contraste de todas formas. */
+@media (max-width: 640px) {
+  .marco--arriba,
+  .marco--abajo {
+    background-image: none;
+  }
 }

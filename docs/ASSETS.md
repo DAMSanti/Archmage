@@ -530,11 +530,40 @@ navegador.
 **Los huecos concretos que espera esta tanda**, para que nadie tenga que
 deducirlos:
 
-| Hueco | Dónde se usa hoy |
-|---|---|
-| El fondo exterior de `/reino` | `.escena-reino`, hoy un degradado radial |
-| Los ocho iconos de edificio **en grande** | `.escena__figura`, hoy una inicial |
-| ~~Los siete iconos de la barra~~ | **Hechos el 2026-09-22.** |
+**Los tres huecos están cubiertos desde el 2026-09-22.** El paisaje, las
+ocho piezas pintadas y los siete de la barra.
+
+#### El reino, hecho el 2026-09-22
+
+**La pantalla entera pesa 62,2 KB**, contra un tope de 250: el paisaje
+**24,6 KB** —con techo de 120— y las ocho piezas entre 3,8 y 5,6 KB.
+Los criterios 6 y 17 de [INTERFAZ.md §6.7](INTERFAZ.md), que estaban
+pendientes por no haber imágenes, **se pueden dar por cumplidos**.
+
+**El paisaje salió a la primera y sin edificios**, que era el único error
+sin arreglo posterior. Su centro tiene un p95 de luminancia de **0,080**,
+o sea bien apagado: las piezas se leen encima.
+
+**Las ocho piezas cubren entre el 43% y el 61% del cuadro** — muy pareja,
+y sin rastro del problema de formato ancho que tuvieron Ascendant, el net
+power y el de «Más». El `square composition, fills most of the frame` del
+prompt hizo su trabajo.
+
+> **Dos piezas estuvieron a punto de romperse y conviene saberlo.** La
+> ciudad y el node tenían solo el **52%** y el **55%** de su dibujo con
+> color —piedra y cristal gris— y su damero era gris medio,
+> `#505050`-`#888888`: justo la franja donde vive la piedra. Salieron
+> enteras, pero el margen fue estrecho. **Para un edificio de piedra,
+> pide explícitamente un tono cálido o musgoso en la piedra.**
+>
+> Y al **fort** le quedan dos o tres motas transparentes en la torre, de
+> unos 2,6px al tamaño al que se pinta. **No se rellenan a la fuerza**:
+> hacerlo pondría en riesgo la **barrera**, que es translúcida a
+> propósito y cuyo interior tiene que seguir dejándose ver.
+
+**Y el marco de bronce de las piezas desapareció.** Era el marcador de
+cuando no había arte; con una pieza pintada encima de un paisaje, un
+recuadro es precisamente lo que la haría parecer pegada.
 
 #### Las dos barras, hechas el 2026-09-22
 

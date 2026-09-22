@@ -45,6 +45,24 @@ try {
   await pagina.waitForTimeout(700);
   await pagina.screenshot({ path: `${SALIDA}/guerra-lista.png` });
 
+  // 0. **La precondicion, dicha en voz alta.**
+  //
+  // Esta pasada ATACA, y el ataque gasta ejercito. Corriendola varias veces
+  // seguidas contra la misma base de datos de desarrollo, el mago se queda
+  // sin tropas — y entonces fallan comprobaciones que no tienen nada que ver,
+  // como la del coste del ataque, porque el panel ni se pinta.
+  //
+  // Paso dos veces el 2026-09-22 antes de que alguien mirara la base de
+  // datos. Ahora lo dice aqui: un fallo de precondicion no debe disfrazarse
+  // de fallo de interfaz.
+  const yo = await (await fetch(`${URL}/api/mage/me`)).json();
+  const tropas = (yo.mage?.army ?? []).reduce((n, s) => n + s.count, 0);
+  comprobar(
+    'PRECONDICION: el mago de desarrollo tiene ejercito',
+    tropas > 0,
+    tropas > 0 ? `${tropas} unidades` : 'sin tropas: las pasadas anteriores se lo gastaron atacando',
+  );
+
   // 1. La pantalla existe y lista objetivos.
   const texto = await pagina.locator('main').innerText();
   comprobar('aparece la lista de objetivos', /a qui[eé]n atacar/i.test(texto));

@@ -132,7 +132,7 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
 
   return (
     <>
-      <header className="marco marco--arriba">
+      <header className="marco marco--arriba" data-textura="acotada">
         <div className="marco__recursos">
           <Recurso icono="geld" nombre="Geld" valor={num(mage.resources.geld)} neto={derived.net.geld} />
           <Recurso icono="mana" nombre="Maná" valor={num(mage.resources.mana)} neto={derived.net.mana} />
@@ -163,7 +163,7 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
         </div>
       </header>
 
-      <nav className="marco marco--abajo" aria-label="Navegación principal">
+      <nav className="marco marco--abajo" data-textura="acotada" aria-label="Navegación principal">
         {sueltas.map((e) => (
           <button
             key={e.id}

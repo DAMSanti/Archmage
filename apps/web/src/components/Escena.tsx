@@ -29,17 +29,23 @@
 import type { Buildings } from '@archmage/core';
 import { piezasDe } from '../escena.js';
 
-/** Inicial de cada edificio, mientras no haya arte. */
-const MARCA: Record<string, string> = {
-  farms: 'F',
-  towns: 'T',
-  nodes: 'N',
-  workshops: 'W',
-  barracks: 'B',
-  guilds: 'G',
-  forts: 'Ft',
-  barriers: 'Bd',
-};
+/**
+ * Las piezas pintadas, desde el 2026-09-22.
+ *
+ * Son **el segundo juego de arte** que docs/INTERFAZ.md §6.5 regla 11
+ * declara: planas en las tablas y la barra, pintadas aquí. Una pieza plana
+ * sobre un paisaje pintado se ve pegada encima, no puesta dentro.
+ */
+const PINTADAS = new Set([
+  'farms',
+  'towns',
+  'nodes',
+  'workshops',
+  'barracks',
+  'guilds',
+  'forts',
+  'barriers',
+]);
 
 export function Escena({
   buildings,
@@ -55,7 +61,8 @@ export function Escena({
   if (piezas.length === 0) return null;
 
   return (
-    <section className="escena-reino" aria-label="Tu reino">
+    <>
+      <section className="escena-reino" aria-label="Tu reino">
       {piezas.map((p) => (
         <button
           key={p.building}
@@ -66,15 +73,22 @@ export function Escena({
           {/* La figura es decoración: el nombre accesible lo lleva la placa,
               que es texto de verdad. */}
           <span className="escena__figura" aria-hidden="true">
-            {MARCA[p.building] ?? '·'}
+            {PINTADAS.has(p.building) && (
+              <img src={`/escena/${p.building}.webp`} width={46} height={46} alt="" />
+            )}
           </span>
           <span className="escena__placa">{p.nombre}</span>
         </button>
       ))}
+      </section>
+      {/* **Fuera del paisaje, no encima.** Es texto explicativo y la regla 1
+          de §6.5 no lo deja ir sobre una ilustración — y la excepción de la
+          textura acotada no cubre un fondo pintado, que no se puede acotar
+          sin dejar de ser un paisaje. */}
       <p className="escena__nota">
         La escena enseña <strong>qué</strong> has construido. Cuántos hay de cada uno está en la
         tabla.
       </p>
-    </section>
+    </>
   );
 }

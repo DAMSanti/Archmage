@@ -479,6 +479,29 @@ la ilegibilidad no.
 
 1. **La ilustración nunca va detrás del texto.** Va detrás y alrededor de
    los paneles. El texto se lee siempre sobre `--panel`.
+
+   > **Una excepción, y una sola: la textura acotada.** Añadida el
+   > 2026-09-22 con el fondo de las dos barras.
+   >
+   > El motivo de esta regla está en la 2: **una imagen tiene mil colores y
+   > ninguno es una garantía**. Pero si a una textura se le **mide el
+   > píxel más claro** y se le impone un techo, la garantía existe, y es
+   > la misma que da un color plano.
+   >
+   > Así que se permite una imagen detrás del texto **cuando cumple las
+   > tres cosas**:
+   >
+   > 1. Ningún píxel de la zona donde cae el texto pasa del techo que
+   >    exige el contraste de ese texto (`docs/ASSETS.md §8.1` lo calcula:
+   >    hoy, `#333333`).
+   > 2. **Se declara en el marcado** con `data-textura="acotada"`, para que
+   >    la comprobación del criterio 5 sepa distinguirla de una
+   >    ilustración y no la deje pasar por descuido.
+   > 3. **Sigue habiendo color de respaldo opaco** debajo: si la imagen no
+   >    carga, el texto se lee igual.
+   >
+   > Lo que **no** cubre esta excepción es un fondo pintado de pantalla. Un
+   > paisaje no se puede acotar sin dejar de ser un paisaje.
 2. **Los paneles son opacos o casi**: mínimo **92%** de opacidad. El
    contraste se mide **contra el color del panel**, nunca contra la
    ilustración — una imagen tiene mil colores y ninguno es una garantía.

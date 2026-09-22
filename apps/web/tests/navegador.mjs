@@ -164,7 +164,25 @@ try {
       let p = el;
       let cubierto = false;
       while (p && p !== document.documentElement) {
-        if (opaco(getComputedStyle(p).backgroundColor)) {
+        const cs = getComputedStyle(p);
+        // **Una imagen de fondo GANA al color, porque se pinta encima.**
+        //
+        // Este bucle solo miraba el backgroundColor, y daba por bueno
+        // cualquier texto que tuviera un color opaco en algun ancestro —
+        // aunque ESE MISMO ancestro pintara una ilustracion sobre el color.
+        // Lo destapo la escena del reino el 2026-09-22: la nota iba escrita
+        // sobre el paisaje y este criterio decia que todo bien.
+        // Una textura ACOTADA no es una ilustracion: se le ha medido el
+        // pixel mas claro y tiene techo (docs/INTERFAZ.md §6.5, regla 1).
+        // Se declara en el marcado a proposito, para que pasar por aqui sea
+        // una decision y no un descuido.
+        if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+          if (p.dataset.textura === 'acotada') {
+            cubierto = true;
+          }
+          break;
+        }
+        if (opaco(cs.backgroundColor)) {
           cubierto = true;
           break;
         }
