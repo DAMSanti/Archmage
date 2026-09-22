@@ -14,6 +14,66 @@ que evita rehacer la fase 1 en la 3.
 
 ## En curso
 
+### Las cuatro escuelas que faltan — spec escrita, sin implementar
+
+**Spec y criterios de aceptación:
+[docs/SISTEMAS.md §7.2](docs/SISTEMAS.md).** Escrita el 2026-09-22 con
+`/spec`. Toca además [docs/ORIGINAL.md §6.5, §6.6 y §7.3](docs/ORIGINAL.md)
+—la investigación nueva— y [docs/SPECS.md §4](docs/SPECS.md).
+
+**El hueco:** hay **seis especialidades declaradas y dos jugables**. Quien
+elige Ascendant, Eradication, Phantasm o Nether no tiene ni un hechizo ni
+una unidad propia.
+
+**Lo que la investigación encontró, y es más de lo que esperaba:**
+
+- **Las cinco listas de hechizos están publicadas enteras**, con nombre:
+  33 de Ascendant, 31 de Eradication, 34 de Phantasm, 30 de Nether y 8 de
+  Plain. La marca `[abierto]` de §7 llevaba desde la fase 2 y **se podía
+  haber cerrado mirando**.
+- **El plantel completo también**, con sus habilidades: 93 unidades de
+  las cinco escuelas más 20 de Plain.
+- **Y las veinte habilidades, con sus números exactos.**
+
+**Dos fallos que salieron al comprobar lo nuestro contra lo publicado, y
+son prerrequisitos de esta spec, no añadidos:**
+
+1. **`Healing` y `Regeneration` están modeladas al revés.** Las tenemos
+   como multiplicadores de daño —×0,70 y ×0,80— y el original dice que
+   **resucitan bajas al acabar**, el 30% y el 20%, y solo si quedan
+   supervivientes. Los números salen de leer «30%» y convertirlo en
+   multiplicador: **una lectura nuestra que §9.1 presentaba como
+   `[orig]`**. La tabla queda tachada con su aviso, no reescrita, porque
+   el código todavía hace lo de antes.
+2. **Once de las diecinueve habilidades están declaradas y no las lee
+   nadie**: marksmanship, swift, fear, beauty, clumsiness, additional
+   strike, steal life, bursting, pike, piercing y paralyze. No daba error
+   porque casi ninguna unidad las llevaba — **el plantel publicado las usa
+   por todas partes**, y añadir cuatro escuelas sin esto daría cuatro
+   escuelas que se juegan igual.
+
+**Cuatro decisiones tomadas con el usuario:** las **cuatro escuelas de
+una vez**, no una a una como hizo la fase 2; y entran **Racial Enemy**,
+**Recruit Speed** y **Corruption** —la mecánica por la que Nether no
+invoca a los tres Fallen sino que los **corrompe** desde Ascendant—, más
+**todas las habilidades publicadas**.
+
+**El tamaño, dicho antes de empezar:** ~128 hechizos y ~75 unidades, y
+como el original **no publica** rangos, costes ni fichas numéricas, son
+del orden de **quinientos números deducidos** de las anclas de §6.3 y
+§9.5. **Es la spec más grande del proyecto.**
+
+**El riesgo, declarado:** calibrar cuatro escuelas unas contra otras es
+bastante más difícil que calibrar una contra Verdant, y si el balance
+sale mal, sale mal en cuatro sitios a la vez y no se sabe cuál empuja.
+Por eso los criterios 10 y 11 piden **que ninguna gane siempre y que
+ninguna quede a más del 25% de la mejor**, en vez de pedir igualdad: cinco
+escuelas con la misma curva serían cinco escuelas iguales.
+
+Sin tareas todavía: las saca `/plan-tarea`.
+
+---
+
 ### Economía de la fase 1 — spec escrita, sin implementar
 
 **Spec y criterios de aceptación: [docs/SISTEMAS.md §3, §4.2, §5, §15 y

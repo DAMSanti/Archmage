@@ -109,11 +109,16 @@ export interface UnitSpec {
   /**
    * Tipos de daño a los que la unidad es **débil**.
    *
-   * No es lo mismo que resistir 0%: una debilidad mete **−50** en la media
-   * de resistencia (docs/ORIGINAL.md §9.1), así que la deja en negativo y
-   * el defensor recibe **más** daño del normal. El Treant resiste 0% al
+   * No es lo mismo que resistir 0%: una debilidad **duplica el daño**
+   * recibido (`WEAKNESS_MULTIPLIER` en `combat.ts`). El Treant resiste 0% al
    * fuego **y además** es débil a él: las dos cosas están en su ficha
    * publicada, y son dos cosas.
+   *
+   * **Este comentario decía «−50 en la media de resistencia» hasta el
+   * 2026-09-22**, que fue como se modeló al principio y resultó falso: la
+   * página *Damage Formula* dice `weakness (2.0 ...)`, un multiplicador
+   * aparte. El código se corrigió en la fase 3 y este docstring se quedó
+   * atrás — que es exactamente el tipo de mentira que no da ningún error.
    */
   weaknesses: readonly DamageType[];
   spellResistances: SpellResistances;

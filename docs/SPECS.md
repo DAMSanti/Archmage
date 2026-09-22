@@ -143,6 +143,33 @@ aquí primero.
   se rompe hacia atrás, y lo que deja de usarse no se borra durante una
   temporada viva.
 
+**Y una regla que la spec de §7.2 de SISTEMAS.md obliga a escribir
+(2026-09-22): una habilidad declarada que nadie lee es una mentira en el
+catálogo.**
+
+Al investigar las cuatro escuelas que faltan salió que **once de las
+diecinueve habilidades de unidad estaban declaradas y no las consultaba
+nadie**. El catálogo decía que el Elven Archer tiene *marksmanship*, el
+cliente lo pintaba, y en la batalla no cambiaba absolutamente nada.
+
+No dio ningún error porque casi ninguna unidad las llevaba todavía. Así
+que la regla, de ahora en adelante:
+
+> **Una entrada de `ABILITIES` no existe hasta que hay un test que la ve
+> cambiar un resultado.** Añadir el nombre es la parte fácil y la que no
+> sirve para nada sola.
+
+Es el mismo fallo que el de la fase 4, cuando `war.ts` nunca llamaba a
+`prepareBattle()`: **los tests probaban la pieza y nadie probaba que
+alguien la usara.** La diferencia es que aquel se encontró y éste llevaba
+desde la fase 3.
+
+**Y la ficha de unidad crece con dos campos** para las habilidades
+publicadas que faltaban — el bonus contra una raza y el modificador de
+velocidad de reclutamiento—. Como el catálogo viaja al cliente, **el
+esquema Zod de `packages/contract` cambia primero** y rompe la
+compilación de los dos lados a la vez, que es lo que queremos.
+
 ---
 
 ## 5. Invariantes

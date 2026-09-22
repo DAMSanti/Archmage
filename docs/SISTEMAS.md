@@ -532,7 +532,17 @@ Ancient), afecta a la potencia de hechizos y encantamientos, y vale
 **1.000 de net power por nivel**. **Armageddon no suma.** Y un
 encantamiento ya lanzado **no se actualiza** si tu nivel cambia después.
 
-**[abierto]** La lista de hechizos de las **cinco escuelas restantes**.
+**[orig]** ~~`[abierto]`~~ **La lista de hechizos de las cinco escuelas
+restantes**, cerrada el 2026-09-22: **estaba publicada entera** y no lo
+sabíamos ([ORIGINAL.md §6.5](ORIGINAL.md), confianza alta). Son 33 de
+Ascendant, 31 de Eradication, 34 de Phantasm, 30 de Nether y 8 de Plain,
+todas con nombre. La spec que las incorpora es **§7.2**.
+
+**Sigue `[abierto]` lo que de verdad no está publicado**: el **rango**, el
+**coste de maná**, el de **investigación** y los **turnos** de cada uno.
+Eso son ~500 números que se deducen de las anclas de
+[ORIGINAL.md §6.3](ORIGINAL.md), y los cierra §7.2 diciendo con qué se
+validaron.
 La de Verdant y Plain se cierra en §7.1.
 
 ### 7.1. La magia de la fase 2 **[F2]**
@@ -881,6 +891,253 @@ decenas.
 
 ---
 
+### 7.2. Las cuatro escuelas que faltan **[F6]**
+
+**Spec del 2026-09-22.** Cierra la marca `[abierto]` de §7 sobre «la lista
+de hechizos de las cinco escuelas restantes», y el hueco más grande que
+tiene hoy el juego.
+
+#### El problema, dicho con números
+
+Hay **seis especialidades declaradas** y **dos jugables**. Un mago que
+elige Ascendant, Eradication, Phantasm o Nether no tiene **ni un hechizo
+ni una unidad propia**: el catálogo son 27 hechizos Verdant y 7 Plain, y
+las unidades con escuela son de Verdant o de Plain.
+
+Eso contradice a [VISION.md](VISION.md) en lo más básico que promete —que
+elegir escuela sea una decisión— y contradice a §6, que describe una
+**rueda de adyacencia** de cinco colores que hoy no puede girar porque
+cuatro de sus radios están vacíos.
+
+#### Lo que hay que corregir ANTES de añadir nada
+
+**Dos cosas, y las dos se descubrieron al investigar para esta spec.** No
+son un añadido: son prerrequisitos, porque las cuatro escuelas nuevas se
+apoyan justo en lo que está mal.
+
+**1. `Healing` y `Regeneration` están modeladas al revés.** **[orig]**
+
+Este documento las tiene en la tabla de §9.1 como **multiplicadores de
+daño** —×0,70 y ×0,80— y esa tabla está marcada `[orig]`. El original
+dice otra cosa ([ORIGINAL.md §7.3](ORIGINAL.md), confianza alta):
+
+> *HEALING: 30% of slain units with healing will be resurrected after
+> battle, as long as there are survivors.*
+> *REGENERATION: 20% ... resurrected after battle ...*
+
+**No reducen el daño: resucitan bajas al acabar.** Los números 0,70 y
+0,80 salen de leer «30%» y «20%» y convertirlos en un multiplicador, que
+es una lectura nuestra disfrazada de cita del original — lo peor de las
+dos cosas, porque invoca una autoridad que no dice eso.
+
+**Y la diferencia no es cosmética.** Con nuestro modelo la unidad
+**sobrevive más durante la batalla**, así que pega más rondas y mata más.
+Con el publicado muere al ritmo normal y **devuelve cuerpos al final**,
+sin haber pegado de más. Es la diferencia entre una unidad que gana
+combates y una que abarata perderlos.
+
+Importa aquí y no en otro sitio porque **Ascendant se construye sobre
+Healing**: Angel, Archangel, Dominion, High Priest, Knight Templar,
+Preacher y Soul Speaker la llevan, y los tres Fallen de Nether también.
+Añadir Ascendant con Healing mal modelada es calibrar una escuela entera
+contra un número inventado.
+
+La maquinaria ya existe: `resurrectShares` y `resurrected()` resucitan
+bajas al acabar para los **items**. Falta que las habilidades de unidad
+entren por ahí.
+
+> **Criterio 1.** Una unidad con *healing* recibe **el mismo daño** que
+> una idéntica sin ella, y al acabar la batalla recupera el **30%** de
+> sus bajas; con *regeneration*, el **20%**. *Test del núcleo con semilla
+> fijada.*
+>
+> **Criterio 2.** **Sin supervivientes no resucita nadie.** Un stack
+> aniquilado se queda aniquilado, lleve lo que lleve. *Test del núcleo* —
+> y es la condición que el original enuncia explícitamente, así que
+> olvidarla haría inmortal a quien menos debería serlo.
+
+**2. Once de las diecinueve habilidades están declaradas y no se leen.**
+
+`ABILITIES` tiene diecinueve entradas. El motor solo **lee** ocho:
+`flying`, `endurance`, y las cinco de la tabla defensiva, más `siege` a
+nivel de batalla. Las otras once —`marksmanship`, `additional_strike`,
+`bursting`, `piercing`, `steal_life`, `beauty`, `pike`, `fear`, `swift`,
+`clumsiness`, `paralyze`— **no las consulta nadie**. Una unidad que las
+lleve se comporta exactamente igual que una que no.
+
+No daba ningún error porque hasta hoy casi ninguna unidad las llevaba.
+**El plantel publicado las usa por todas partes**: Marksmanship aparece
+en trece unidades, Swift en doce, Fear en seis, Additional Strike en
+siete. Añadir las cuatro escuelas sin esto da **cuatro escuelas que se
+juegan igual**, que es peor que no tenerlas: parecería que el diseño no
+distingue, cuando lo que pasa es que el motor no ejecuta.
+
+**Y los números están publicados**, así que no hay que inventarlos
+([ORIGINAL.md §7.3](ORIGINAL.md), confianza alta):
+
+| Habilidad | Qué hace | Nuestro estado |
+|---|---|---|
+| Marksmanship | **+10%** de acierto | declarada, no se lee |
+| Swift | quien te ataca pierde **10%** de acierto | declarada, no se lee |
+| Fear | quien te ataca sin tener *fear* pierde **15%** | declarada, no se lee |
+| Beauty | quien te ataca pierde **5%** | declarada, no se lee |
+| Clumsiness | **−10%** de acierto **propio** | declarada, no se lee |
+| Additional strike | pega **dos veces** con el primario | declarada, no se lee |
+| Steal life | **5%** del daño se vuelve vida propia | declarada, no se lee |
+| Bursting | al ser atacada estalla con su elemento | declarada, no se lee |
+| Pike | quien ataca con **iniciativa 2** pierde 1 | declarada, no se lee |
+| Endurance | fatiga **−10%** por golpe en vez de −15% | **correcta** |
+| Scales | **−25%** de daño recibido | **correcta** |
+| Charm | ataques y contraataques, **a la mitad** | **correcta** |
+| Large shield | daño **a distancia** a la mitad | **correcta** |
+| Flying | el melee no la alcanza, y sin penalización de asedio | **correcta** |
+| Weakness to | **×2** de daño del tipo | **correcta** |
+
+**`Steal life` es siempre 5%** en las siete unidades que lo llevan: es
+una constante, no un parámetro por unidad.
+
+**Y `Siege` está a la granularidad equivocada.** Hoy es un booleano de la
+batalla; el original la pone **por unidad** —«unit with Siege ability
+will not suffer such penalty»—, y solo tres la llevan: Catapult, Titan y
+Storm Giant. Convertirla en lo que es le da sentido a esas tres.
+
+> **Criterio 3.** Cada una de las once habilidades cambia un resultado
+> medible: **la misma batalla con la misma semilla** da un número
+> distinto con la habilidad y sin ella. *Once tests del núcleo, uno por
+> habilidad.* Es el criterio que impide volver a declarar sin ejecutar.
+>
+> **Criterio 4.** Los números coinciden con los publicados. *Test que
+> compara acierto con y sin marksmanship y comprueba que la diferencia es
+> exactamente 10 puntos*, y el equivalente para las otras cuatro de
+> acierto.
+>
+> **Criterio 5.** Un stack con *siege* **no** sufre la penalización de
+> asedio y sus compañeros **sí**, en la misma batalla. *Test del núcleo.*
+
+#### Las dos habilidades que faltan, y una mecánica
+
+**[orig]** El plantel publicado usa dos que no tenemos:
+
+- **ATTDEF AGAINST** (*Racial Enemy*): «fight better against given race».
+  Aparece como *Against Orc*, *Against Elf*, *Against Humans 100%* y
+  *Against Angels 50%*. El campo `race` **ya existe** en la ficha, así
+  que falta la regla, no el dato. **El porcentaje va en la ficha**: la
+  wiki lo publica en dos de los cuatro casos y en los otros dos no, así
+  que los que faltan son **`[abierto]`** y se deducen.
+- **RECRUIT SPEED ±%**: modifica lo que sale por barracks y por turno.
+  Hoy `recruitPerBarracks` es un número fijo por unidad; pasa a ser ese
+  número **por su modificador**. Va de **−30%** (Faerie Dragon) a **+50%**
+  (Crusader, Orc Raider, Orcish Archer), y es lo que separa a la carne de
+  cañón de la unidad de élite **sin tocar el combate**.
+
+**Y `Corruption`, que es la mejor cosa que apareció en la
+investigación.** **[orig]**, confianza alta. Nether **no invoca** a Fallen
+Angel, Fallen Archangel ni Fallen Dominion: las **corrompe** con un
+hechizo, tomando las tres unidades **de Ascendant** y cambiándoles el
+ataque de *Holy* a *Magic*. Son las únicas unidades marcadas *Ancient
+Unit from Corruption*.
+
+Es «poder a un precio» (§6) convertido en mecánica, y le da a Nether algo
+que ninguna otra escuela tiene: **una vía de obtener unidades que no es
+invocar**.
+
+> **Criterio 6.** *Corruption* sobre un stack de Angels lo convierte en
+> Fallen Angels con el ataque cambiado de *holy* a *magic*, y **no
+> funciona** sobre una unidad que no sea una de las tres. *Test del
+> núcleo.*
+>
+> **Criterio 7.** Un Fallen **ya no es débil a Holy** y un no-muerto de
+> Nether sí. *Test del núcleo* — es lo que hace que corromper sea un
+> ascenso y no un disfraz.
+>
+> **Criterio 8.** Una unidad con *recruit speed* **+50%** sale a vez y
+> media que una igual sin modificador, con los mismos barracks y los
+> mismos turnos. *Test del núcleo.*
+
+#### Las cuatro escuelas
+
+**[orig]** Las listas están publicadas enteras
+([ORIGINAL.md §6.5 y §7.3](ORIGINAL.md), confianza alta). Entran **las
+cuatro a la vez**, decidido con el usuario el 2026-09-22 sabiendo que
+calibrar cuatro escuelas unas contra otras es más difícil que calibrar
+una contra Verdant.
+
+| Escuela | Hechizos | Unidades | Identidad publicada |
+|---|---:|---:|---|
+| **Ascendant** | 33 | 18 | Defensiva. Ángeles, unicornios, titanes. Vive de *healing*. |
+| **Eradication** | 31 | 18 | Agresiva. Dragones, elementales de fuego, reptiles. |
+| **Phantasm** | 34 | 15 | Tramposa, y **la más variada**: 34 hechizos, más que ninguna. |
+| **Nether** | 30 | 24 | «Poder a un precio». Demonios y no-muertos, y **corrompe**. |
+
+**Lo que NO está publicado, y por tanto es `[nuestro]`**: el **rango**
+(Simple/Average/Complex/Ultimate/Ancient), el **coste de maná**, el de
+**investigación** y los **turnos** de cada hechizo; y el **poder, la
+vida, el upkeep y el power rank** de cada unidad. Son del orden de
+**quinientos números deducidos**, y se deducen de las anclas reales de
+[ORIGINAL.md §6.3 y §9.5](ORIGINAL.md), no a ojo.
+
+**Las anclas que mandan**, y conviene tenerlas a la vista porque son las
+que impiden diseñar otro juego: *Summon Dryad* cuesta **3.000** de maná,
+*Summon Unicorn* **30.000**, *Summon Hydra* **41.700**, *Aureate
+Conversion* **50.000** y *Summon Vampire* **77.700**. Y **el coste no
+escala con el número de unidades sino con el poder invocado**: *Summon
+Nymph* trae 1.700-2.400 ninfas por 7.900 y *Summon Vampire* unos 295 por
+77.700.
+
+> **Criterio 9.** **Las seis especialidades son jugables.** Un mago
+> creado con cada una de las seis tiene al menos un hechizo de invocación
+> investigable desde el turno 1 y una unidad reclutable. *Test del
+> núcleo, uno por especialidad.* Es el criterio que dice si esta spec
+> sirvió para algo.
+>
+> **Criterio 10.** **Ninguna escuela gana siempre.** En la simulación de
+> temporada, ninguna de las cinco saca el mayor net power en **todos** los
+> escenarios. *Simulación.*
+>
+> **Criterio 11.** **Y ninguna pierde siempre.** La peor de las cinco
+> queda a menos del **25%** por debajo de la mejor al final de la
+> temporada. *Simulación* — un 25% es una diferencia de identidad; un 60%
+> es una escuela que nadie elige.
+>
+> **Criterio 12.** **Phantasm tiene más hechizos que ninguna**, porque es
+> su rasgo publicado. *Test del catálogo.*
+>
+> **Criterio 13.** **La rueda gira.** Ascendant le gana a Nether con el
+> mismo net power, por las debilidades a *holy* de los no-muertos.
+> *Test del núcleo con semilla fijada.* Es la única pareja donde el
+> original publica el contador explícito, así que es la única que se
+> puede comprobar en vez de afirmar.
+>
+> **Criterio 14.** **El recargo fuera de color sigue valiendo.** Lanzar
+> un hechizo de la escuela opuesta cuesta lo que dice §7.1, con las
+> cinco escuelas presentes. *Test del núcleo.*
+>
+> **Criterio 15.** **Los 687 tests anteriores siguen en verde**, y el
+> total no baja. Las escuelas nuevas son datos; si mueven algo
+> calibrado, es que se tocó una regla sin querer.
+
+#### Fuera de alcance, y se declara
+
+- **El equilibrio fino entre las cinco.** Esta spec pide que ninguna gane
+  ni pierda siempre (criterios 10 y 11), **no** que estén igualadas. Cinco
+  escuelas con la misma curva serían cinco escuelas iguales, y entonces
+  elegir no sería una decisión.
+- **Los hechizos que piden mecánicas que no existen.** *Steal Artifact*,
+  *Wish*, *Time Twister*, *Scrying Mirror* y *Destroy Artifacts* tocan
+  espionaje y manipulación del turno ajeno, que no hay. **Entran al
+  catálogo marcados como no investigables** y se declaran, en vez de
+  callarse o de inventarles un efecto.
+- **Las unidades marcadas *Disabled on Beta Server*** (Crusader, Knight,
+  Paladin) y **las de Beta** (Banshee). El original las tiene apagadas;
+  encenderlas sería separarse de él sin motivo.
+- **Los retratos y los iconos** de las unidades nuevas. Es la tanda de
+  arte, que sigue siendo la tarea 23 de la fase 1.
+- **La sexta escuela.** Plain no recibe nada: tiene sus ocho hechizos
+  publicados y sus veinte unidades, y es lo que debe ser — el punto de
+  partida sin color, no una escuela más.
+
+---
+
 ## 8. Unidades **[F2 invocar / F3 combatir]**
 
 **[orig]** Dos vías, y son dos economías distintas:
@@ -1222,12 +1479,27 @@ suman:
 
 | Habilidad | Multiplicador | Cuándo |
 |---|---:|---|
-| Healing | 0,70 | siempre |
+| ~~Healing~~ | ~~0,70~~ | **mal. Ver el aviso de abajo.** |
 | Scales | 0,75 | siempre |
-| Regeneration | 0,80 | siempre |
+| ~~Regeneration~~ | ~~0,80~~ | **mal. Ver el aviso de abajo.** |
 | Charm | 0,50 | solo contra el ataque **primario** |
 | Large shield | 0,50 | solo contra ataques **a distancia** |
 | **Debilidad** | **2,00** | si el ataque **contiene** su tipo |
+
+> **Corregido el 2026-09-22: `Healing` y `Regeneration` NO son
+> multiplicadores de daño.**
+>
+> El original dice que **resucitan bajas al acabar la batalla** —el 30% y
+> el 20%, y solo si quedan supervivientes— y no que reduzcan el daño
+> mientras se lucha ([ORIGINAL.md §7.3](ORIGINAL.md), confianza alta).
+> Los valores 0,70 y 0,80 salen de leer «30%» y «20%» y convertirlos en
+> multiplicador: una lectura nuestra que este documento presentaba como
+> `[orig]`, que es lo peor de las dos cosas.
+>
+> **La tabla se deja tachada y no reescrita** a propósito: el código
+> todavía hace lo de arriba. Se arregla en **§7.2**, donde es
+> prerrequisito, porque Ascendant se construye sobre `healing` y
+> calibrarla contra un número inventado sería calibrar dos veces.
 
 Que sea un producto y no una resta es lo que las hace apilables sin
 romperse: las tres incondicionales juntas dejan el daño en **0,42**, y

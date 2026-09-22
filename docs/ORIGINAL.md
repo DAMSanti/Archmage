@@ -565,6 +565,165 @@ atacada.
 **Confirmado — tipos de efecto**: invocación, encantamiento, ofensivo,
 defensivo, utilidad/recursos, y hechizos que solo funcionan en batalla.
 
+### 6.5. Las cinco listas de hechizos, publicadas enteras
+
+**Confirmado, confianza alta** (página *Spells* de la wiki, consultada el
+2026-09-22). **Están las cinco escuelas completas, con nombre.** Hasta
+hoy este documento solo tenía Verdant en detalle y anclas sueltas de las
+demás; resulta que la lista entera estaba publicada.
+
+**Ascendant (33)** — Armor of Light, Bless, Blinding Flash, Call Empyrean
+Inquisitor, Consecration, Descent of Holy Being, Destroy Artifacts,
+Dispel Magic, Divine Inspiration, Gate, Healing, Heavenly Protection,
+Holy Word, Locate Artifact, Love and Peace, Miracle, Pacifism, Platinum
+Hand of Healing, Protection from Evil, Protection from Missile, Resist
+Elements, Resurrection, Summon Angel, Summon Archangel, Summon Astral
+Magician, Summon Naga Queen, Summon Pegasus, Summon Soul Speaker, Summon
+Spirit Warrior, Summon Titan, Summon Unicorn, Sword of Light, The Holy
+Light.
+
+**Verdant (30)** — Animal Summoning, Call Creeping Vines, Call Elven
+Blade Dancer, Call Griffon, Call High Elves, Call Hurricane, Call
+Mandrake, Call Treants, Call Phoenix, Call Venus Flytraps, Cancellation,
+Enlarge Animal, Eye of the Eagle, Nature's Cure, Nature's Favor,
+Nature's Lore, Plant Growth, Regeneration, Rust Armor, Serenity,
+Stunning Beauty, Summon Dryad, Summon Earth Elemental, Summon Locust
+Swarm, Summon Nymph, Summon Werebear, Sunray, Weather Summoning, Web of
+the Spider Woman, Wooden Soul.
+
+**Eradication (31)** — Battle Chant, Blaze, Call Dwarven Deathseeker,
+Call Dwarven Shaman, Call Lightning, Call Lizardmen, Call Storm Giant,
+Chain Lightning, Disintegrate, Earthquake, Fireball, Flame Arrow, Flame
+Blade, Flame Shield, Force Bolt, Giant Strength, Gravity Pull, Inferno,
+Lightning Strike, Lure Goblins, Meteor Storm, Stun, Summon Chimera,
+Summon Efreeti, Summon Fire Elemental, Summon Hellhound, Summon Hydra,
+Summon Red Dragon, Summon Salamander, Summon Wyvern, Volcano Eruption.
+
+**Phantasm (34)** — Aureate Conversion, Call Sirenes, Concentration,
+Confuse, Conjure Elemental, Double Time, Flight, Fog Cloud, Fool's Gold,
+Hallucination, Invisibility, Laziness, Lovesick, Mental Thrash, Mind
+Bar, Mirage Monster, Paralyze, Phantasm Magic, Phase Step, Scrying
+Mirror, Sleep, Slow, Steal Artifact, Summon Djinni, Summon Leviathan,
+Summon Medusa, Summon Mind Ripper, Summon Psychic Wisp, Summon Sprite,
+Summon Snowbeast, Summon Sylph, Temporal Stasis Field, The Wall of
+Silence, Wish.
+
+**Nether (30)** — Animate Ghouls, Animate Skeletons, Animate Zombie,
+Battle Lust, Black Death, Black Sabbath, Blacken Soul, Blood Curse,
+Blood Ritual, Contract of the Soul, Corruption, Curse, Death and Decay,
+Dreams of Seduction, Fear, Foul Water, Gaze of Death, Kiss of the
+Vampire, Night of the Living Dead, Shroud of Darkness, Summon Bulwark
+Horror, Summon Dark Elf Magician, Summon Demon Knight, Summon Horned
+Demon, Summon Lich, Summon Shadow, Summon Unholy Reaver, Summon Vampire,
+Summon Wraith, Touch of Necromancy.
+
+**Plain (8)** — Armageddon, Frozen Hell, Fury of God, Indulgence of God,
+Invigorate, Mute, Spell Strike, Time Twister.
+
+> **Phantasm es de verdad la más variada**, y ahora se puede contar en
+> vez de citarlo: **34 hechizos**, contra 30 de Verdant y Nether. La §5
+> lo decía como rasgo de identidad; la lista lo confirma.
+>
+> **Y Plain tiene ocho, no cero.** *Armageddon* es uno de ellos, lo que
+> encaja con §10.1: el hechizo que acaba el mundo no es de ninguna
+> escuela, y por eso puede lanzarlo cualquiera que llegue a él.
+
+**Lo que NO está publicado**, y sigue sin estarlo: **el rango, el coste
+de maná, el de investigación y los turnos de cada hechizo**. La página
+*Section 8* los describe en prosa, sin tabla. Las únicas cifras firmes
+siguen siendo las siete fichas de §6.3 y los efectos sueltos de ahí.
+
+---
+
+### 6.6. Efectos con número, ampliado
+
+**Confirmado, confianza media-alta** (*Section 8*, 2026-09-22).
+
+- *Mental Thrash* (Phantasm) hace **1.600 × tu nivel de hechizo** de daño
+  psíquico. Es la primera fórmula de hechizo ofensivo con número exacto
+  que tenemos, y **fija la escala del daño mágico**: a nivel 400 son
+  640.000 de daño, que se lleva por delante un stack entero.
+
+---
+
+## 7.3. El plantel completo, publicado
+
+**Confirmado, confianza alta** (página *Units* de la wiki, 2026-09-22).
+**Están las seis listas con sus habilidades**, que es bastante más de lo
+que esperábamos encontrar.
+
+Para cada unidad, la wiki publica **el ataque principal y su tipo, el
+ataque extra si lo tiene, y las habilidades especiales**. No publica en
+tabla el poder, la vida, el upkeep ni el power rank: esos siguen
+saliendo de las fichas de §9.5 y de deducción, como en la fase 3.
+
+**Eradication (18)** — Chimera, Dwarven Deathseeker, Dwarven Elite,
+Dwarven Shaman, Dwarven Warrior, Efreeti, Fire Elemental, Fire Giant,
+Goblin, Hell Hound, Hydra, Lizard Man, Ogre, Red Dragon, Salamander,
+Storm Giant, Troglodyte, Wyvern.
+
+**Verdant (18)** — Creeping Vines, Druid, Dryad, Earth Elemental, Elven
+Archer, Elven Blade Dancer, Elven Magician, Faerie Dragon, Gorilla,
+Griffon, High Elf, Mandrake, Nymph, Phoenix, Swanmay, Treant, Venus
+Flytrap, Werebear.
+
+**Ascendant (18)** — Angel, Archangel, Astral Magician, Catapult,
+Crusader, Dominion, Empyrean Inquisitor, High Priest, Knight, Knight
+Templar, Naga Queen, Paladin, Pegasus, Preacher, Soul Speaker, Spirit
+Warrior, Titan, Unicorn.
+
+**Phantasm (15)** — Air Elemental, Banshee, Djinni, Ice Elemental,
+Leviathan, Medusa, Mind Ripper, Phantom, Psychic Wisp, Shadow Monster,
+Siren, Sprite, Sylph, Water Elemental, Yeti.
+
+**Nether (24)** — Bulwark Horror, Cave Troll, Dark Apprentice, Dark Elf
+Magician, Demon Knight, Devil, Fallen Angel, Fallen Archangel, Fallen
+Dominion, Gargoyle, Ghoul, Horned Demon, Imp, Lich, Orc Raider, Orcish
+Archer, Shadow, Skeleton, Succubus, Unholy Reaver, Vampire, Wolf Raider,
+Wraith, Zombie.
+
+**Plain (20)** — Archer, Assassin, Bounty Hunter, Capsule Monster,
+Cavalry, Falcon, Fanatic, Frog, Stone Golem, Mercenary, Militia,
+Phalanx, Pikeman, Renegade Wizard, Sheep, Squirrel, Starving Peasant,
+Trained Elephant, War Hound, Werewolf.
+
+### Lo que esto confirma, y vale más que las listas
+
+**Las habilidades publicadas son casi exactamente las que ya
+implementamos.** El plantel usa: Flying, Endurance, Marksmanship, Swift,
+Siege, Regeneration, Additional Strike, Steal Life, Large Shield, Charm,
+Beauty, Fear, Scales, Healing, Pike, Piercing, Clumsiness, Paralyze,
+Bursting y Weakness to X. **Las veinte están en `ABILITIES` del
+núcleo**, salvo dos:
+
+- **Racial Enemy** (*Against Orc*, *Against Elf*, *Against Humans 100%*,
+  *Against Angels 50%*): un bonus contra una **raza** concreta. El campo
+  `race` ya existe en la ficha, así que falta la regla, no el dato.
+- **Recruit Speed ±%** (*Recruit Speed 30%*, *−25%*): modifica lo que
+  sale por barracks y por turno. Hoy eso es un número fijo por unidad.
+
+**Y tres marcas de categoría** que la wiki pone entre paréntesis:
+*Ultimate Unit* (Fire Elemental, Red Dragon, Earth Elemental, Phoenix,
+Dominion, Titan, Air Elemental, Ice Elemental, Leviathan, Water
+Elemental, Devil, Succubus, Unholy Reaver), *Ancient Unit from
+Corruption* (los tres Fallen de Nether) y *Disabled on Beta Server*.
+
+> **Los tres «Fallen» de Nether son la mecánica más interesante que
+> aparece aquí.** Fallen Angel, Fallen Archangel y Fallen Dominion son
+> las tres unidades **de Ascendant** con el ataque cambiado de Holy a
+> Magic, y se consiguen con el hechizo **Corruption**. Nether no las
+> invoca: **las corrompe**. Es «poder a un precio» (§5) hecho mecánica.
+
+**Steal Life es siempre 5%** en las siete unidades que lo llevan, así que
+no es un parámetro por unidad: es una constante.
+
+**Y las debilidades tienen un patrón claro**, que sirve de comprobación:
+todo lo de fuego es débil al frío, todo lo vegetal al fuego, y **todo lo
+no-muerto de Nether es débil a Holy** — Ghoul, Lich, Shadow, Skeleton,
+Vampire, Wraith y Zombie. Eso convierte a Ascendant en el contador
+natural de Nether, que es justo lo que dice la rueda de §5.
+
+
 ---
 
 ## 7. Unidades, héroes e items
