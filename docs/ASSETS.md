@@ -161,6 +161,18 @@ proponía «Torre del mago, Biblioteca, Cuartel, Defensas».
 | Comida | `fantasy game icon of a sack of grain and bread, [estilo base]` |
 | Tierra | `fantasy game icon of a parcel of land, rolling fields seen from above, [estilo base]` |
 | Turno | `fantasy game icon of an hourglass with arcane sand, [estilo base]` |
+| **Net power** | `fantasy game icon of a balance scale weighing a crown against a sword, [estilo base]` |
+
+> **Net power se añadió el 2026-09-22**, y faltaba. Este apartado tenía
+> seis recursos, pero **la barra superior enseña cinco cosas y una de
+> ellas es el net power** ([INTERFAZ.md §6.9](INTERFAZ.md)), que no es un
+> recurso que se gaste sino la medida de cuánto vales. De ahí la balanza:
+> no es algo que tengas, es algo que te pesan.
+>
+> **Comida y tierra, en cambio, NO salen en la barra.** Siguen haciendo
+> falta —la comida en el aviso de colapso y la tierra en `/reino`— pero
+> no son de la tanda de la barra. Son siete iconos en total y cinco de
+> ellos van arriba: geld, maná, población, net power y turno.
 
 El **turno** es el icono más importante del juego: es la moneda
 ([SISTEMAS.md §2](SISTEMAS.md)). Merece más de un intento.
@@ -500,33 +512,88 @@ must stay readable at 24 pixels, [estilo base]
 
 ### Tanda 1 — los seis iconos de escuela
 
-Los dos de arriba más estos cuatro. **De una sola tanda**, porque tienen
-que leerse como un conjunto (§2).
+**Reescrita el 2026-09-22 con lo que enseñó la tanda 0.** La versión
+anterior de estos prompts llevaba el mismo defecto que hizo fallar a
+Verdant — pedir varios elementos y adornos finos—, así que se
+habrían generado cuatro iconos ilegibles más.
+
+**La forma que funcionó es la de Nether: un anillo grueso, una figura
+central, y nada más.** Tres formas gordas. Por eso las seis se construyen
+igual, y eso las hace un conjunto sin tener que pedirlo.
+
+**Y dos instrucciones que van en los seis, porque la tanda 0 las pagó
+caras:**
+
+- **`PNG with real alpha transparency`**, y explicitado además que **no
+  se dibuje el damero**. El generador entregó JPEG con el patrón de
+  cuadros **pintado en los píxeles**, y cada vez de un tono distinto.
+- **`must stay readable at 24 pixels`**, que es donde se rompen.
+
+Si aun así llegan en JPEG con damero, `assets/limpiar-damero.py` lo
+quita, y `assets/ajustar-al-token.py` corrige el color.
+
+**Verdant se regenera.** El que hay no se lee a 24px, y eso es densidad
+de detalle, no brillo.
 
 ```
-flat vector game icon of an ascendant holy magic sigil, radiant winged
-halo over a circular rune, warm off-white #f2ead8, [estilo base]
+flat vector game icon of a verdant nature magic sigil, one large bold
+oak leaf inside a plain thick circular ring, no runes, no vines,
+deep green #4e9e4a, only two shapes, thick outlines, large simple forms,
+must stay readable at 24 pixels, flat vector game icon, clean bold
+outlines, simple shading, dark fantasy medieval palette, centered
+composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
 ```
 
 ```
-flat vector game icon of an eradication fire magic sigil, a bursting
-flame over a cracked circular rune, red #d1442c, [estilo base]
+flat vector game icon of an ascendant holy magic sigil, one pair of
+large wings and a solid halo inside a plain thick circular ring,
+warm off-white #f2ead8 with a bright rim, only three shapes, thick
+outlines, large simple forms, must stay readable at 24 pixels,
+flat vector game icon, clean bold outlines, simple shading, dark fantasy
+medieval palette, centered composition, PNG with real alpha
+transparency, do not draw a checkerboard pattern, no text, no watermark
 ```
 
 ```
-flat vector game icon of a phantasm illusion magic sigil, a spiral eye
-over a circular rune, blue #3f7fc4, [estilo base]
+flat vector game icon of an eradication fire magic sigil, one large bold
+flame inside a plain thick circular ring that is cracked on one side,
+red #d1442c with a bright rim, only two shapes, thick outlines, large
+simple forms, must stay readable at 24 pixels, flat vector game icon,
+clean bold outlines, simple shading, dark fantasy medieval palette,
+centered composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
 ```
 
 ```
-flat vector game icon of a plain colourless magic sigil, an empty
-circular rune with no element inside, muted grey-brown, deliberately
-the least ornate of the six, [estilo base]
+flat vector game icon of a phantasm illusion magic sigil, one large
+staring eye inside a plain thick circular ring, blue #3f7fc4 with a
+bright rim, only two shapes, thick outlines, large simple forms, must
+stay readable at 24 pixels, flat vector game icon, clean bold outlines,
+simple shading, dark fantasy medieval palette, centered composition,
+PNG with real alpha transparency, do not draw a checkerboard pattern,
+no text, no watermark
 ```
 
-> **Plain tiene que verse como el punto de partida**, no como una sexta
-> escuela: es el mago sin color (§3 de [SISTEMAS.md](SISTEMAS.md)). Si
-> sale tan vistoso como los otros cinco, está mal.
+```
+flat vector game icon of a plain colourless magic sigil, an empty thick
+circular ring with nothing inside it, muted grey-brown #a8987e, one
+shape only, deliberately the least ornate of the six, thick outlines,
+must stay readable at 24 pixels, flat vector game icon, clean bold
+outlines, simple shading, dark fantasy medieval palette, centered
+composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+> **Plain es el anillo vacío, y eso no es pereza: es la regla.** Es el
+> mago **sin color** ([SISTEMAS.md §6](SISTEMAS.md)), el punto de
+> partida, no una sexta escuela. El hueco en el centro **es** su
+> identidad: las otras cinco tienen algo dentro y Plain no tiene nada
+> todavía. Si sale tan vistoso como los demás, está mal.
+>
+> Y es el único que puede permitirse ser una sola forma, porque a 24px un
+> anillo gris se distingue de los otros cinco **justamente por estar
+> vacío**.
 
 ---
 
