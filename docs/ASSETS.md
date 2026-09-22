@@ -477,8 +477,28 @@ Medido sobre `--panel`:
 **Lo que falla en Verdant no es el brillo: es la densidad de detalle.**
 El anillo de runas y las enredaderas son demasiado finos, y a 24px
 desaparecen la hoja y las runas y queda un disco verde. Eso **no se
-corrige con ganancia** — se corrige generando otra vez con menos cosas
+corrige con ganancia** — se corregiría generando otra vez con menos cosas
 dentro.
+
+> **Y aun así se queda. [nuestro], decidido por el usuario el
+> 2026-09-22.** Le gusta como quedó tras el ajuste al token y no quiere
+> cambiarlo.
+>
+> **Es una decisión legítima y el coste está medido**, que es lo único
+> que hacía falta para tomarla bien: en los dos sitios donde sale pequeño
+> —la columna del libro a 20px y las filas del ranking a 24px— se lee
+> como una mancha verde y no como una hoja. **No incumple ningún criterio
+> de §10**: el 1 pide que las seis se distingan entre sí sobre `--panel`,
+> y verde no se confunde con ninguna; el 6 es de los iconos de la barra,
+> y éste no va ahí.
+>
+> Lo que compra a cambio es el icono más trabajado de los seis a tamaño
+> grande, que es donde vive en la ficha del mago (64px) y en el selector
+> del portal (32px).
+>
+> **El prompt simplificado se queda escrito abajo de todas formas**, sin
+> usar: si algún día el tamaño pequeño molesta, la alternativa ya está
+> pensada y no hay que volver a deducirla.
 
 > **Y una lección sobre el instrumento, que es la parte que más vale.**
 > La primera medida que se usó fue la **desviación de luminancia a 24px**,
@@ -525,12 +545,10 @@ aplicó **solo a Verdant**, que es el único que seguía por debajo.
 dentro —un anillo vacío— y **es el que mejor se lee a 24px**. Confirma
 lo de la tanda 0 por el otro lado: no es el brillo, es cuántas cosas hay.
 
-**Dos cosas siguen mal, y las dos piden generar, no retocar:**
+**Verdant se queda como está**, por decisión del usuario y con el coste
+medido (arriba). **Queda uno por generar:**
 
-1. **Verdant sigue sin regenerarse.** El ajuste al token le sube el
-   contraste pero a 24px sigue siendo un disco verde. El prompt corregido
-   está arriba.
-2. **Ascendant ocupa el 21% del cuadro**, la mitad que los demás. Las alas
+1. **Ascendant ocupa el 21% del cuadro**, la mitad que los demás. Las alas
    salieron **fuera** del anillo y muy anchas —2657×1412—, y al meterlo
    en un cuadro se desperdicia la mitad del alto: al lado de los otros
    cinco parece más pequeño y más débil. El prompt pedía las alas
@@ -575,8 +593,10 @@ caras:**
 Si aun así llegan en JPEG con damero, `assets/limpiar-damero.py` lo
 quita, y `assets/ajustar-al-token.py` corrige el color.
 
-**Verdant se regenera.** El que hay no se lee a 24px, y eso es densidad
-de detalle, no brillo.
+**Verdant NO se regenera** — decidido el 2026-09-22; ver el resultado de
+la tanda 1 más abajo. El prompt se deja escrito **sin usar**, por si el
+tamaño pequeño molesta algún día: así la alternativa ya está pensada y no
+hay que volver a deducirla.
 
 ```
 flat vector game icon of a verdant nature magic sigil, one large bold

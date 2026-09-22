@@ -83,8 +83,10 @@ Tres cosas que salieron de ahí, y están en
   la mediana en `#35573c` cuando `--escuela-verdant` es `#4e9e4a`.
   Corregido en luz lineal, el contraste sube de 2,26:1 a 3,84:1.
 - **Verdant sigue siendo ilegible a 24px**, y eso no es brillo sino
-  densidad de detalle: hay que regenerarlo con menos elementos. El prompt
-  corregido está en §8.4.
+  densidad de detalle. **Se queda así de todas formas**: decidido por el
+  usuario el 2026-09-22, con el coste medido y escrito en §8.4 — a 20 y
+  24px se lee como una mancha, y no incumple ningún criterio de §10. El
+  prompt simplificado queda escrito sin usar.
 
 **Y una lección sobre el instrumento.** La primera métrica decía que el
 Verdant ajustado ya igualaba al Nether. Medía **contraste, no
