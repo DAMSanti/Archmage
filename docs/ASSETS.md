@@ -453,7 +453,31 @@ deducirlos:
 |---|---|
 | El fondo exterior de `/reino` | `.escena-reino`, hoy un degradado radial |
 | Los ocho iconos de edificio **en grande** | `.escena__figura`, hoy una inicial |
-| Los siete iconos de la barra | `.marco__enlace`, hoy solo la etiqueta de texto |
+| ~~Los siete iconos de la barra~~ | **Hechos el 2026-09-22.** |
+
+#### Las dos barras, hechas el 2026-09-22
+
+**Doce iconos, y pesan 21 KB los doce.** Se sirven a **48px** —el doble del
+mayor tamaño al que se pintan— y no en el master de 512: servir el master
+habría costado 30 KB por icono para dibujarlo a 18.
+
+**Ninguno salió gris**, así que la trampa de §2 regla 7 no llegó a
+morder. Pedirlos en oro `#d4a638` fue lo que la evitó.
+
+**Dos son flojos, y es el problema de Ascendant otra vez**: figuras anchas
+metidas en un cuadrado. El **net power** ocupa el **25%** del cuadro y el
+de **Más** el **19%**, cuando los otros diez están entre el 41% y el 73%.
+
+> **No bloquean, y el motivo estaba previsto:** los dos llevan **etiqueta
+> de texto al lado**, que es exactamente por lo que §8.3 dice que el icono
+> no tiene que cargar solo con el significado. Se quedan.
+>
+> Si algún día molestan, lo que hay que cambiar es la **composición**, no
+> el dibujo: una balanza **con pie**, que es alta, y tres puntos en
+> **triángulo** en vez de en fila. Las dos caben en un cuadrado.
+
+**Y el icono va encima de la etiqueta en la barra de abajo, no al lado.**
+A 24px, icono y texto en fila no caben en los 44px de zona de toque.
 
 Y el peso: los **criterios 6 y 17** de §6.7 (≤ 250 KB por pantalla,
 piezas incluidas) **no se pueden comprobar todavía** y quedan pendientes

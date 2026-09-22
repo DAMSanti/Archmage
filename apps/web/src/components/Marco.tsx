@@ -29,6 +29,31 @@ import { cadencia, cuentaAtras } from '../reloj.js';
 export interface Entrada {
   id: string;
   nombre: string;
+  /** El fichero de `/iconos/`, sin extensión. Si falta, va solo el texto. */
+  icono?: string;
+}
+
+/**
+ * Un icono del marco.
+ *
+ * **Decorativo, siempre**: la etiqueta de texto va al lado y dice lo mismo
+ * (docs/ASSETS.md §8.3), así que va `aria-hidden` y un lector de pantalla no
+ * lo oye dos veces. Y por eso los dos iconos más flojos —el de net power y el
+ * de «Más», que son figuras anchas metidas en un cuadrado— no estorban: el
+ * texto carga con el significado.
+ */
+function Icono({ nombre, tam }: { nombre: string | undefined; tam: number }) {
+  if (!nombre) return null;
+  return (
+    <img
+      className="marco__icono"
+      src={`/iconos/${nombre}.webp`}
+      width={tam}
+      height={tam}
+      alt=""
+      aria-hidden="true"
+    />
+  );
 }
 
 export interface MarcoProps {
@@ -46,12 +71,25 @@ export interface MarcoProps {
  * tu ejército sobrevive. Y lleva signo además de color, porque **el color
  * nunca es la única señal** (§6.7, criterio 10).
  */
-function Recurso({ nombre, valor, neto }: { nombre: string; valor: string; neto?: number }) {
+function Recurso({
+  nombre,
+  valor,
+  neto,
+  icono,
+}: {
+  nombre: string;
+  valor: string;
+  neto?: number;
+  icono: string;
+}) {
   const color =
     neto === undefined ? undefined : neto < 0 ? 'var(--negativo)' : 'var(--texto-tenue)';
   return (
     <div className="marco__recurso">
-      <span className="marco__etiqueta">{nombre}</span>
+      <span className="marco__etiqueta">
+        <Icono nombre={icono} tam={18} />
+        {nombre}
+      </span>
       <span className="marco__cifra">{valor}</span>
       {neto !== undefined && (
         <span className="marco__neto" style={{ color }}>
@@ -96,21 +134,25 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
     <>
       <header className="marco marco--arriba">
         <div className="marco__recursos">
-          <Recurso nombre="Geld" valor={num(mage.resources.geld)} neto={derived.net.geld} />
-          <Recurso nombre="Maná" valor={num(mage.resources.mana)} neto={derived.net.mana} />
+          <Recurso icono="geld" nombre="Geld" valor={num(mage.resources.geld)} neto={derived.net.geld} />
+          <Recurso icono="mana" nombre="Maná" valor={num(mage.resources.mana)} neto={derived.net.mana} />
           <Recurso
+            icono="poblacion"
             nombre="Población"
             valor={`${num(mage.resources.population)} / ${num(derived.populationCapacity.capacity)}`}
             neto={derived.net.population}
           />
-          <Recurso nombre="Net power" valor={num(derived.netPower)} />
+          <Recurso icono="netpower" nombre="Net power" valor={num(derived.netPower)} />
         </div>
 
         {/* **Los turnos no comparten fila con nada**: son la moneda del
             juego (docs/SISTEMAS.md §2), y quien mira la pantalla tiene que
             saber cuántos puede gastar sin buscarlo. */}
         <div className="marco__turnos">
-          <span className="marco__etiqueta">Turnos</span>
+          <span className="marco__etiqueta">
+            <Icono nombre="turno" tam={18} />
+            Turnos
+          </span>
           <span className="marco__cifra marco__cifra--turnos">{num(mage.turns.current)}</span>
           <span className="marco__nota">
             {cadencia(server)} · {cuentaAtras(derived.msToNextTurn, derived.turnsAtCap)}
@@ -130,6 +172,7 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
             aria-current={pantalla === e.id ? 'page' : undefined}
             onClick={() => ir(e.id)}
           >
+            <Icono nombre={e.icono} tam={24} />
             <span className="marco__enlace-nombre">{e.nombre}</span>
           </button>
         ))}
@@ -143,6 +186,7 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
             aria-current={enMenu ? 'page' : undefined}
             onClick={() => setAbierto((x) => !x)}
           >
+            <Icono nombre="nav-mas" tam={24} />
             <span className="marco__enlace-nombre">Más</span>
           </button>
 

@@ -57,12 +57,12 @@ type Pantalla =
  * se consulta cuando uno quiere, y un mensaje te espera.
  */
 const SUELTAS: readonly Entrada[] = [
-  { id: 'reino', nombre: 'Reino' },
-  { id: 'ejercito', nombre: 'Ejército' },
-  { id: 'magia', nombre: 'Magia' },
-  { id: 'guerra', nombre: 'Guerra' },
-  { id: 'cronica', nombre: 'Crónica' },
-  { id: 'mensajes', nombre: 'Mensajes' },
+  { id: 'reino', nombre: 'Reino', icono: 'nav-reino' },
+  { id: 'ejercito', nombre: 'Ejército', icono: 'nav-ejercito' },
+  { id: 'magia', nombre: 'Magia', icono: 'nav-magia' },
+  { id: 'guerra', nombre: 'Guerra', icono: 'nav-guerra' },
+  { id: 'cronica', nombre: 'Crónica', icono: 'nav-cronica' },
+  { id: 'mensajes', nombre: 'Mensajes', icono: 'nav-mensajes' },
 ];
 
 /** Las cinco de «Más»: las que se miran cuando uno quiere. */

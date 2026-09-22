@@ -867,3 +867,31 @@ input[type='number'] {
 td .icono-escuela {
   margin-right: 6px;
 }
+
+/* --- Los iconos del marco ---------------------------------------------
+ * docs/ASSETS.md §5 y §8.3. Decorativos: la etiqueta de texto va al lado.
+ */
+
+.marco__icono {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 5px;
+  flex: none;
+}
+
+/* En la barra de abajo el icono va ENCIMA de la etiqueta, no al lado: a
+   24px, icono y texto en fila no caben en 44px de ancho. */
+.marco__enlace {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.marco__enlace .marco__icono {
+  margin-right: 0;
+  vertical-align: 0;
+}
+
+.marco__etiqueta {
+  display: inline-flex;
+  align-items: center;
+}
