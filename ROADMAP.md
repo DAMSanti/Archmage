@@ -66,7 +66,35 @@ imágenes con el usuario, con su cuenta de Gemini Pro. `/plan-tarea` puede
 sacar las tareas de integración —exportar, medir el peso, enchufar cada
 asset a su hueco— pero **las generaciones las hace el usuario**.
 
-Sin tareas todavía: las saca `/plan-tarea`.
+**Tanda 0 generada el 2026-09-22, y su veredicto: Nether pasa, Verdant
+no.** Es **al revés de lo que la spec predijo** — se dijo que Nether era
+donde el estilo se rompería primero, por lo del negro invisible sobre el
+fondo, y resultó ser el que mejor aguanta.
+
+Tres cosas que salieron de ahí, y están en
+[docs/ASSETS.md §2 y §8.4](docs/ASSETS.md):
+
+- **El generador no entrega transparencia: entrega un damero pintado**, en
+  JPEG, y **cada generación lo pintó en un tono distinto**. Se limpia
+  usando que el damero alterna dos tonos y una mancha sólida no — sin
+  eso, el 57% del cráneo de Nether se borraba por ser casi tan oscuro
+  como su propio fondo.
+- **Las generaciones salen más oscuras que su token.** El verde llegó con
+  la mediana en `#35573c` cuando `--escuela-verdant` es `#4e9e4a`.
+  Corregido en luz lineal, el contraste sube de 2,26:1 a 3,84:1.
+- **Verdant sigue siendo ilegible a 24px**, y eso no es brillo sino
+  densidad de detalle: hay que regenerarlo con menos elementos. El prompt
+  corregido está en §8.4.
+
+**Y una lección sobre el instrumento.** La primera métrica decía que el
+Verdant ajustado ya igualaba al Nether. Medía **contraste, no
+legibilidad**: un icono lleno de aristas finas puntúa alto justo por lo
+que lo hace ilegible. Lo zanjó reducir a 24px y ampliar el resultado. Es
+el mismo tipo de fallo que ya tenía fichado INTERFAZ §6.7 con la razón de
+contraste — **dos veces elegir una métrica cómoda que no mide lo que se
+pregunta.**
+
+Quedan **53 piezas**. Sin tareas todavía: las saca `/plan-tarea`.
 
 ---
 

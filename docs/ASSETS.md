@@ -76,6 +76,38 @@ moderno. Un fondo precioso de 2 MB está mal aunque sea precioso.
    tienen que leerse como un conjunto, y eso se pierde si se generan
    sueltos con semanas de diferencia.
 
+**Y lo que enseñó la tanda 0, el 2026-09-22:**
+
+4. **El generador no entrega transparencia: entrega un damero pintado.**
+   Los dos iconos llegaron en **JPEG**, que no tiene canal alfa, con el
+   patrón de cuadros **dibujado en los píxeles** — y cada generación lo
+   pintó en un tono distinto: claro (`#ffffff`/`#dddddd`) en uno y oscuro
+   (`#020308`/`#2a2f33`) en el otro. De ahí la impresión de que «tienen
+   fondos diferentes»: la tienen, y ninguno es transparente.
+
+   **Pídele PNG explícitamente**, y si aun así llega en JPEG, el damero
+   se quita sola: el discriminador **no es el color, es que el damero
+   alterna dos tonos**. Una región de fondo contiene los dos; una mancha
+   sólida del dibujo, uno solo. Sin eso, con tolerancia suficiente para
+   coger los bordes suavizados, **el 57% del cráneo de Nether se borraba**
+   por ser casi tan oscuro como su propio damero.
+
+   Y hay que limpiar el **moteado de compresión**: el JPEG deja píxeles
+   sueltos por todo el fondo que no se parecen a ninguno de los dos
+   tonos. Son invisibles y bastan para que el recorte al contenido salga
+   del lienzo entero.
+
+5. **Compara el color contra su token antes de dar nada por bueno.** Las
+   generaciones salen **más oscuras de lo que pide el documento**: el
+   verde llegó con su percentil 99 en `#5e9a5b` y su mediana en
+   `#35573c`, cuando `--escuela-verdant` es `#4e9e4a`. Sobre `--panel`
+   eso daba **2,26:1** de contraste. Corregido en luz lineal hasta el
+   token —ganancia ×2,15, con solo el 0,46% de píxeles saturando— sube a
+   **3,84:1**.
+
+6. **Y júzgalo a 24px ampliando el resultado, no el original.** Es la
+   única forma de ver qué sobrevive de verdad.
+
 ---
 
 ## 3. Iconos de escuela
@@ -387,6 +419,55 @@ transparent background, no text, no watermark
 > —calavera, vacío— y un reborde claro**, no el relleno. Es la única
 > escuela que se separa de su color nominal, y se separa porque el color
 > nominal es invisible.
+
+#### Resultado de la tanda 0 — generada el 2026-09-22
+
+**Nether pasa. Verdant no**, y **es al revés de lo que esta misma sección
+predijo**: se dijo que Nether era «donde el estilo se rompe primero» por
+lo del negro invisible, y resultó ser el que mejor aguanta. La
+instrucción de «forma y reborde claro» funcionó tan bien que lo salvó.
+
+Medido sobre `--panel`:
+
+| | contraste medio | su 10% más claro | a 24px |
+|---|---:|---:|---|
+| **Nether** | 3,11:1 | **8,83:1** | el anillo y los cuernos **se leen** |
+| **Verdant**, como llegó | 2,26:1 | 3,87:1 | mancha |
+| **Verdant**, ajustado al token | 3,84:1 | 7,39:1 | **sigue siendo mancha** |
+
+**Lo que falla en Verdant no es el brillo: es la densidad de detalle.**
+El anillo de runas y las enredaderas son demasiado finos, y a 24px
+desaparecen la hoja y las runas y queda un disco verde. Eso **no se
+corrige con ganancia** — se corrige generando otra vez con menos cosas
+dentro.
+
+> **Y una lección sobre el instrumento, que es la parte que más vale.**
+> La primera medida que se usó fue la **desviación de luminancia a 24px**,
+> y decía que el Verdant ajustado (0,072) igualaba al Nether (0,076).
+> **Mide contraste, no legibilidad**: un icono lleno de aristas finas
+> puntúa alto justamente por lo que lo hace ilegible. Lo que lo zanjó fue
+> **reducir a 24px y ampliar el resultado**, que enseña qué sobrevive.
+>
+> Es el mismo error que ya tiene fichado
+> [INTERFAZ.md §6.7](INTERFAZ.md) con la razón de contraste, que mide
+> claridad y no tono. **Dos veces el mismo tipo de fallo: elegir una
+> métrica cómoda que no mide lo que se está preguntando.**
+
+**Lo que hay que cambiar del prompt de Verdant para la tanda 1**: menos
+elementos y más grandes. La hoja **o** el anillo de runas, no los dos, y
+las enredaderas fuera. Nether funciona porque son tres formas —anillo,
+cuernos, cráneo— y ninguna es fina.
+
+```
+flat vector game icon of a verdant nature magic sigil, one large bold
+oak leaf inside a plain thick circular ring, no runes, no vines,
+deep green #4e9e4a, very few elements, thick shapes only,
+must stay readable at 24 pixels, [estilo base]
+```
+
+**Los dos ficheros limpios están en `assets/`** como `verdant` y
+`nether`, en PNG y WebP de 512px. A los tamaños que se van a servir pesan
+**3-4 KB a 64px** y **7-12 KB a 128px**, muy por debajo del presupuesto.
 
 ---
 
