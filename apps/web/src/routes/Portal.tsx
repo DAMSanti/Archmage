@@ -13,6 +13,7 @@
  */
 
 import { useState } from 'react';
+import { IconoEscuela } from '../components/IconoEscuela.js';
 import {
   crearMago,
   entrar,
@@ -161,10 +162,15 @@ export function Portal({ onListo }: { onListo: () => void }) {
             {ESCUELAS.map((e) => (
               <li key={e.id}>
                 <button
-                  className="nav__enlace"
+                  className="nav__enlace nav__enlace--escuela"
                   aria-current={escuela === e.id ? 'true' : undefined}
                   onClick={() => setEscuela(e.id)}
                 >
+                  {/* **Aquí es donde más falta hacía.** Es la pantalla en
+                      la que se elige escuela, y la escuela **no cambia
+                      durante la temporada** (invariante 10): quien elige
+                      merece ver de qué se trata, no solo leer el nombre. */}
+                  <IconoEscuela escuela={e.id} tam={32} />
                   {e.nombre}
                 </button>{' '}
                 <span className="recurso__nota">{e.que}</span>

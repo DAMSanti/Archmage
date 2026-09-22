@@ -206,6 +206,33 @@ ejército y no como una colección.
 
 ---
 
+### Dónde sale el icono de escuela, y una regla que salió de usarlo
+
+**Enchufado el 2026-09-22.** [INTERFAZ.md §6.3](INTERFAZ.md) dice que el
+icono va **solo donde se habla de una escuela**. Hoy son cuatro sitios, y
+los cuatro están puestos:
+
+| Dónde | Tamaño |
+|---|---:|
+| El selector de escuela del portal | 32px |
+| La ficha del mago en `/magia` | 64px |
+| La columna **Escuela** del libro de hechizos | 20px |
+| Cada fila de `/ranking` | 24px |
+
+**Y la regla que salió de verlo funcionando: el hueco se reserva aunque
+no haya icono.**
+
+De las seis escuelas hay **dos generadas**. La primera versión no pintaba
+nada para las otras cuatro, y en el selector del portal —una lista de
+cinco— las dos con icono salían indentadas y las tres sin él a ras: la
+lista parecía rota. Pasaba igual en el libro con las filas de Plain.
+
+Reservar el sitio no solo lo alinea: hace que **ir añadiendo iconos no
+mueva nada de lo que ya estaba**, que es lo que interesa cuando quedan
+53 piezas por generar.
+
+---
+
 ## 8. Fondos pintados — uno por pantalla
 
 **Una ilustración por pantalla**, ni una por estado ni una por escuela

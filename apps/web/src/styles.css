@@ -834,14 +834,36 @@ input[type='number'] {
  */
 
 .icono-escuela {
+  /* **Ocupa sitio aunque esté vacío**: de las seis escuelas hay dos
+     generadas, y si el hueco no se reservara la lista saldría escalonada.
+     Ver el comentario de IconoEscuela.tsx. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
   vertical-align: middle;
   margin-right: 8px;
+}
+
+.icono-escuela img {
   /* Sin fondo propio: el icono ya trae alfa, y va sobre --panel. */
-  display: inline-block;
+  display: block;
 }
 
 .recurso__valor--conicono {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* El boton de elegir escuela lleva su icono dentro, alineado con el nombre. */
+.nav__enlace--escuela {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* En la tabla el icono no debe estirar la fila. */
+td .icono-escuela {
+  margin-right: 6px;
 }

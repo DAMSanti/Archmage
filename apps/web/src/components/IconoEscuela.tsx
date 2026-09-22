@@ -22,16 +22,16 @@
 const GENERADAS = new Set(['verdant', 'nether']);
 
 export function IconoEscuela({ escuela, tam = 24 }: { escuela: string; tam?: number }) {
-  if (!GENERADAS.has(escuela)) return null;
+  // **El hueco se reserva aunque no haya icono.** Sin esto, en una lista
+  // de seis escuelas las dos generadas salen indentadas y las cuatro que
+  // faltan a ras, y la lista parece rota — lo enseñó la pasada de
+  // navegador del portal. Reservar el sitio hace que ir añadiendo iconos
+  // no mueva nada de lo que ya estaba.
   return (
-    <img
-      className="icono-escuela"
-      src={`/escuelas/${escuela}.webp`}
-      width={tam}
-      height={tam}
-      alt=""
-      aria-hidden="true"
-      loading="lazy"
-    />
+    <span className="icono-escuela" style={{ width: tam, height: tam }} aria-hidden="true">
+      {GENERADAS.has(escuela) && (
+        <img src={`/escuelas/${escuela}.webp`} width={tam} height={tam} alt="" loading="lazy" />
+      )}
+    </span>
   );
 }

@@ -231,6 +231,11 @@ export function Magia({ data, onAction, ocupado }: MagiaProps) {
                       <span className="recurso__nota"> · {EFECTO[e.effectKind]}</span>
                     </td>
                     <td data-etiqueta="Escuela" className="recurso__nota">
+                      {/* docs/INTERFAZ.md §6.3: el icono va donde se habla
+                          de una escuela, y «iconos de hechizo» es esto. A
+                          20px porque acompaña al nombre, que sigue ahí: el
+                          icono es redundancia, no el único indicador. */}
+                      <IconoEscuela escuela={e.school} tam={20} />
                       {ESCUELA[e.school] ?? e.school}
                       {e.relation !== 'own' && (
                         <>
