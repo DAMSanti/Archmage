@@ -394,6 +394,76 @@ merece más de estas dos piezas.
 
 ---
 
+### El fondo de las dos barras, y el número que lo hace posible
+
+**Spec del 2026-09-22.** Las barras del marco son hoy un rectángulo de
+`--panel` liso. Llevan **fondo con diseño**, y eso choca de frente con una
+regla que conviene no romper a la ligera.
+
+[INTERFAZ.md §6.5](INTERFAZ.md), regla 2: **el contraste se mide contra el
+color del panel, nunca contra una ilustración** — una imagen tiene mil
+colores y ninguno es una garantía. Meter textura detrás de las cifras es
+exactamente lo que esa regla prohíbe.
+
+**Se resuelve partiendo la barra en dos zonas**, y calculando el límite en
+vez de estimarlo:
+
+| Zona | Qué lleva encima | Puede ser |
+|---|---|---|
+| **El riel** del borde interior, ≤12% del alto | nada | **brillante**, bronce a tope |
+| **El cuerpo**, el 88% restante | cifras y etiquetas | **nada más claro que `#333333`** |
+
+**De dónde sale el `#333333`.** Es el fondo más claro con el que la
+etiqueta más tenue de la barra —`--texto-tenue`, `#a8987e`— sigue llegando
+a **4,5:1**. Calculado, no elegido: para `--texto` sobre la barra de
+arriba el tope sería `#484848` y para `--acento` `#414141`, así que manda
+el más estricto de los tres y vale para las dos barras.
+
+> **Y por eso el riel va en el borde interior, no alrededor.** Ahí es
+> donde la barra toca el contenido, que es el único sitio donde un filete
+> brillante se lee como un marco y no como una línea suelta. Además deja
+> el borde exterior pegado al canto de la pantalla, donde no se ve.
+
+**Son tileables en horizontal**, y no es un capricho: la barra mide lo que
+mida la ventana, de 360px a un monitor ancho. Una imagen que no repite sin
+costura obliga a estirarla, y una filigrana estirada se ve estirada.
+
+```
+seamless horizontally tileable wide ornamental bar for a dark fantasy game
+interface, the bottom 12 percent is an ornate bronze rail with a repeating
+filigree motif, the remaining 88 percent above it is a very dark tooled
+leather field, nothing in that dark field brighter than #333333, deep
+brown-black palette, no bright highlights in the dark field, muted, flat
+even lighting, seamless left and right edges, opaque, no transparency,
+no text, no watermark, no characters
+```
+
+```
+seamless horizontally tileable wide ornamental bar for a dark fantasy game
+interface, the top 12 percent is an ornate bronze rail with a repeating
+filigree motif, the remaining 88 percent below it is a very dark tooled
+leather field, nothing in that dark field brighter than #333333, deep
+brown-black palette, no bright highlights in the dark field, muted, flat
+even lighting, seamless left and right edges, opaque, no transparency,
+no text, no watermark, no characters
+```
+
+> **Van opacos y sin alfa, al revés que todo lo demás.** Son fondos, no
+> piezas recortadas: `limpiar-damero.py` **no se les pasa**. Si vinieran
+> con damero, sería porque el generador lo dibujó donde no toca.
+
+**Se comprueba con una medida, no mirando**: se lee el píxel más claro de
+la franja donde va el texto y tiene que quedarse por debajo del tope. Si
+lo pasa, **lo que cede es la textura** — se oscurece y ya, porque la
+alternativa es que un número de siete cifras deje de leerse sobre una
+voluta.
+
+**Y en móvil desaparecen**, como el resto del ornamento
+([INTERFAZ.md §5](INTERFAZ.md)): a 360px la barra es casi toda zona de
+toque, y cobrar por una filigrana que no se ve es cobrar por nada.
+
+---
+
 ## 8.2. El fondo del reino es distinto
 
 **Spec del 2026-09-22**, a partir de una referencia visual del usuario.
@@ -412,17 +482,28 @@ taparían lo interesante. Aquí el centro **es** lo interesante: hace falta
 terreno donde apoyar las piezas.
 
 ```
-wide fantasy game background, a green valley seen from above at dusk,
-forest and mountains framing the edges, winding dirt paths,
-dark medieval fantasy atmosphere, painterly style, muted warm palette,
-no characters, no buildings, no text,
+wide fantasy game background, a green valley seen from slightly above at
+dusk, forest and mountains framing the left and right edges, winding dirt
+paths, dark medieval fantasy atmosphere, painterly style, muted warm
+palette, low contrast in the middle of the image, nothing bright or busy
+across the centre, opaque, no transparency,
+no characters, no people, no buildings, no houses, no castle, no towers,
+no ruins, no text, no watermark,
 open uncluttered ground across the middle with clear flat areas
 ```
 
 **`no buildings` es lo que más importa de este prompt**, y es lo que
-más fácil ignora un generador al oír «reino». Los edificios **son las
-piezas**, que se colocan encima: si el fondo ya trae un castillo
-pintado, el reino enseña algo que el mago no ha construido.
+más fácil ignora un generador al oír «reino». Por eso va repetido de
+cinco formas —`no buildings, no houses, no castle, no towers, no ruins`—:
+los edificios **son las piezas**, que se colocan encima, y si el fondo ya
+trae un castillo pintado **el reino enseña algo que el mago no ha
+construido**. Es el único error de este prompt que no tiene arreglo
+después: una pieza mal recortada se rehace, un castillo pintado en el
+paisaje obliga a regenerar el paisaje entero.
+
+**Y `low contrast in the middle`** es la otra mitad: las ocho piezas van
+ahí encima, y un paisaje con un río brillante justo en el centro se las
+come. Lo interesante, en los bordes.
 
 > **Lo que sí puede traer pintado** es paisaje de fondo lejano —
 > montañas, bosque, un camino—. La referencia del usuario lleva una
@@ -951,7 +1032,10 @@ La coletilla es distinta, y sustituye a `[estilo base]`:
 ```
 painterly fantasy building, three-quarter view from slightly above,
 dark medieval fantasy atmosphere, muted warm palette, soft rim light,
-transparent background, no ground shadow, no text, no characters,
+one single compact building, no extra scenery around it,
+square composition, the building fills most of the frame,
+PNG with real alpha transparency, do not draw a checkerboard pattern,
+no ground shadow, no text, no characters, no people,
 readable as a single silhouette at 46 pixels
 ```
 
@@ -997,6 +1081,13 @@ standing stones, [estilo pieza]
 > **`no ground shadow` no es un detalle.** Cada pieza se coloca por CSS
 > sobre el paisaje, y una sombra pintada llevaría dentro un sol que no
 > coincide con el del fondo. La sombra, si hace falta, la pone el CSS.
+>
+> **Y `square composition, fills most of the frame` sale de lo aprendido
+> en las tandas anteriores.** Tres iconos han salido ya en formato ancho
+> —Ascendant al 21% del cuadro, el net power al 25%, el de «Más» al 19%—
+> y al meterlos en un cuadrado se desperdicia medio alto. Con ocho piezas
+> que van una al lado de otra, que una ocupe la mitad que su vecina se
+> vería al instante.
 >
 > **Y `readable as a single silhouette at 46 pixels`** es el tamaño real
 > al que se pintan hoy. Una pieza preciosa con detalle de tejado que a
