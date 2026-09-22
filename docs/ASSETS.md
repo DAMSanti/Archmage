@@ -108,6 +108,25 @@ moderno. Un fondo precioso de 2 MB está mal aunque sea precioso.
 6. **Y júzgalo a 24px ampliando el resultado, no el original.** Es la
    única forma de ver qué sobrevive de verdad.
 
+7. **Nunca pidas un icono en gris o monocromo.** Y esto es una trampa que
+   nos hemos puesto solos, así que conviene tenerla escrita.
+
+   `limpiar-damero.py` distingue el fondo porque **el damero es gris puro
+   y los dibujos llevan color**. Es lo que hace que funcione con seis
+   dameros distintos sin configurar nada. Pero significa que **un icono
+   generado en grises se borra entero**, y no da ningún error: sale un
+   PNG transparente y ya.
+
+   Afecta sobre todo a los **iconos de interfaz** —barra superior e
+   inferior—, que son los que más piden salir en un solo tono. La
+   solución no es tocar el limpiador: es **pedirlos en los colores que
+   les tocan de todas formas**, el oro `#d4a638` y el tostado `#a8987e`
+   de [INTERFAZ.md §6.2](INTERFAZ.md), que son bien cromáticos.
+
+   Si alguna vez hace falta un icono de verdad gris, se genera sobre
+   **fondo liso de un color que no aparezca en él** —verde chillón— y se
+   recorta por ese color, no con este script.
+
 ---
 
 ## 3. Iconos de escuela
@@ -153,14 +172,93 @@ proponía «Torre del mago, Biblioteca, Cuartel, Defensas».
 
 ## 5. Iconos de recurso
 
-| Recurso | Prompt |
-|---|---|
-| Maná | `fantasy game icon of a glowing blue mana crystal droplet, [estilo base]` |
-| Geld | `fantasy game icon of a pile of medieval gold coins, [estilo base]` |
-| Población | `fantasy game icon representing a population of townsfolk, silhouette crowd motif, [estilo base]` |
-| Comida | `fantasy game icon of a sack of grain and bread, [estilo base]` |
-| Tierra | `fantasy game icon of a parcel of land, rolling fields seen from above, [estilo base]` |
-| Turno | `fantasy game icon of an hourglass with arcane sand, [estilo base]` |
+**Reescritos el 2026-09-22.** Los de la primera versión eran de una línea
+y sin restricción de tamaño; **estos son los iconos más pequeños del
+proyecto** —van al lado de una cifra de 1rem en la barra superior, o sea
+**16-20px**—, así que la regla de «pocas formas y gordas» aprieta aquí
+más que en ningun otro sitio.
+
+| Recurso | En la barra | Color |
+|---|---|---|
+| Geld | sí | oro `#d4a638` |
+| Maná | sí | cian, **no** el azul de Phantasm |
+| Población | sí | tostado `#a8987e` |
+| Net power | sí | bronce |
+| Turno | sí | oro |
+| Comida | no | — |
+| Tierra | no | — |
+
+> **El maná no puede ser el azul de Phantasm.** [INTERFAZ.md §6.3](INTERFAZ.md)
+> dice que los colores de escuela **nunca** pintan una barra de recursos,
+> y el maná es canónicamente azul. Se resuelve con un **cian** claramente
+> separado de `--escuela-phantasm` (`#3f7fc4`): sigue leyendose como maná
+> y no se confunde con un mago azul.
+
+```
+flat vector game icon of a stack of three large gold coins, gold #d4a638,
+one shape only, thick outlines, no small details, must stay readable at
+18 pixels, flat vector game icon, clean bold outlines, simple shading,
+dark fantasy medieval palette, centered composition, PNG with real alpha
+transparency, do not draw a checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game icon of one large glowing mana crystal droplet, bright
+cyan, not the blue of a wizard school, one shape only, thick outlines,
+no small details, must stay readable at 18 pixels, flat vector game icon,
+clean bold outlines, simple shading, dark fantasy medieval palette,
+centered composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game icon of three simple townsfolk silhouettes standing
+together, warm tan #a8987e, three shapes only, thick outlines, no faces,
+no small details, must stay readable at 18 pixels, flat vector game icon,
+clean bold outlines, simple shading, dark fantasy medieval palette,
+centered composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game icon of a simple balance scale with two wide pans,
+warm bronze, one shape only, thick outlines, no chains, no small details,
+must stay readable at 18 pixels, flat vector game icon, clean bold
+outlines, simple shading, dark fantasy medieval palette, centered
+composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game icon of an hourglass with glowing arcane sand, gold
+#d4a638 frame with bright sand, two shapes only, thick outlines, no
+small details, must stay readable at 18 pixels, flat vector game icon,
+clean bold outlines, simple shading, dark fantasy medieval palette,
+centered composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game icon of a full sack of grain, warm tan #a8987e, one
+shape only, thick outlines, no small details, must stay readable at 18
+pixels, flat vector game icon, clean bold outlines, simple shading, dark
+fantasy medieval palette, centered composition, PNG with real alpha
+transparency, do not draw a checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game icon of a simple square parcel of farmland seen from
+above, divided into four plots, warm green-tan, one shape only, thick
+outlines, no small details, must stay readable at 18 pixels, flat vector
+game icon, clean bold outlines, simple shading, dark fantasy medieval
+palette, centered composition, PNG with real alpha transparency, do not
+draw a checkerboard pattern, no text, no watermark
+```
+
+**El turno merece más de un intento**: es la moneda del juego
+([SISTEMAS.md §2](SISTEMAS.md)) y **va en el marco persistente**, a la
+vista en las trece pantallas. Es el icono que más veces se va a mirar en
+todo el juego.
 | **Net power** | `fantasy game icon of a balance scale weighing a crown against a sword, [estilo base]` |
 
 > **Net power se añadió el 2026-09-22**, y faltaba. Este apartado tenía
@@ -369,22 +467,92 @@ de esta tanda. No están marcados como hechos.
 ([INTERFAZ.md §6.9](INTERFAZ.md)) necesita un icono por entrada de la
 barra inferior.
 
-**Cuántos son es `[abierto]`**: depende de cómo se agrupen las trece
-rutas, y eso lo cierra `/plan-tarea`. Lo que sí está decidido:
+**Son siete**, cerrado en [INTERFAZ.md §6.9](INTERFAZ.md) el 2026-09-22:
+Reino, Ejército, Magia, Guerra, Crónica, Mensajes y Más.
 
-- **Se reutiliza lo que ya hay** siempre que se pueda. La barra tendrá
-  entradas de edificios, de ejército y de magia, y para eso están los
-  iconos de §4, §7 y §6.
-- **Los que falten son de acción, no de cosa**: explorar, guerra,
-  crónica. Mismo estilo base, y **más simples que los de tabla** —
-  a 24px un icono con detalle es una mancha.
-- **Llevan etiqueta de texto debajo**, así que **el icono no tiene que
-  cargar solo con el significado**. Es lo que permite que sean simples.
+**No se reutiliza ninguno de §4.** La primera versión de este apartado
+decía que la barra usaría los iconos de edificio y de escuela que ya
+existen, y es mala idea: los de §4 son **cosas** —una granja, un nodo— y
+los de la barra son **sitios a los que se va**. Un icono de granja para
+«Reino» diría que ahí se construyen granjas, no que ahí está tu reino.
+
+**Llevan etiqueta de texto debajo**, así que el icono **no tiene que
+cargar solo con el significado**. Es lo que permite que sean los más
+simples de todos: a 24px, cualquier detalle es una mancha.
+
+**Y van en oro `#d4a638`**, que es el color de acción y foco de
+[INTERFAZ.md §6.2](INTERFAZ.md) — el CSS los atenuará al tostado cuando
+no sean la pantalla activa. **Pedirlos en oro y no en gris también es lo
+que impide que el limpiador se los coma** (§2, regla 7).
 
 ```
-simple fantasy game UI icon of <motivo>, bold silhouette,
-minimal detail, legible at 24 pixels, [estilo base]
+flat vector game UI icon of a castle keep with one banner, gold #d4a638,
+one shape only, very thick outlines, no windows, no bricks, no small
+details, must stay readable at 24 pixels, flat vector game icon, clean
+bold outlines, simple shading, dark fantasy medieval palette, centered
+composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
 ```
+
+```
+flat vector game UI icon of a knight helmet seen from the front, gold
+#d4a638, one shape only, very thick outlines, no small details, must
+stay readable at 24 pixels, flat vector game icon, clean bold outlines,
+simple shading, dark fantasy medieval palette, centered composition,
+PNG with real alpha transparency, do not draw a checkerboard pattern,
+no text, no watermark
+```
+
+```
+flat vector game UI icon of an open book with a single glowing rune on
+the page, gold #d4a638, two shapes only, very thick outlines, no text on
+the page, no small details, must stay readable at 24 pixels, flat vector
+game icon, clean bold outlines, simple shading, dark fantasy medieval
+palette, centered composition, PNG with real alpha transparency, do not
+draw a checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game UI icon of two crossed swords, gold #d4a638, two shapes
+only, very thick outlines, no hands, no small details, must stay
+readable at 24 pixels, flat vector game icon, clean bold outlines,
+simple shading, dark fantasy medieval palette, centered composition,
+PNG with real alpha transparency, do not draw a checkerboard pattern,
+no text, no watermark
+```
+
+```
+flat vector game UI icon of a partly unrolled scroll, gold #d4a638, one
+shape only, very thick outlines, no writing, no small details, must stay
+readable at 24 pixels, flat vector game icon, clean bold outlines,
+simple shading, dark fantasy medieval palette, centered composition,
+PNG with real alpha transparency, do not draw a checkerboard pattern,
+no text, no watermark
+```
+
+```
+flat vector game UI icon of a sealed envelope with a round wax seal,
+gold #d4a638, two shapes only, very thick outlines, no small details,
+must stay readable at 24 pixels, flat vector game icon, clean bold
+outlines, simple shading, dark fantasy medieval palette, centered
+composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+```
+flat vector game UI icon of three large dots in a horizontal row, gold
+#d4a638, three shapes only, very thick, nothing else in the image, must
+stay readable at 24 pixels, flat vector game icon, clean bold outlines,
+simple shading, dark fantasy medieval palette, centered composition,
+PNG with real alpha transparency, do not draw a checkerboard pattern,
+no text, no watermark
+```
+
+> **El casco para Ejército y las espadas para Guerra, y no al revés.**
+> El ejército es **lo que tienes** —se recluta, se mantiene, come— y la
+> guerra es **lo que haces**. Un casco es una cosa que se posee; dos
+> espadas cruzadas son un choque. Si se cambian, las dos pantallas se
+> confunden, que es justo lo que pasa hoy con el texto solo.
 
 ---
 
