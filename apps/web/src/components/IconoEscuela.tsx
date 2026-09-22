@@ -18,8 +18,22 @@
  *    tiene por qué oírlo dos veces.
  */
 
-/** Las que existen hoy. Las demás se añaden cuando se generen. */
-const GENERADAS = new Set(['verdant', 'nether']);
+/**
+ * Las que existen hoy. **Las seis, desde el 2026-09-22.**
+ *
+ * Se mantiene la lista explícita en vez de intentar cargar y capturar el
+ * fallo: un `<img>` que da 404 escribe un error en la consola, y la pasada de
+ * navegador comprueba que no haya ninguno. Mejor una línea que editar que una
+ * comprobación que se cae sola.
+ */
+const GENERADAS = new Set([
+  'ascendant',
+  'verdant',
+  'eradication',
+  'phantasm',
+  'nether',
+  'plain',
+]);
 
 export function IconoEscuela({ escuela, tam = 24 }: { escuela: string; tam?: number }) {
   // **El hueco se reserva aunque no haya icono.** Sin esto, en una lista

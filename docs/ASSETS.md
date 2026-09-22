@@ -504,9 +504,52 @@ deep green #4e9e4a, very few elements, thick shapes only,
 must stay readable at 24 pixels, [estilo base]
 ```
 
-**Los dos ficheros limpios están en `assets/`** como `verdant` y
-`nether`, en PNG y WebP de 512px. A los tamaños que se van a servir pesan
-**3-4 KB a 64px** y **7-12 KB a 128px**, muy por debajo del presupuesto.
+#### Tanda 1 completa — las seis, el 2026-09-22
+
+**Las seis escuelas tienen icono.** Medido sobre `--panel`:
+
+| | cobertura | contraste | su 10% claro | su token |
+|---|---:|---:|---:|---:|
+| ascendant | **21,2%** | 8,91:1 | 15,89:1 | 14,67:1 |
+| verdant *(ajustado)* | 54,5% | 3,84:1 | 7,39:1 | 5,28:1 |
+| eradication | 45,0% | 2,42:1 | 5,53:1 | 3,83:1 |
+| phantasm | 55,7% | 3,36:1 | 5,49:1 | 4,22:1 |
+| nether | 57,3% | 2,99:1 | 8,79:1 | 4,19:1 |
+| plain | 36,4% | 5,15:1 | 6,20:1 | 6,24:1 |
+
+**Los cuatro nuevos salieron bien de color**: su parte clara llega o supera
+su propio token, así que **no se les tocó**. El ajuste de §2 regla 5 se
+aplicó **solo a Verdant**, que es el único que seguía por debajo.
+
+**Plain funciona, y es el que mejor lección deja.** Es el que menos tiene
+dentro —un anillo vacío— y **es el que mejor se lee a 24px**. Confirma
+lo de la tanda 0 por el otro lado: no es el brillo, es cuántas cosas hay.
+
+**Dos cosas siguen mal, y las dos piden generar, no retocar:**
+
+1. **Verdant sigue sin regenerarse.** El ajuste al token le sube el
+   contraste pero a 24px sigue siendo un disco verde. El prompt corregido
+   está arriba.
+2. **Ascendant ocupa el 21% del cuadro**, la mitad que los demás. Las alas
+   salieron **fuera** del anillo y muy anchas —2657×1412—, y al meterlo
+   en un cuadro se desperdicia la mitad del alto: al lado de los otros
+   cinco parece más pequeño y más débil. El prompt pedía las alas
+   **dentro** del anillo y el generador no lo respetó.
+
+```
+flat vector game icon of an ascendant holy magic sigil, a plain thick
+circular ring with a solid halo and two small folded wings entirely
+INSIDE the ring, nothing crossing outside the ring, square composition,
+warm off-white #f2ead8 with a bright rim, only three shapes, thick
+outlines, must stay readable at 24 pixels, flat vector game icon, clean
+bold outlines, simple shading, dark fantasy medieval palette, centered
+composition, PNG with real alpha transparency, do not draw a
+checkerboard pattern, no text, no watermark
+```
+
+**Los ficheros limpios están en `assets/`** y publicados en
+`apps/web/public/escuelas/`, en WebP de 512px: entre **29 y 101 KB** el
+master, y **3-4 KB a 64px**, muy por debajo del presupuesto.
 
 ---
 
