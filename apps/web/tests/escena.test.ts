@@ -74,3 +74,51 @@ describe('criterio 11 — la escena no inventa edificios', () => {
     expect(piezasDe({ ...vacio, farms: -1 })).toEqual([]);
   });
 });
+
+describe('la colocación en el mapa', () => {
+  test('cada pieza tiene un sitio fijo, y ninguna se sale del paisaje', () => {
+    // **El jugador no elige dónde va nada** (docs/INTERFAZ.md §6.8): la
+    // composición es fija. Pero tiene que caber: el paisaje lleva montañas
+    // y bosque en los bordes, así que las piezas viven en la franja central.
+    for (const p of PIEZAS) {
+      expect(p.x).toBeGreaterThanOrEqual(14);
+      expect(p.x).toBeLessThanOrEqual(86);
+      expect(p.y).toBeGreaterThanOrEqual(20);
+      // **Y ninguna por debajo del 56%**, que es donde llega el panel de
+      // «Gastar turnos» — flota sobre el mapa por decisión del usuario.
+      //
+      // No es una cifra estética: con las piezas a 76% el panel las tapaba y
+      // **dejaban de poder pulsarse**. Lo cazó la pasada de navegador, que no
+      // pudo ni pasarle el ratón por encima a Farms.
+      //
+      // El 66 tampoco bastó, y el motivo merece quedarse escrito: **`y` es el
+      // centro de la pieza y el panel choca con su borde de abajo.** Una
+      // pieza grande sobresale casi un 9% por debajo de su centro, así que el
+      // límite se mide desde donde acaba, no desde donde está.
+      expect(p.y).toBeLessThanOrEqual(56);
+    }
+  });
+
+  test('no se solapan dos piezas', () => {
+    // Un pueblo con dos edificios encima del otro no parece un pueblo, y
+    // además el de abajo deja de poder tocarse.
+    for (let i = 0; i < PIEZAS.length; i++) {
+      for (let j = i + 1; j < PIEZAS.length; j++) {
+        const a = PIEZAS[i]!;
+        const b = PIEZAS[j]!;
+        const d = Math.hypot(a.x - b.x, (a.y - b.y) * 0.55);
+        expect(d).toBeGreaterThan(9);
+      }
+    }
+  });
+
+  test('lo que está más al fondo se pinta más pequeño', () => {
+    // La profundidad es lo que hace que ocho piezas sueltas parezcan un
+    // sitio y no una fila de iconos. Es la única regla «orgánica» que se
+    // puede comprobar: a menos `y`, menos escala.
+    const ordenadas = [...PIEZAS].sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ordenadas.length; i++) {
+      expect(ordenadas[i]!.escala).toBeGreaterThanOrEqual(ordenadas[i - 1]!.escala);
+    }
+  });
+});

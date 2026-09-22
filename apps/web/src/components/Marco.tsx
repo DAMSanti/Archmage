@@ -42,8 +42,35 @@ export interface Entrada {
  * de «Más», que son figuras anchas metidas en un cuadrado— no estorban: el
  * texto carga con el significado.
  */
+/**
+ * Los que existen hoy en `/iconos/`.
+ *
+ * **Lista explícita y no «probar y capturar el fallo»**: un `<img>` que da
+ * 404 escribe un error en la consola, y la pasada de navegador comprueba que
+ * no haya ninguno. Mejor una línea que editar que una comprobación que se
+ * cae sola.
+ *
+ * **Falta `tierra`**, que entró en la barra el 2026-09-22 al quitar el panel
+ * de recursos de `/reino` y no estaba en la tanda que se generó. Su prompt
+ * está en docs/ASSETS.md §5; mientras tanto sale solo la etiqueta.
+ */
+const GENERADOS = new Set([
+  'geld',
+  'mana',
+  'poblacion',
+  'netpower',
+  'turno',
+  'nav-reino',
+  'nav-ejercito',
+  'nav-magia',
+  'nav-guerra',
+  'nav-cronica',
+  'nav-mensajes',
+  'nav-mas',
+]);
+
 function Icono({ nombre, tam }: { nombre: string | undefined; tam: number }) {
-  if (!nombre) return null;
+  if (!nombre || !GENERADOS.has(nombre)) return null;
   return (
     <img
       className="marco__icono"
@@ -75,11 +102,14 @@ function Recurso({
   nombre,
   valor,
   neto,
+  nota,
   icono,
 }: {
   nombre: string;
   valor: string;
   neto?: number;
+  /** El dato que el panel de `/reino` daba y ya no existe: tope, almacén… */
+  nota?: string;
   icono: string;
 }) {
   const color =
@@ -91,11 +121,11 @@ function Recurso({
         {nombre}
       </span>
       <span className="marco__cifra">{valor}</span>
-      {neto !== undefined && (
-        <span className="marco__neto" style={{ color }}>
-          {conSigno(neto)}
-        </span>
-      )}
+      <span className="marco__neto">
+        {neto !== undefined && <span style={{ color }}>{conSigno(neto)}</span>}
+        {neto !== undefined && nota ? ' · ' : ''}
+        {nota}
+      </span>
     </div>
   );
 }
@@ -135,12 +165,34 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
       <header className="marco marco--arriba" data-textura="acotada">
         <div className="marco__recursos">
           <Recurso icono="geld" nombre="Geld" valor={num(mage.resources.geld)} neto={derived.net.geld} />
-          <Recurso icono="mana" nombre="Maná" valor={num(mage.resources.mana)} neto={derived.net.mana} />
+          {/* **El almacén, que antes estaba en el panel de `/reino`.** Sin él
+              no se sabe cuánto maná se está tirando al llegar al tope. */}
+          <Recurso
+            icono="mana"
+            nombre="Maná"
+            valor={num(mage.resources.mana)}
+            neto={derived.net.mana}
+            nota={`almacén ${num(derived.manaStorage)}`}
+          />
+          {/* **Cuál de los dos ata**, no los dos números: el tope de
+              población es el menor de espacio y comida, y saber cuál manda es
+              lo que dice si hay que construir towns o farms. */}
           <Recurso
             icono="poblacion"
             nombre="Población"
             valor={`${num(mage.resources.population)} / ${num(derived.populationCapacity.capacity)}`}
             neto={derived.net.population}
+            nota={
+              derived.populationCapacity.food < derived.populationCapacity.space
+                ? 'ata la comida'
+                : 'ata el espacio'
+            }
+          />
+          <Recurso
+            icono="tierra"
+            nombre="Tierra"
+            valor={num(mage.land.total)}
+            nota={`${num(mage.land.free)} sin construir`}
           />
           <Recurso icono="netpower" nombre="Net power" valor={num(derived.netPower)} />
         </div>
@@ -153,7 +205,12 @@ export function Marco({ data, sueltas, agrupadas, pantalla, onIr }: MarcoProps) 
             <Icono nombre="turno" tam={18} />
             Turnos
           </span>
-          <span className="marco__cifra marco__cifra--turnos">{num(mage.turns.current)}</span>
+          {/* **Con su tope**, que es lo que §3 pide: que el almacén esté
+              lleno es un aviso, porque estás desperdiciando. */}
+          <span className="marco__cifra marco__cifra--turnos">
+            {num(mage.turns.current)}
+            <span className="marco__tope"> / {num(server.turnCap)}</span>
+          </span>
           <span className="marco__nota">
             {cadencia(server)} · {cuentaAtras(derived.msToNextTurn, derived.turnsAtCap)}
           </span>

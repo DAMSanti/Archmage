@@ -730,99 +730,12 @@ input[type='number'] {
   padding-bottom: calc(var(--marco-abajo) + var(--gutter));
 }
 
-/* --- La escena del reino ------------------------------------------------
- *
- * docs/INTERFAZ.md §6.5. **Emblemática**: una pieza por tipo de edificio del
- * que haya al menos uno.
- */
-
-.escena-reino {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: var(--gutter);
-  padding: var(--gutter);
-  border: 1px solid var(--marco);
-  border-radius: var(--radio);
-  /* El paisaje, y **debajo el degradado**: si la imagen no carga, la escena
-     sigue teniendo fondo y las piezas se leen (§6.5, regla 3). El color no
-     es un respaldo teórico — es el estado normal con las imágenes
-     bloqueadas, y se comprueba en la pasada de navegador. */
-  background-color: #191310;
-  background-image: url('/escena/paisaje.webp'),
-    radial-gradient(ellipse at 50% 90%, #241c14 0%, #191310 70%, var(--fondo) 100%);
-  background-size: cover, auto;
-  background-position: center, center;
-}
-
-.escena__pieza {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  /* Controles de verdad (§6.7, criterio 14). */
-  min-height: 44px;
-  background: none;
-  border: none;
-  border-radius: var(--radio);
-  cursor: pointer;
-  padding: 8px 4px;
-}
-
-.escena__figura {
-  width: 46px;
-  height: 46px;
-  display: grid;
-  place-items: center;
-  /* **Sin recuadro ni fondo**: la pieza va pintada y puesta sobre el
-     paisaje. El marco de bronce era el marcador de cuando no había arte, y
-     ahora sería precisamente lo que hace que se vea pegada encima. */
-}
-
-.escena__pieza:hover .escena__figura {
-  filter: brightness(1.25);
-}
-
-/*
- * **La placa.** §6.5, regla 8: los rótulos van en placas opacas, nunca como
- * texto sobre la imagen. Es donde la referencia visual del usuario se separa
- * de lo que hacemos — un rótulo sobre un cielo pintado se lee en el mock y
- * deja de leerse en cuanto la imagen cambia.
- */
-.escena__placa {
-  background: var(--panel);
-  border: 1px solid var(--marco);
-  border-radius: var(--radio);
-  color: var(--texto);
-  font-size: 0.72rem;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-.escena__nota {
-  color: var(--texto-apagado);
-  font-size: 0.75rem;
-  margin: 0;
-  text-align: center;
-}
-
 /* --- Móvil --------------------------------------------------------------
  *
  * docs/INTERFAZ.md §5: **no es una adaptación, es el caso principal.**
  */
 
 @media (max-width: 640px) {
-  /*
-   * **La escena no aparece.** Decidido con el usuario el 2026-09-22: un mapa
-   * interactivo y «en móvil la ilustración desaparece» no caben a la vez, y
-   * cede el mapa. Se puede porque el mapa **no manda** — todo lo que alcanza
-   * está también en la barra de abajo, que sí está en las dos.
-   */
-  .escena-reino {
-    display: none;
-  }
-
   /* El net power es lo primero que sobra de la barra: es una consulta, no
      una decisión de cada turno, y está entero en /ranking. */
   .marco__recurso:last-child {
@@ -913,5 +826,227 @@ td .icono-escuela {
   .marco--arriba,
   .marco--abajo {
     background-image: none;
+  }
+}
+
+/* --- El mapa del reino -------------------------------------------------
+ *
+ * docs/INTERFAZ.md §3 y §6.5. **Desde el 2026-09-22 el mapa ES la pantalla**:
+ * los recursos subieron al marco y el reparto vive en la ficha de cada pieza.
+ */
+
+.reino {
+  position: relative;
+  /* Todo el alto que dejan las dos barras. */
+  height: calc(100vh - var(--marco-arriba) - var(--marco-abajo) - var(--gutter) * 2);
+  min-height: 460px;
+  /* **Y todo el ancho de la ventana**, saliéndose del envoltorio.
+     `.envoltorio` limita a 1100px y centra, que es lo que quiere una columna
+     de texto y lo contrario de lo que quiere un mapa. */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+.mapa {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid var(--marco);
+  background-color: #191310;
+  background-image: url('/escena/paisaje.webp'),
+    radial-gradient(ellipse at 50% 90%, #241c14 0%, #191310 70%, var(--fondo) 100%);
+  background-size: cover, auto;
+  background-position: center, center;
+}
+
+/* Cada edificio en su sitio. Las posiciones son datos y viven en
+   `escena.ts`, no aquí: están comprobadas con un test. */
+.mapa__sitio {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+/* El que tiene la ficha abierta se pinta por encima de sus vecinos. */
+.mapa__sitio--activo {
+  z-index: 3;
+}
+
+.mapa__pieza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  /* Zona de toque de dedo (§6.7, criterio 14) aunque la pieza sea pequeña. */
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.mapa__pieza img {
+  /* **La escala sale de la profundidad**: lo que está al fondo, más pequeño.
+     Es lo que hace que ocho dibujos sueltos parezcan un sitio. */
+  width: calc(84px * var(--escala, 1));
+  height: calc(84px * var(--escala, 1));
+  display: block;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
+}
+
+.mapa__pieza:hover img,
+.mapa__pieza:focus-visible img {
+  filter: drop-shadow(0 0 7px var(--acento));
+}
+
+/* El nombre va en placa opaca: §6.5 regla 1, nunca texto sobre la imagen. */
+.mapa__nombre {
+  background: var(--panel);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  color: var(--texto);
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.mapa__pieza:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: -2px;
+}
+
+/* --- La ficha, que es lo que sustituye a la tabla de reparto ----------- */
+
+.mapa__ficha {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  min-width: 190px;
+  background: var(--panel);
+  border: 1px solid var(--marco-luz);
+  border-radius: var(--radio);
+  padding: 10px 12px;
+  z-index: 4;
+}
+
+.mapa__ficha-titulo {
+  color: var(--acento);
+  font-family: var(--display);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mapa__datos {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 14px;
+  margin: 0 0 8px;
+}
+
+.mapa__datos dt {
+  color: var(--texto-tenue);
+  font-size: 0.78rem;
+}
+
+.mapa__datos dd {
+  color: var(--texto);
+  font-size: 0.82rem;
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mapa__ir {
+  width: 100%;
+  min-height: 34px;
+  background: var(--panel-alto);
+  border: 1px solid var(--marco);
+  border-radius: var(--radio);
+  color: var(--acento);
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 0.8rem;
+}
+
+.mapa__ir:hover {
+  border-color: var(--marco-luz);
+}
+
+/* --- Las acciones, sobre el mapa --------------------------------------- */
+
+.panel--sobre-mapa {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  /* **Ancho**, y no por gusto: cuanto más ancho, en menos filas caben las
+     cuatro acciones, y menos alto le quita al mapa. Con 880px el panel se
+     cortaba por la mitad de una frase. */
+  width: min(1320px, calc(100% - 32px));
+  z-index: 5;
+  margin-bottom: 0;
+  /* Opaco: el contraste se mide contra el panel, no contra el paisaje
+     (§6.5, regla 2). */
+  background: var(--panel);
+  max-height: 34%;
+  overflow-y: auto;
+}
+
+
+/* El tope de turnos, junto al contador y más apagado que él. */
+.marco__tope {
+  color: var(--texto-apagado);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  /* **El mapa se queda también en móvil**, decidido el 2026-09-22 al quitar
+     la tabla de reparto: sin él no habría dónde ver el reparto. La ficha se
+     abre al tocar, no al pasar el ratón. */
+  .reino {
+    height: calc(100vh - var(--marco-arriba) - var(--marco-abajo) - var(--gutter) * 2);
+  }
+
+  .mapa__pieza img {
+    width: calc(58px * var(--escala, 1));
+    height: calc(58px * var(--escala, 1));
+  }
+
+  .mapa__nombre {
+    font-size: 0.62rem;
+    padding: 0 4px;
+  }
+
+  /*
+   * **En móvil las acciones NO van encima: van debajo.**
+   *
+   * El usuario eligió «panel flotando sobre el mapa», y en escritorio
+   * funciona: 232px de panel sobre 748 de mapa, y las piezas colocadas por
+   * encima de él. A 360×740 el panel mide **306px sobre 588 de mapa** —el
+   * 52%— y tapa medio pueblo: no se ve el mapa ni caben las acciones.
+   *
+   * Se respeta la decisión donde funciona y se cambia donde rompe, que es lo
+   * que manda §5: el móvil es el caso principal, no una adaptación.
+   */
+  .reino {
+    height: auto;
+    min-height: 0;
+  }
+
+  .mapa {
+    position: relative;
+    inset: auto;
+    height: 58vh;
+    min-height: 320px;
+  }
+
+  .panel--sobre-mapa {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-height: none;
+    margin-top: var(--gutter);
   }
 }

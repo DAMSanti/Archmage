@@ -84,122 +84,20 @@ export function Reino({ data, catalog, onAction, ocupado, onIr }: ReinoProps) {
         </p>
       )}
 
-      {/* **La escena va antes de los numeros, no en su lugar** (§6.5): dice
-          QUE has construido de un vistazo, y el desglose sigue debajo. En
-          movil no aparece, y lo decide el CSS (§5). */}
-      <Escena buildings={mage.buildings} onIr={onIr} />
+      {/* **El mapa ES la pantalla desde el 2026-09-22.** Los recursos
+          subieron al marco y el reparto vive en la ficha de cada pieza, asi
+          que aqui no queda tabla que poner debajo. */}
+      <div className="reino">
+        <Escena
+          buildings={mage.buildings}
+          construction={mage.construction}
+          tierra={mage.land.total}
+          onIr={onIr}
+        />
 
-      <section className="panel">
-        <h2 className="panel__titulo">Recursos</h2>
-        <div className="recursos">
-          <div className="recurso">
-            <div className="recurso__nombre">Turnos</div>
-            <div className="recurso__valor cifra">
-              {num(mage.turns.current)} <span className="recurso__nota">/ {num(server.turnCap)}</span>
-            </div>
-            <div className="recurso__nota">
-              {derived.turnsAtCap
-                ? 'almacén lleno'
-                : `siguiente en ${Math.ceil(derived.msToNextTurn / 60_000)} min`}
-            </div>
-          </div>
 
-          <div className="recurso">
-            <div className="recurso__nombre">Geld</div>
-            <div className="recurso__valor cifra">{num(mage.resources.geld)}</div>
-            <Neto valor={derived.net.geld} />
-          </div>
-
-          <div className="recurso">
-            <div className="recurso__nombre">Maná</div>
-            <div className="recurso__valor cifra">{num(mage.resources.mana)}</div>
-            <Neto valor={derived.net.mana} />
-            <div className="recurso__nota">
-              almacén {num(derived.manaStorage)}
-              {/* El upkeep de los encantamientos va aquí, no escondido en
-                  /magia: es donde un mago se arruina sin darse cuenta
-                  (docs/INTERFAZ.md §3.1). */}
-              {mage.enchantments.length > 0 && (
-                <>
-                  {' · '}
-                  {mage.enchantments.length} encantamiento
-                  {mage.enchantments.length === 1 ? '' : 's'}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="recurso">
-            <div className="recurso__nombre">Población</div>
-            <div className="recurso__valor cifra">{num(mage.resources.population)}</div>
-            <Neto valor={derived.net.population} />
-            <div className="recurso__nota">
-              espacio {num(derived.populationCapacity.space)} · comida{' '}
-              {num(derived.populationCapacity.food)}
-            </div>
-          </div>
-
-          <div className="recurso">
-            <div className="recurso__nombre">Tierra</div>
-            <div className="recurso__valor cifra">{num(mage.land.total)}</div>
-            <div className="recurso__nota">{num(mage.land.free)} acres sin construir</div>
-          </div>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2 className="panel__titulo">Reparto de la tierra</h2>
-        <table className="reparto">
-          <thead>
-            <tr>
-              <th>Edificio</th>
-              <th>Cantidad</th>
-              <th>% de tu tierra</th>
-              <th>En obra</th>
-            </tr>
-          </thead>
-          <tbody>
-            {BUILDINGS.map((b) => (
-              <tr key={b}>
-                <td data-etiqueta="Edificio" className="reparto__nombre">
-                  {NOMBRE[b]}
-                </td>
-                <td data-etiqueta="Cantidad" className="cifra">
-                  {num(mage.buildings[b])}
-                </td>
-                {/* Porcentaje y absoluto juntos. Sin umbrales marcados (§1). */}
-                <td data-etiqueta="% de tu tierra" className="cifra">
-                  {pct(mage.buildings[b], mage.land.total)}
-                </td>
-                <td
-                  data-etiqueta="En obra"
-                  className={`cifra${mage.construction[b] === 0 ? ' reparto__vacio' : ''}`}
-                >
-                  {(mage.construction[b] / 10_000).toLocaleString('es-ES', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </td>
-              </tr>
-            ))}
-            <tr className="reparto__libre">
-              <td data-etiqueta="Edificio" className="reparto__nombre">
-                Sin construir
-              </td>
-              <td data-etiqueta="Cantidad" className="cifra">
-                {num(mage.land.free)}
-              </td>
-              <td data-etiqueta="% de tu tierra" className="cifra">
-                {pct(mage.land.free, mage.land.total)}
-              </td>
-              <td data-etiqueta="En obra">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section className="panel">
-        <h2 className="panel__titulo">Gastar turnos</h2>
+        <section className="panel panel--sobre-mapa">
+          <h2 className="panel__titulo">Gastar turnos</h2>
         <div className="acciones">
           <div className="accion">
             <div className="control">
@@ -312,7 +210,8 @@ export function Reino({ data, catalog, onAction, ocupado, onIr }: ReinoProps) {
             </div>
           </div>
         </div>
-      </section>
+        </section>
+      </div>
     </>
   );
 }

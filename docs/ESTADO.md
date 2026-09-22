@@ -21,7 +21,7 @@ El repositorio contiene, a día de hoy:
 | Paquetes | **5** — `core`, `content`, `contract`, `server`, `web` |
 | Items del catálogo | **44**, todos publicados |
 | Habilidades | **10**, de 20 niveles |
-| Tests | **687**, todos en verde — 447 de `core`, 143 de `content`, 71 de `server`, 26 de `web` |
+| Tests | **690**, todos en verde — 447 de `core`, 143 de `content`, 71 de `server`, 29 de `web` |
 | `tsc -b` | sale **0** |
 | Bundle del cliente | **256 KB** de JS + **9,6 KB** de CSS; **74 KB** y **2,5 KB** comprimidos |
 
@@ -74,7 +74,7 @@ columna de la derecha es lo que se midió al implementar.
 
 | Instrumento | Esperado | Medido (2026-09-22) |
 |---|---|---|
-| La suite entera (687 tests) | — | **~14 s** |
+| La suite entera (690 tests) | — | **~14 s** |
 | `vitest packages/core` (447 tests) | milisegundos | **~3 s**, de los que **770 ms** son los tests |
 | Validación del catálogo de `content` | milisegundos | **~10 ms** |
 | Simulación de temporada (22 tests, hasta 2.000 turnos) | segundos | **~350 ms** |
@@ -86,7 +86,7 @@ columna de la derecha es lo que se midió al implementar.
 | Pasada de navegador del mundo (15 comprobaciones) | minutos, turno exclusivo | **~20 s** |
 | Pasada de navegador de la temporada (15 comprobaciones) | minutos, turno exclusivo | **~18 s** |
 
-**Las cuatro pasadas suman 70 comprobaciones** (22 + 18 + 15 + 15) y son la
+**Las cuatro pasadas suman 73 comprobaciones** (24 + 19 + 15 + 15) y son la
 superficie de regresión de cualquier cambio en el armazón del cliente. Se
 midió el 2026-09-22, al meter el marco persistente: **un cambio de
 navegación las toca todas**, porque todas navegan por nombre de botón.

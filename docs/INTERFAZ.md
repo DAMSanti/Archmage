@@ -99,9 +99,28 @@ Tiene que responder de un vistazo, sin abrir nada:
   neto, no el bruto: ingreso menos upkeep. Es el número que decide si tu
   ejército sobrevive.
 - **Cómo está repartida mi tierra**, en porcentaje y en número absoluto.
-  Que se vea de un golpe que estás al 31,4% de nodes — **sin marcar
-  umbrales ni decir si eso es bueno** (§1).
+  Que se vea que estás al 31,4% de nodes — **sin marcar umbrales ni decir
+  si eso es bueno** (§1).
 - **Qué se está construyendo** y cuánto le falta.
+
+> **Reescrito el 2026-09-22, y cambia DÓNDE, no QUÉ.** Los cuatro puntos
+> siguen siendo obligatorios; lo que cambia es que ya no los contestan dos
+> paneles de esta pantalla.
+>
+> - Los **tres primeros los contesta el marco** (§6.9), que está en las
+>   trece pantallas. Al quitar el panel de recursos hubo que subirle cuatro
+>   datos que solo tenía él: el **tope de turnos**, el **almacén de
+>   maná**, **cuál de los dos ata la población** —espacio o comida— y la
+>   **tierra**, que el marco no llevaba en absoluto.
+> - El **reparto y lo que hay en obra los contesta el mapa**, en la ficha
+>   de cada edificio (§6.5).
+>
+> **Lo que «de un vistazo» significa ahora, dicho sin adornos:** el
+> reparto pide **señalar un edificio**. Es un gesto más que antes, y se
+> acepta a cambio de que la pantalla sea el reino y no una hoja de
+> cálculo con un dibujo arriba. Lo que **no** se acepta es que el dato
+> deje de existir, y por eso el criterio 13 de §6.7 comprueba que se
+> alcance **pulsando**, no solo con el ratón.
 
 **Y desde el 2026-09-22, además, tiene una escena** (§6.5): una vista
 pintada del reino con **una pieza por cada tipo de edificio que tengas**.
@@ -313,9 +332,25 @@ se juegan en el móvil.
   cobrar 150 KB por algo que no se ve es cobrar por nada.
 - **El ornamento se simplifica a un filete** y no pasa del 15% del ancho
   (§6.6). En móvil el marco es lo primero que sobra.
-- **[nuestro]** **Y la escena del reino tampoco aparece** (§6.5,
-  decidido el 2026-09-22). En vertical se sirven los paneles y las
-  listas, que es lo que se lee en quince minutos y con una mano.
+- **[nuestro]** **El mapa del reino SÍ aparece en móvil**, corregido el
+  2026-09-22 el mismo día que se había decidido lo contrario.
+
+  > **Por qué cambió tan rápido, que es lo que importa.** Se decidió
+  > esconderlo cuando `/reino` tenía **además** la tabla de reparto: el
+  > mapa era un atajo y esconderlo no quitaba ningún dato. Al quitar la
+  > tabla, el reparto pasó a vivir **solo** en el mapa — y esconderlo
+  > dejaría a un teléfono sin poder ver el reparto de su reino.
+  >
+  > La decisión anterior no era mala: **la premisa cambió debajo**.
+  >
+  > En vertical el mapa ocupa **58vh**, las piezas se pintan más pequeñas,
+  > y la ficha **se abre al tocar** en vez de al pasar el ratón.
+
+- **[nuestro]** **Y las acciones van DEBAJO del mapa, no encima.** En
+  escritorio el panel de «Gastar turnos» flota sobre el mapa, que es lo
+  que se decidió; a 360×740 ese mismo panel mide **306px sobre 588 de
+  mapa** —el 52%— y tapa medio pueblo. Se respeta la decisión donde
+  funciona y se cambia donde rompe, que es lo que exige este apartado.
 
   > **Esto se preguntó y se decidió, no se dio por supuesto.** Un mapa
   > interactivo y «en móvil la ilustración desaparece» no caben a la vez,
@@ -555,9 +590,22 @@ siempre:
 8. **Los rótulos van en placas opacas**, nunca como texto sobre la
    imagen. Es la regla 1 aplicada a la escena, y es donde la referencia
    visual se separa de lo que hacemos.
-9. **La escena dice QUÉ, el panel dice CUÁNTO.** La pieza de farm dice
-   que tienes farms; «437, el 12,3% de tu tierra» está en su fila. Una
-   pieza **nunca** es el único sitio donde vive un dato.
+9. ~~**La escena dice QUÉ, el panel dice CUÁNTO.**~~ **Derogada el
+   2026-09-22.**
+
+   > Decía que una pieza **nunca** es el único sitio donde vive un dato, y
+   > desde que se quitó la tabla de reparto de §3 **sí lo es**: «437
+   > farms, el 12,3% de tu tierra» solo está en la ficha de la pieza.
+   >
+   > La regla valía mientras el mapa era un adorno encima de una tabla. Al
+   > convertirse en la pantalla, mantenerla obligaría a devolver la tabla,
+   > que es justo lo que se quitó.
+   >
+   > **Lo que la sustituye, y es lo que de verdad protege al jugador:** el
+   > dato tiene que **alcanzarse sin ratón**. Un tooltip que solo responde
+   > al hover deja el reparto fuera del alcance de un teléfono, y §5 dice
+   > que el teléfono es el caso principal. Por eso la ficha se abre
+   > también al pulsar, y el criterio 13 lo comprueba pulsando.
 10. **Una pieza que no puedes tocar no se pinta distinta de una que sí**,
     porque no hay ninguna que no se pueda tocar: si un tipo de edificio
     está en la escena, tiene su panel. Lo que no tienes, no aparece.
@@ -712,9 +760,15 @@ navegador:
     existe la misma acción en la barra inferior o dentro de la pantalla a
     la que lleva. *Comprobable recorriendo las rutas: ninguna acción
     tiene como único origen un clic en la imagen.*
-13. **Ningún dato vive solo en la escena.** Todo número que aparezca
-    junto a una pieza aparece también en un panel. *Se comprueba en la
-    pasada de navegador, con la escena oculta: no falta ningún dato.*
+13. **El reparto se alcanza sin ratón.** Pulsar una pieza abre su ficha
+    con la cantidad y el porcentaje. *Se comprueba en la pasada de
+    navegador disparando un `click`, no un `hover`.*
+
+    > **Reescrito el 2026-09-22.** Decía «ningún dato vive solo en la
+    > escena», y dejó de ser cierto al quitar la tabla de reparto: ahora
+    > vive solo ahí. Un criterio que el producto incumple a propósito no
+    > protege nada, así que se comprueba lo que sí importa — que el dato
+    > se pueda alcanzar en un teléfono, donde no hay hover.
 14. **Las piezas son controles de verdad.** Zona de toque ≥ **44px**,
     foco visible, nombre accesible, y se llega a todas con el tabulador
     en un orden que se entiende. *Comprobable en la pasada de navegador.*

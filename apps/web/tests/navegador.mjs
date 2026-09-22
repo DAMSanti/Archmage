@@ -39,12 +39,16 @@ try {
   page.on('pageerror', (e) => erroresConsola.push(String(e)));
 
   await page.goto(URL, { waitUntil: 'networkidle' });
-  await page.waitForSelector('.recurso__valor', { timeout: 15_000 });
+  // **Se espera al marco, no al panel de recursos.** Ese panel se quitó de
+  // `/reino` el 2026-09-22: los recursos viven arriba y el reparto en la
+  // ficha de cada pieza del mapa.
+  await page.waitForSelector('.marco__cifra', { timeout: 15_000 });
 
   console.log('\n--- escritorio 1280×900 ---');
 
-  const turnos = await page.locator('.recurso').first().innerText();
-  comprobar('la pantalla del reino carga con datos reales', /\d/.test(turnos), turnos.replace(/\n/g, ' '));
+  const arriba0 = await page.locator('.marco--arriba').innerText();
+  comprobar('la pantalla del reino carga con datos reales', /\d/.test(arriba0),
+    arriba0.replace(/\n/g, ' ').slice(0, 70));
 
   // --- El marco y la escena (docs/INTERFAZ.md §6.9 y §6.5) ---------------
   console.log('\n--- el marco y la escena ---');
@@ -95,17 +99,32 @@ try {
     `${porcentaje.toFixed(1)}% del alto a 360×640, tope 20%`,
   );
 
-  // La escena NO aparece en móvil (§5, decidido con el usuario).
+  // **El mapa SÍ aparece en móvil desde el 2026-09-22**, al revés que antes.
+  //
+  // La decisión de esconderlo se tomó cuando `/reino` tenía además la tabla
+  // de reparto; al quitarla, esconder el mapa dejaría el reparto sin ningún
+  // sitio donde verse en un teléfono. Ahora se toca en vez de pasar el ratón.
   comprobar(
-    'en móvil la escena no aparece',
-    await page.locator('.escena-reino').isHidden(),
-    'cede el mapa, no §5: el móvil es el caso principal',
+    'en móvil el mapa SIGUE ahí, porque el reparto vive en él',
+    await page.locator('.mapa').isVisible(),
+  );
+
+  const fichaMovil = await page.evaluate(async () => {
+    const b = document.querySelector('.mapa__pieza');
+    b?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 250));
+    return document.querySelector('.mapa__ficha')?.textContent ?? '';
+  });
+  comprobar(
+    'y al TOCAR una pieza sale su ficha, que es lo que sustituye al hover',
+    /Cantidad/.test(fichaMovil),
+    fichaMovil.replace(/\s+/g, ' ').slice(0, 60),
   );
 
   // Y en escritorio sí, con sus piezas.
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForTimeout(400);
-  const piezas = await page.locator('.escena__pieza').count();
+  const piezas = await page.locator('.mapa__pieza').count();
   comprobar(
     'CRITERIO 11: la escena pinta una pieza por tipo construido',
     piezas > 0 && piezas <= 8,
@@ -114,28 +133,36 @@ try {
 
   comprobar(
     'CRITERIO 5: los rótulos van en placas, no sueltos sobre la imagen',
-    (await page.locator('.escena__placa').count()) === piezas,
+    (await page.locator('.mapa__nombre').count()) === piezas,
   );
 
   // CRITERIO 14: son controles de verdad, no adorno.
   const toque = await page.evaluate(() => {
-    const p = document.querySelector('.escena__pieza');
+    const p = document.querySelector('.mapa__pieza');
     const r = p?.getBoundingClientRect();
     return { alto: r?.height ?? 0, foco: document.activeElement !== null };
   });
   comprobar('CRITERIO 14: las piezas son de dedo (≥44px)', toque.alto >= 44, `${toque.alto}px`);
 
-  // CRITERIO 13: ningún dato vive solo en la escena.
-  const conEscena = await page.locator('main').innerText();
-  await page.evaluate(() => {
-    const e = document.querySelector('.escena-reino');
-    if (e instanceof HTMLElement) e.style.display = 'none';
+  // **CRITERIO 13, reescrito el 2026-09-22.**
+  //
+  // Decía «ningún dato vive solo en la escena», y ya no es verdad: el reparto
+  // de la tierra vive solo ahí desde que se quitó la tabla. Dejarlo como
+  // estaba sería un criterio que el producto incumple a propósito.
+  //
+  // Lo que se comprueba ahora es lo que de verdad protege al jugador: **que
+  // el dato se pueda alcanzar sin ratón**. Si sale al pulsar, sale en un
+  // teléfono; y si no sale, el reparto no existe en la mitad del mundo.
+  const alcanzable = await page.evaluate(async () => {
+    const b = document.querySelector('.mapa__pieza');
+    b?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 250));
+    return document.querySelector('.mapa__ficha')?.textContent ?? '';
   });
-  const sinEscena = await page.locator('main').innerText();
   comprobar(
-    'CRITERIO 13: con la escena oculta no falta ningún número',
-    /geld/i.test(sinEscena) && /farms/i.test(sinEscena.toLowerCase() + conEscena.toLowerCase()),
-    'la escena dice QUÉ; el panel dice CUÁNTO',
+    'CRITERIO 13: el reparto se alcanza sin ratón, pulsando',
+    /Cantidad/.test(alcanzable) && /% de tu tierra/.test(alcanzable),
+    alcanzable.replace(/\s+/g, ' ').slice(0, 60),
   );
 
   await page.screenshot({ path: `${SALIDA}/marco-y-escena.png`, fullPage: true });
@@ -222,7 +249,7 @@ try {
   // Criterio 7: cifras tabulares en las columnas de números.
   const sinTabulares = await page.evaluate(() => {
     const malos = [];
-    for (const el of document.querySelectorAll('.cifra, .recurso__valor, .reparto td')) {
+    for (const el of document.querySelectorAll('.cifra, .marco__cifra, .mapa__datos dd')) {
       const v = getComputedStyle(el).fontVariantNumeric;
       if (!v.includes('tabular-nums')) malos.push(el.className || el.tagName);
     }
@@ -244,14 +271,31 @@ try {
     comprobar(`la pantalla ${nombre} se abre`, (await page.locator('.panel').count()) > 0);
   }
 
+  // **El reparto no se ha perdido, se ha mudado.** Era una tabla y ahora es
+  // la ficha de cada pieza. §3 lo sigue pidiendo «de un vistazo», así que si
+  // esto falla es que el dato desapareció del juego.
+  await page.getByRole('button', { name: 'Reino' }).click();
+  await page.waitForTimeout(400);
+  await page.locator('.mapa__pieza').first().hover();
+  await page.waitForTimeout(400);
+  const ficha = await page.locator('.mapa__ficha').first().innerText();
+  comprobar(
+    'el reparto de la tierra sigue estando, en la ficha del mapa',
+    /Cantidad/.test(ficha) && /% de tu tierra/.test(ficha) && /\d/.test(ficha),
+    ficha.replace(/\n+/g, ' | '),
+  );
+
   // --- Una acción de verdad ---------------------------------------------
   console.log('\n--- una acción real ---');
   await page.getByRole('button', { name: 'Reino' }).click();
   await page.waitForTimeout(300);
-  const tierraAntes = await page.locator('.recurso').nth(4).innerText();
+  // La tierra se lee del marco, que es donde vive desde el 2026-09-22.
+  const tierra = () =>
+    page.locator('.marco__recurso', { hasText: 'Tierra' }).first().innerText();
+  const tierraAntes = await tierra();
   await page.getByRole('button', { name: 'Explorar' }).click();
   await page.waitForTimeout(900);
-  const tierraDespues = await page.locator('.recurso').nth(4).innerText();
+  const tierraDespues = await tierra();
   comprobar(
     'explorar cambia la tierra en pantalla',
     tierraAntes !== tierraDespues,
@@ -268,7 +312,7 @@ try {
   });
   const mp = await movil.newPage();
   await mp.goto(URL, { waitUntil: 'networkidle' });
-  await mp.waitForSelector('.recurso__valor', { timeout: 15_000 });
+  await mp.waitForSelector('.marco__cifra', { timeout: 15_000 });
 
   const scrollH = await mp.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
@@ -309,7 +353,7 @@ try {
   await sinImg.route('**/*.{png,jpg,jpeg,webp,avif,svg}', (r) => r.abort());
   const sp = await sinImg.newPage();
   await sp.goto(URL, { waitUntil: 'networkidle' });
-  await sp.waitForSelector('.recurso__valor', { timeout: 15_000 });
+  await sp.waitForSelector('.marco__cifra', { timeout: 15_000 });
 
   const legibleSinImagenes = await sp.evaluate(() => {
     const body = getComputedStyle(document.body);
@@ -317,7 +361,7 @@ try {
     return {
       fondo: body.backgroundColor,
       hayPanel: !!panel,
-      textoVisible: (document.querySelector('.recurso__valor')?.textContent ?? '').trim().length > 0,
+      textoVisible: (document.querySelector('.marco__cifra')?.textContent ?? '').trim().length > 0,
     };
   });
   comprobar(
