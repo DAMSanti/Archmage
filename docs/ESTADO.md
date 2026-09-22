@@ -26,7 +26,16 @@ El repositorio contiene, a día de hoy:
 | Bundle del cliente | **256 KB** de JS + **9,6 KB** de CSS; **74 KB** y **2,5 KB** comprimidos |
 
 **La fase 1 está implementada: tareas 1 a 21 de 22.** Queda la **22**, la
-tanda de assets, que espera una sesión con el usuario. **La fase 2 está
+tanda de assets, que espera una sesión con el usuario.
+
+> **Este documento tenía razón y el ROADMAP no.** La tarea 22 estaba
+> marcada `[x]` allí, con la nota de HECHO de otra tarea pegada debajo.
+> Corregido el 2026-09-22, al ir a escribir la spec de la tanda: en el
+> repositorio no hay ni un asset salvo el favicon.
+>
+> **Y ya no son 26 piezas, son 55** (`docs/ASSETS.md §8.4`): desde que se
+> escribió aquella tarea se implementaron las trece pantallas, el marco
+> persistente y la escena del reino. **La fase 2 está
 completa.** **La fase 3 está completa: las 22 tareas.** Hay guerra — tres tipos de
 ataque, batallas repetibles con semilla guardada, tierra que cambia de
 manos, héroes, items, y las pantallas de `/guerra` y `/batalla/:id`.

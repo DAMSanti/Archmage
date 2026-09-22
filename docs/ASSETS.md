@@ -19,9 +19,25 @@ propósito**, y conviven porque nunca se tocan:
 
 | Estilo | Para qué | Dónde vive |
 |---|---|---|
-| **Icono vectorial plano** | Escuelas, edificios, recursos, rangos, unidades | **Siempre dentro de un panel**, sobre `--panel` |
+| **Icono vectorial plano** | Escuelas, edificios, recursos, rangos, unidades, barra | **Siempre dentro de un panel**, sobre `--panel` |
+| **Pieza pintada** | Los ocho edificios **en la escena del reino** | Sobre el paisaje de `/reino`, con su placa opaca |
 | **Ilustración pintada** | Un fondo por pantalla | **Detrás y alrededor de los paneles**, nunca bajo el texto |
 | **Ornamento** | Marcos, esquinas, filetes | El borde de los paneles |
+
+> **La «pieza pintada» es nueva del 2026-09-22**, y es una decisión del
+> usuario a partir de su referencia visual. **Los ocho edificios se
+> generan dos veces**: plano para las tablas y la barra, pintado para la
+> escena.
+>
+> El motivo es sencillo de ver: una pieza plana sobre un paisaje pintado
+> se ve **pegada encima**, no puesta dentro. Y el motivo de no hacerlo
+> todo pintado también: un icono pintado a **24px** en la barra inferior
+> es una mancha marrón (§8.3).
+>
+> **Lo que cuesta, dicho:** ocho generaciones más, y un presupuesto de
+> peso más apretado en `/reino` ([INTERFAZ.md §6.7](INTERFAZ.md),
+> criterio 17) — **≤ 120 KB de fondo y ≤ 12 KB por pieza**, frente a los
+> 150 KB de fondo que tienen las demás pantallas.
 
 **La regla que hace que no choquen: el icono plano nunca se dibuja sobre
 la ilustración.** Si alguna vez hay que poner un icono encima de un
@@ -134,9 +150,18 @@ more ornate and glowing at higher levels, [estilo base]
 
 ## 7. Unidades
 
-**[abierto]** El inventario completo depende de la lista de unidades, que
-todavía no está cerrada ([SISTEMAS.md §8](SISTEMAS.md)). El patrón, con
-la única unidad confirmada del original:
+**La lista ya no está abierta: son 113**, publicadas enteras
+([ORIGINAL.md §7.3](ORIGINAL.md), 2026-09-22) — 93 de las cinco escuelas
+y 20 de Plain.
+
+**Pero no entran en la tanda del 2026-09-22**, y el motivo es concreto:
+**93 de esas 113 son de las cuatro escuelas que todavía no están en el
+catálogo** ([SISTEMAS.md §7.2](SISTEMAS.md) es una spec sin implementar).
+Generar su arte ahora es generar arte para unidades que aún pueden
+cambiar de ficha, de habilidad o de nombre al implementarlas.
+
+Se generan **después**, y en su propia tanda. El patrón, con la única
+unidad confirmada del original:
 
 ```
 fantasy game icon of a majestic unicorn charging into battle,
@@ -292,6 +317,294 @@ minimal detail, legible at 24 pixels, [estilo base]
 
 ---
 
+## 8.4. La tanda del 2026-09-22 — qué se genera y en qué orden
+
+**Spec del 2026-09-22.** Cierra la tarea de assets de la fase 1, que
+llevaba pendiente desde el 2026-09-21 y **estaba marcada como hecha por
+error** (ver el ROADMAP).
+
+**Son 55 piezas.** La tarea original hablaba de 26 —las de la fase 1—,
+pero desde entonces se implementaron las trece pantallas, el marco
+persistente y la escena del reino, así que el inventario de entonces se
+quedó corto. Decidido con el usuario: **entra todo lo que ya se ve**.
+
+| Tanda | Qué | Cuántas | Estilo |
+|---|---|---:|---|
+| **0** | La prueba: Verdant y Nether | 2 | plano |
+| **1** | Iconos de escuela | 6 | plano |
+| **2** | Iconos de edificio | 8 | plano |
+| **3** | Iconos de recurso | 6 | plano |
+| **4** | Iconos de la barra inferior | 7 | plano |
+| **5** | Rangos de hechizo | 5 | plano |
+| **6** | Ornamento | 2 | pintado |
+| **7** | El paisaje de `/reino` | 1 | pintado |
+| **8** | Las piezas pintadas de la escena | 8 | **pintado** |
+| **9** | Los otros doce fondos | 12 | pintado |
+
+**El orden no es capricho, y ahorra trabajo:**
+
+1. **La tanda 0 es una prueba, no un entregable.** Dos iconos, y de los
+   dos **el que importa es Nether**: es la única escuela cuyo color
+   nominal —negro— es invisible sobre `--panel`, así que es donde el
+   estilo se rompe primero. Si esos dos no convencen, se cambia la
+   coletilla **antes** de las otras cincuenta y tres. Repetir veinte
+   generaciones con un estilo que no encaja es el error caro de esta
+   parte (§2).
+2. **Los planos antes que los pintados**, porque son más baratos de
+   repetir y porque fijan la paleta.
+3. **El paisaje de `/reino` antes que sus piezas** (tanda 7 antes que la
+   8). Las piezas hay que juzgarlas **sobre el fondo en el que van a
+   estar**, no sobre blanco — es el riesgo propio de tener dos estilos.
+4. **Los otros doce fondos al final**, porque son los que menos dependen
+   de lo demás y los más caros de generar.
+
+---
+
+### Tanda 0 — la prueba
+
+Dos, y se enseñan antes de seguir.
+
+```
+flat vector game icon of a verdant nature magic sigil, an oak leaf
+wrapped in vines over a circular rune, deep green #4e9e4a,
+flat vector game icon, clean bold outlines, simple shading,
+dark fantasy medieval palette, centered composition,
+transparent background, no text, no watermark
+```
+
+```
+flat vector game icon of a nether death magic sigil, a horned skull
+over a hollow circular void, dark body with a bright ash-violet rim
+#8574a0, the silhouette must stay readable against a very dark
+background, flat vector game icon, clean bold outlines, simple shading,
+dark fantasy medieval palette, centered composition,
+transparent background, no text, no watermark
+```
+
+> **Nether lleva instrucción propia y es a propósito.** Su color canónico
+> es el negro, y el negro sobre `#1e1813` no se ve
+> ([INTERFAZ.md §6.3](INTERFAZ.md)). La identidad la llevan **la forma
+> —calavera, vacío— y un reborde claro**, no el relleno. Es la única
+> escuela que se separa de su color nominal, y se separa porque el color
+> nominal es invisible.
+
+---
+
+### Tanda 1 — los seis iconos de escuela
+
+Los dos de arriba más estos cuatro. **De una sola tanda**, porque tienen
+que leerse como un conjunto (§2).
+
+```
+flat vector game icon of an ascendant holy magic sigil, radiant winged
+halo over a circular rune, warm off-white #f2ead8, [estilo base]
+```
+
+```
+flat vector game icon of an eradication fire magic sigil, a bursting
+flame over a cracked circular rune, red #d1442c, [estilo base]
+```
+
+```
+flat vector game icon of a phantasm illusion magic sigil, a spiral eye
+over a circular rune, blue #3f7fc4, [estilo base]
+```
+
+```
+flat vector game icon of a plain colourless magic sigil, an empty
+circular rune with no element inside, muted grey-brown, deliberately
+the least ornate of the six, [estilo base]
+```
+
+> **Plain tiene que verse como el punto de partida**, no como una sexta
+> escuela: es el mago sin color (§3 de [SISTEMAS.md](SISTEMAS.md)). Si
+> sale tan vistoso como los otros cinco, está mal.
+
+---
+
+### Tanda 2 — los ocho edificios, planos
+
+Para las tablas y la barra. Los prompts están en **§4** y no se repiten
+aquí; lo único que se añade es que **se juzgan a 24px además de a tamaño
+de tabla**, porque tres de ellos acaban también en la barra inferior.
+
+---
+
+### Tanda 3 — los seis recursos
+
+En **§5**. El del **turno merece más de un intento**: es la moneda del
+juego ([SISTEMAS.md §2](SISTEMAS.md)) y va en el marco persistente, a la
+vista en las trece pantallas.
+
+---
+
+### Tanda 4 — los siete de la barra inferior
+
+Siete, que son las entradas cerradas en
+[INTERFAZ.md §6.9](INTERFAZ.md). **Llevan etiqueta de texto debajo**, así
+que el icono no carga solo con el significado — por eso pueden ser
+simples, y a 24px tienen que serlo.
+
+```
+simple fantasy game UI icon of a castle keep with a banner,
+bold silhouette, minimal detail, legible at 24 pixels, [estilo base]
+```
+
+```
+simple fantasy game UI icon of a crossed sword and spear,
+bold silhouette, minimal detail, legible at 24 pixels, [estilo base]
+```
+
+```
+simple fantasy game UI icon of an open spellbook with a rune,
+bold silhouette, minimal detail, legible at 24 pixels, [estilo base]
+```
+
+```
+simple fantasy game UI icon of a war banner over crossed blades,
+bold silhouette, minimal detail, legible at 24 pixels, [estilo base]
+```
+
+```
+simple fantasy game UI icon of an open chronicle scroll with a quill,
+bold silhouette, minimal detail, legible at 24 pixels, [estilo base]
+```
+
+```
+simple fantasy game UI icon of a sealed letter with a wax seal,
+bold silhouette, minimal detail, legible at 24 pixels, [estilo base]
+```
+
+```
+simple fantasy game UI icon of three horizontal dots in a row meaning
+more options, bold silhouette, minimal detail, legible at 24 pixels,
+[estilo base]
+```
+
+---
+
+### Tanda 5 — los cinco rangos de hechizo
+
+El patrón está en **§6**: el mismo icono base ganando ornamento y brillo,
+de Simple a Ancient. **Se generan los cinco juntos o la progresión no se
+lee**: lo que tiene que quedar claro no es cada uno, sino que el cuarto
+es más que el tercero.
+
+---
+
+### Tanda 6 — el ornamento
+
+Las dos piezas de **§8.1**. Se generan una vez y se reutilizan en las
+trece pantallas, y **desaparecen en móvil**, así que no merecen más.
+
+---
+
+### Tanda 7 — el paisaje de `/reino`
+
+**Uno solo, y es el más importante de todos los fondos**, porque es el
+único que lleva piezas encima. El prompt entero está en **§8.2**, con su
+`no buildings` — que es lo que más fácil ignora un generador al oír
+«reino», y lo que lo estropearía del todo.
+
+**Presupuesto: ≤ 120 KB**, no los 150 de los demás. El porqué está en
+[INTERFAZ.md §6.7](INTERFAZ.md), criterio 17.
+
+---
+
+### Tanda 8 — las ocho piezas pintadas de la escena
+
+**Las mismas ocho de la tanda 2, otra vez y con otro estilo.** Van sobre
+el paisaje de la tanda 7, así que **se juzgan sobre él**.
+
+La coletilla es distinta, y sustituye a `[estilo base]`:
+
+```
+painterly fantasy building, three-quarter view from slightly above,
+dark medieval fantasy atmosphere, muted warm palette, soft rim light,
+transparent background, no ground shadow, no text, no characters,
+readable as a single silhouette at 46 pixels
+```
+
+En los ocho prompts aparece como `[estilo pieza]`.
+
+```
+a medieval farmstead with wheat fields and a small barn, [estilo pieza]
+```
+
+```
+a small walled town with tiled rooftops and a gate, [estilo pieza]
+```
+
+```
+a glowing arcane mana node, a floating crystal over a ley-line circle,
+[estilo pieza]
+```
+
+```
+a craftsman workshop with an anvil, a chimney and scaffolding,
+[estilo pieza]
+```
+
+```
+a barracks with banners, a weapon rack and a training post,
+[estilo pieza]
+```
+
+```
+an arcane mage guild hall with a domed roof and floating runes,
+[estilo pieza]
+```
+
+```
+a stone fortress keep with battlements and a portcullis, [estilo pieza]
+```
+
+```
+a translucent magical ward barrier, a glowing hexagonal shield over
+standing stones, [estilo pieza]
+```
+
+> **`no ground shadow` no es un detalle.** Cada pieza se coloca por CSS
+> sobre el paisaje, y una sombra pintada llevaría dentro un sol que no
+> coincide con el del fondo. La sombra, si hace falta, la pone el CSS.
+>
+> **Y `readable as a single silhouette at 46 pixels`** es el tamaño real
+> al que se pintan hoy. Una pieza preciosa con detalle de tejado que a
+> 46px es una mancha está mal aunque sea preciosa.
+
+---
+
+### Tanda 9 — los otros doce fondos
+
+**Doce, no nueve.** §8 listaba diez pantallas y desde entonces se
+implementaron tres más —`/habilidades` en la fase 4, `/mensajes` y
+`/temporada` en la fase 5—, así que la tabla de §8 se quedó corta. Menos
+`/reino`, que ya salió en la tanda 7, quedan doce.
+
+Los nueve de §8 conservan su motivo. Los tres que faltaban:
+
+```
+a study table with an open ledger of personal disciplines and a
+polished mirror, [coletilla de fondo]
+```
+
+```
+a quiet message room with pigeonholes, sealed letters and a
+noticeboard, [coletilla de fondo]
+```
+
+```
+a vast starry vault with seven great seals carved in stone, one of them
+cracked, [coletilla de fondo]
+```
+
+> El de `/temporada` lleva **siete sellos y uno roto** a propósito: es la
+> pantalla que contesta «¿para qué juego?»
+> ([INTERFAZ.md §3.9](INTERFAZ.md)), y puede permitirse ser solemne. Lo
+> que no puede es prometer un número de sellos distinto de siete.
+
+---
+
 ## 9. Fuera de alcance
 
 - **Retratos de héroe individuales.** Son decenas y cambian con el
@@ -305,6 +618,11 @@ minimal detail, legible at 24 pixels, [estilo base]
   ([INTERFAZ.md §6.1](INTERFAZ.md)).
 - **Arte generado en tiempo de ejecución.** Todo asset se genera una vez,
   se revisa y se exporta al repositorio.
+- **Los 113 iconos de unidad** (§7), hasta que las cuatro escuelas estén
+  implementadas. Es la tanda siguiente, no ésta.
+- **Piezas pintadas de nada que no sean los ocho edificios.** La escena
+  es emblemática ([INTERFAZ.md §6.5](INTERFAZ.md)): ocho piezas y no
+  crece.
 
 ---
 
@@ -320,3 +638,24 @@ minimal detail, legible at 24 pixels, [estilo base]
    panel opaco les tapa el 70% central (§8).
 5. **La interfaz se ve completa sin ningún asset cargado**
    ([INTERFAZ.md §6.7](INTERFAZ.md)). Si falta un icono, hay texto.
+
+**Y los de la tanda del 2026-09-22:**
+
+6. **Los iconos de la barra se leen a 24px.** Se mira **a tamaño real**,
+   no ampliados: un icono se juzga al tamaño al que se va a ver, y a
+   24px la mitad del detalle desaparece. *Se comprueba en la pasada de
+   navegador, que ya mira la barra.*
+7. **`/reino` cabe en su presupuesto repartido**: fondo ≤ 120 KB, cada
+   pieza pintada ≤ 12 KB, y el total de la pantalla ≤ 250 KB. *Se mide
+   en el build.* Es más apretado que el de las demás pantallas, y el
+   porqué está en [INTERFAZ.md §6.7](INTERFAZ.md), criterio 17.
+8. **Las ocho piezas pintadas se leen como un conjunto entre sí Y con el
+   paisaje** sobre el que van. Es el riesgo propio de tener dos estilos:
+   ocho piezas preciosas que parecen recortadas de ocho cuadros
+   distintos. *Se mira la escena entera, no pieza a pieza.*
+9. **Nether se mira sobre `#1e1813` antes de dar el set por bueno.** Es
+   la única escuela cuyo color nominal es invisible sobre el fondo
+   ([INTERFAZ.md §6.3](INTERFAZ.md)), y la que más fácil sale mal.
+10. **Ningún fondo trae edificios pintados.** El de `/reino` sobre todo
+    (§8.2): si el paisaje ya trae un castillo, el reino enseña algo que
+    el mago no ha construido. *Se mira el fondo solo, sin piezas.*

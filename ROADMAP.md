@@ -14,6 +14,62 @@ que evita rehacer la fase 1 en la 3.
 
 ## En curso
 
+### La tanda de arte — spec escrita, sin generar
+
+**Spec y criterios de aceptación:
+[docs/ASSETS.md §8.4](docs/ASSETS.md)**, con los prompts tanda a tanda.
+Escrita el 2026-09-22 con `/spec`. Toca además
+[docs/ASSETS.md §1, §7, §9 y §10](docs/ASSETS.md) y
+[docs/INTERFAZ.md §6.5 y §6.7](docs/INTERFAZ.md).
+
+**Empieza por una corrección: la tarea 22 de la fase 1 estaba marcada
+como hecha y no lo estaba.** La nota de HECHO que llevaba debajo es de
+otra tarea —habla de duelos de unidades y de `powerRank`—, y en el
+repositorio no hay ni un asset salvo el favicon. `docs/ESTADO.md` lo
+decía bien; el ROADMAP, no.
+
+**Son 55 piezas, no las 26 de entonces.** Desde que se escribió aquella
+tarea se implementaron las trece pantallas, el marco persistente y la
+escena del reino, así que el inventario se quedó corto. Decidido con el
+usuario: **entra todo lo que ya se ve**.
+
+**Tres decisiones tomadas con el usuario:**
+
+- **Un tercer estilo: la pieza pintada.** Los ocho edificios se generan
+  **dos veces** — plano para las tablas y la barra, pintado para la
+  escena. Una pieza plana sobre un paisaje pintado se ve pegada encima; y
+  un icono pintado a 24px en la barra es una mancha.
+- **Todo lo que ya se ve**, no solo lo que declaró la fase 1: trece
+  fondos en vez de cuatro, más los siete de la barra y los cinco de rango
+  de hechizo.
+- **Los prompts van por tandas**, en orden de generación, empezando por
+  una prueba de dos iconos.
+
+**Una premisa mía que se cayó, y la escribí yo hace dos horas.**
+`INTERFAZ.md §6.5` regla 11 decía que las piezas de la escena «son los
+iconos que ya existen para las tablas: **no hay un segundo juego de
+arte**», y el criterio 17 apoyaba **en eso** el presupuesto de peso —
+llegué a escribir que un segundo juego «es señal de que la escena se está
+yendo de madre». Elegir piezas pintadas crea exactamente ese segundo
+juego. La decisión es buena, pero **la regla y el criterio se han
+reescrito**, no dejado como estaban: el techo de 250 KB de `/reino` se
+reparte ahora en **≤ 120 KB de fondo y ≤ 12 KB por pieza**, y el fondo de
+esa pantalla tiene 30 KB menos que los demás.
+
+**Lo que NO entra, y se declara:** los **113 iconos de unidad**. La lista
+se cerró el 2026-09-22 —están publicados— pero **93 son de las cuatro
+escuelas que todavía no están en el catálogo**. Generar su arte ahora es
+generarlo para unidades que aún pueden cambiar.
+
+**Y esto no es una tanda de código.** Es una sesión de generar y revisar
+imágenes con el usuario, con su cuenta de Gemini Pro. `/plan-tarea` puede
+sacar las tareas de integración —exportar, medir el peso, enchufar cada
+asset a su hueco— pero **las generaciones las hace el usuario**.
+
+Sin tareas todavía: las saca `/plan-tarea`.
+
+---
+
 ### Las cuatro escuelas que faltan — spec escrita, sin implementar
 
 **Spec y criterios de aceptación:
@@ -1736,12 +1792,37 @@ sin ningún asset.
 
 **Assets**
 
-- [x] **22. Tanda de fase 1.** 4 fondos, 6 iconos de escuela, 8 de
+- [ ] **22. Tanda de fase 1.** 4 fondos, 6 iconos de escuela, 8 de
       edificio, 6 de recurso y 2 de ornamento
       ([docs/ASSETS.md](docs/ASSETS.md)). **Una sola sesión con el
       usuario**, y Nether se mira sobre `#1e1813` antes de dar el set por
       bueno.
 
+      > **NO ESTABA HECHA, y estaba marcada como tal.** Corregido el
+      > 2026-09-22 al escribir la spec de la tanda.
+      >
+      > La casilla estaba en `[x]` y **la nota de HECHO que llevaba
+      > debajo es de otra tarea**: habla de duelos de unidades, de
+      > `powerRank` y de los criterios 10 y 11 de la calibración de la
+      > guerra. Se pegó aquí por error y se queda debajo, porque su
+      > contenido es bueno y no hay que perderlo — pero no describe esta
+      > tarea.
+      >
+      > **Comprobado en disco antes de afirmarlo**: en el repositorio no
+      > hay ni un `.webp`, ni un `.png`, ni un `.svg` que no sea el
+      > favicon. No se generó nada.
+      >
+      > `docs/ESTADO.md` lo decía bien todo el tiempo —«queda la 22, la
+      > tanda de assets»— y el ROADMAP decía lo contrario. **De los dos
+      > documentos que se contradecían, el que mentía era el que marca
+      > las tareas.**
+      >
+      > La tarea sigue viva y crece: la spec del 2026-09-22 la reemplaza
+      > por **55 piezas**, en `docs/ASSETS.md §8.4`. Ver «En curso».
+      >
+      > --- *lo que sigue es la nota mal pegada, de la calibración de la
+      > guerra* ---
+      >
       > **HECHO (2026-09-21).** Doce unidades enfrentadas todas contra
       > todas a igual net power, 6 semillas por duelo.
       >

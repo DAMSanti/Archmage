@@ -539,8 +539,19 @@ siempre:
     porque no hay ninguna que no se pueda tocar: si un tipo de edificio
     está en la escena, tiene su panel. Lo que no tienes, no aparece.
 11. **Sigue siendo una ilustración por pantalla** (regla 4). La escena es
-    **un fondo más las ocho piezas**, y las piezas son los iconos que ya
-    existen para las tablas: no hay un segundo juego de arte.
+    **un fondo más las ocho piezas**.
+
+    > **Corregido el 2026-09-22.** Esta regla decía que «las piezas son
+    > los iconos que ya existen para las tablas: no hay un segundo juego
+    > de arte». **Lo hay**: el usuario eligió que las piezas de la escena
+    > sean **pintadas**, para que se parezca a la referencia visual de la
+    > que salió §6.5, mientras las tablas y la barra siguen con el icono
+    > plano que pide [ASSETS.md §1](ASSETS.md).
+    >
+    > Es una decisión suya y está bien tomada —una pieza plana sobre un
+    > paisaje pintado se ve pegada—, pero **no se puede dejar esta regla
+    > diciendo lo contrario**, porque el criterio 17 se apoyaba en ella.
+    > El presupuesto se rehace abajo.
 12. **Y sigue funcionando sin ninguna imagen** (regla 3). Sin la escena,
     `/reino` es la pantalla de paneles que ya era. Ése es además el
     estado normal en móvil (§5).
@@ -692,10 +703,28 @@ navegador:
     criterio 8. Es el riesgo real de poner dos barras fijas en un juego
     de leer tablas.
 17. **Y el peso no sube por la escena.** El criterio 6 (≤ 250 KB por
-    pantalla) **incluye las piezas**. Se cumple porque son los iconos que
-    ya se cargan para las tablas; si alguna vez hiciera falta un segundo
-    juego de arte para la escena, es señal de que la escena se está
-    yendo de madre.
+    pantalla) **incluye las piezas**.
+
+    > **Rehecho el 2026-09-22, y el motivo es que la premisa se cayó.**
+    > Este criterio decía que se cumplía «porque son los iconos que ya se
+    > cargan para las tablas», y añadía que un segundo juego de arte
+    > «es señal de que la escena se está yendo de madre». El usuario
+    > eligió piezas pintadas, que **son** ese segundo juego.
+    >
+    > Así que el presupuesto no se hereda: se reparte. Para `/reino`, y
+    > solo para `/reino`, el techo de 250 KB se divide en **≤ 120 KB de
+    > fondo**, **≤ 12 KB por pieza pintada** —96 KB las ocho— y el resto
+    > para el ornamento. Suma **236 KB** y cabe.
+    >
+    > **La consecuencia, dicha: el fondo de `/reino` tiene 30 KB menos
+    > que los de las demás pantallas.** Es el precio de que la escena se
+    > vea como la referencia, y es un precio pequeño — ese fondo es un
+    > paisaje con el centro despejado (ASSETS §8.2), que es justo el tipo
+    > de imagen que mejor comprime.
+    >
+    > Y si al generarlo no cupiera, **lo que cede es la pieza**, no el
+    > fondo: ocho piezas de 8 KB siguen siendo ocho piezas, y un paisaje
+    > de 90 KB empieza a verse sucio.
 
 ### 6.8. Fuera de alcance
 
