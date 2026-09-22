@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { IconoEscuela } from '../components/IconoEscuela.js';
 import type { MageResponse } from '@archmage/contract';
 import { type RankingRow, fetchRanking } from '../api.js';
 
@@ -45,6 +46,7 @@ export function Ranking({ data }: { data: MageResponse }) {
         <ul className="lista">
           {filas.map((f, i) => (
             <li key={f.id} className="recurso__nota">
+              <IconoEscuela escuela={f.specialty} />
               <strong>
                 {i + 1}. {f.name}
               </strong>

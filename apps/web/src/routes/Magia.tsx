@@ -17,6 +17,7 @@
  */
 
 import { useState } from 'react';
+import { IconoEscuela } from '../components/IconoEscuela.js';
 import type { ActionInput, MageResponse } from '@archmage/contract';
 import { num, plural } from '../tokens.js';
 
@@ -83,7 +84,12 @@ export function Magia({ data, onAction, ocupado }: MagiaProps) {
         <div className="recursos">
           <div className="recurso">
             <div className="recurso__nombre">Escuela</div>
-            <div className="recurso__valor">{ESCUELA[mage.specialty] ?? mage.specialty}</div>
+            {/* El icono acompaña al nombre, no lo sustituye: si no está
+                generado, el nombre sigue diciendo cuál es (ASSETS §3). */}
+            <div className="recurso__valor recurso__valor--conicono">
+              <IconoEscuela escuela={mage.specialty} tam={64} />
+              {ESCUELA[mage.specialty] ?? mage.specialty}
+            </div>
             <div className="recurso__nota">no cambia durante la temporada</div>
           </div>
           <div className="recurso">

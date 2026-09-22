@@ -828,3 +828,20 @@ input[type='number'] {
     font-size: 0.68rem;
   }
 }
+
+/* --- El icono de escuela -----------------------------------------------
+ * docs/ASSETS.md §3. Solo donde se habla de una escuela (INTERFAZ §6.3).
+ */
+
+.icono-escuela {
+  vertical-align: middle;
+  margin-right: 8px;
+  /* Sin fondo propio: el icono ya trae alfa, y va sobre --panel. */
+  display: inline-block;
+}
+
+.recurso__valor--conicono {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
